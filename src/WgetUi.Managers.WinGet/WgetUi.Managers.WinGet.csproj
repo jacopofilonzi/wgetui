@@ -14,7 +14,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsPackageManager.ComInterop" Version="1.29.380" />
+    <PackageReference Include="Microsoft.WindowsPackageManager.ComInterop" Version="1.29.380" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WgetUi.Managers.WinGet.Tests" />
+  </ItemGroup>
+
+  <!-- The package copies its activation factory DLL and winmd only into projects that reference it directly
+       (build/, not buildTransitive/). Without them next to the exe, activation fails with
+       REGDB_E_CLASSNOTREG (no DLL) or 0x80073D54 (no winmd). Carry it as content so every app referencing this project gets it. -->
+  <ItemGroup>
+    <None Include="$(PkgMicrosoft_WindowsPackageManager_ComInterop)/bin/$(RuntimeIdentifier)/native/static/Microsoft.Management.Deployment.dll"
+          Link="Microsoft.Management.Deployment.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+    <None Include="$(PkgMicrosoft_WindowsPackageManager_ComInterop)/lib/uap10.0/Microsoft.Management.Deployment.winmd"
+          Link="Microsoft.Management.Deployment.winmd"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
   </ItemGroup>
 </Project>

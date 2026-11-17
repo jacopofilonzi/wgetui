@@ -9,7 +9,6 @@
     <AssemblyName>wgetui</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <MicrosoftManagementDeployment-FactoryLinkage>static</MicrosoftManagementDeployment-FactoryLinkage>
   </PropertyGroup>
 
   <ItemGroup>
