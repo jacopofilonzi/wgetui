@@ -24,19 +24,27 @@
       <ListBox ItemsSource="{Binding Upgrades}" Background="Transparent">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PackageRowViewModel">
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="16" Margin="0,4">
+            <Grid ColumnSpacing="16" Margin="0,4">
+              <Grid.ColumnDefinitions>
+                <!-- Name and versions share the free width (3:2) and both trim, so a long version
+                     can't push the badge and button out of the row when the window is narrow. -->
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
               <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                 <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Panel>
-                  <TextBlock Text="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
-                  <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" />
+              <Grid Grid.Column="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Panel Grid.Column="0" HorizontalAlignment="Right">
+                  <TextBlock Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
+                  <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" TextTrimming="CharacterEllipsis" />
                 </Panel>
-                <TextBlock Classes="Secondary" Text="→" />
-                <TextBlock Classes="RowTitle" Text="{Binding AvailableVersion}" />
-              </StackPanel>
+                <TextBlock Grid.Column="1" Classes="Secondary" Text="→" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Classes="RowTitle Version" Text="{Binding AvailableVersion}" ToolTip.Tip="{Binding AvailableVersion}" HorizontalAlignment="Left" />
+              </Grid>
               <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
               <Button Grid.Column="3" Content="{l:Tr Updates_Upgrade}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
             </Grid>

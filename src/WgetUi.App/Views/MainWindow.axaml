@@ -13,7 +13,7 @@
                   IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
                   Title="{l:Tr Banner_ManagerUnavailable}"
                   Message="{Binding BannerMessage}" />
-    <ui:FANavigationView Grid.Row="1" x:Name="Nav" PaneDisplayMode="Left" IsSettingsVisible="False"
+    <ui:FANavigationView Grid.Row="1" x:Name="Nav" PaneDisplayMode="Auto" IsSettingsVisible="False"
                          IsBackButtonVisible="False" OpenPaneLength="220">
       <!-- nav | page | queue panel -->
       <Grid ColumnDefinitions="*,Auto">

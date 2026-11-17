@@ -32,13 +32,19 @@
       <ListBox ItemsSource="{Binding Results}" Background="Transparent">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PackageRowViewModel">
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="16" Margin="0,4">
+            <Grid ColumnSpacing="16" Margin="0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
               <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                 <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" />
               </StackPanel>
               <Panel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
+                <TextBlock Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
                 <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" />
               </Panel>
               <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
