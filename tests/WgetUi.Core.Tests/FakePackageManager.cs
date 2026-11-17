@@ -13,7 +13,7 @@ internal sealed class FakePackageManager : IPackageManager
     private readonly ConcurrentDictionary<string, Func<Package, IProgress<OperationProgress>, CancellationToken, Task<OperationResult>>> _behaviours = new();
     private int _running;
 
-    public FakePackageManager(string id = "fake", ManagerCapabilities capabilities = ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade | ManagerCapabilities.Progress | ManagerCapabilities.Cancel)
+    public FakePackageManager(string id = "fake", ManagerCapabilities capabilities = ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.Agreements)
     {
         Id = id;
         Capabilities = capabilities;
@@ -41,6 +41,12 @@ internal sealed class FakePackageManager : IPackageManager
 
     public int MaxConcurrency { get; private set; }
 
+    /// <summary>Options each install/upgrade received, by package id.</summary>
+    public ConcurrentDictionary<string, OperationOptions> ReceivedOptions { get; } = new();
+
+    /// <summary>Agreements per package id; packages not listed have none.</summary>
+    public ConcurrentDictionary<string, Func<Package, PackageAgreements>> Agreements { get; } = new();
+
     public Package Package(string id, string? version = "1.0", string? available = null) => new(Id, "main", id, id, version, available);
 
     public void OnOperation(string packageId, Func<Package, IProgress<OperationProgress>, CancellationToken, Task<OperationResult>> behaviour) =>
@@ -58,14 +64,18 @@ internal sealed class FakePackageManager : IPackageManager
     public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) =>
         UpgradesBehaviour?.Invoke(includeUnknown, cancellationToken) ?? Task.FromResult<IReadOnlyList<Package>>([]);
 
-    public Task<OperationResult> InstallAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunAsync(package, progress, cancellationToken);
+    public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) =>
+        Task.FromResult(Agreements.TryGetValue(package.Id, out var agreements) ? agreements(package) : PackageAgreements.None(package));
 
-    public Task<OperationResult> UpgradeAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunAsync(package, progress, cancellationToken);
+    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        RunAsync(package, options, progress, cancellationToken);
 
-    private async Task<OperationResult> RunAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        RunAsync(package, options, progress, cancellationToken);
+
+    private async Task<OperationResult> RunAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
+        ReceivedOptions[package.Id] = options;
         var now = Interlocked.Increment(ref _running);
         MaxConcurrency = Math.Max(MaxConcurrency, now);
         Started.Enqueue(package.Id);

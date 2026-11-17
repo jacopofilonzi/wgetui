@@ -108,4 +108,20 @@ public class WinGetMappingTests
         Assert.Contains("0x8A150011", result.Message, StringComparison.Ordinal);
         Assert.Contains("1603", result.Message, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("Store License Terms", null, "https://aka.ms/microsoft-store-license", "Store License Terms")]
+    [InlineData("  Category ", "Social", "", "Category")]
+    [InlineData(null, null, "https://example.test/terms", "https://example.test/terms")]
+    public void AgreementsAreCleanedUp(string? label, string? text, string? url, string expectedLabel)
+    {
+        var agreement = WinGetMapping.ToAgreement(label, text, url);
+
+        Assert.NotNull(agreement);
+        Assert.Equal(expectedLabel, agreement.Label);
+        Assert.Equal(string.IsNullOrWhiteSpace(url) ? null : url, agreement.Url);
+    }
+
+    [Fact]
+    public void EmptyAgreementIsDropped() => Assert.Null(WinGetMapping.ToAgreement(" ", null, ""));
 }

@@ -18,4 +18,7 @@ public enum ManagerCapabilities
 
     /// <summary>Can list upgrades for packages whose installed version is unknown.</summary>
     IncludeUnknownVersions = 1 << 6,
+
+    /// <summary>Can report package and source agreements before an install (see <see cref="IPackageManager.GetAgreementsAsync"/>).</summary>
+    Agreements = 1 << 7,
 }

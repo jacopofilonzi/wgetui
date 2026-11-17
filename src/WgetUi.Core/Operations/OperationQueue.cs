@@ -54,9 +54,10 @@ public sealed partial class OperationQueue : IAsyncDisposable
     /// Queues an operation. If the same package already has an active (queued or running) operation of the
     /// same kind, that one is returned instead of queuing a duplicate.
     /// </summary>
-    public QueuedOperation Enqueue(Package package, OperationKind kind)
+    public QueuedOperation Enqueue(Package package, OperationKind kind, OperationOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(package);
+        options ??= OperationOptions.None;
         QueuedOperation operation;
         lock (_gate)
         {
@@ -67,7 +68,7 @@ public sealed partial class OperationQueue : IAsyncDisposable
             }
 
             var supportsCancel = _registry.Find(package.ManagerId)?.Capabilities.HasFlag(ManagerCapabilities.Cancel) ?? false;
-            operation = new QueuedOperation(++_nextSequence, package, kind, supportsCancel);
+            operation = new QueuedOperation(++_nextSequence, package, kind, options, supportsCancel);
             _operations.Add(operation);
             if (!_channel.Writer.TryWrite(operation))
             {
@@ -81,10 +82,10 @@ public sealed partial class OperationQueue : IAsyncDisposable
     }
 
     /// <summary>Queues several operations of the same kind in order (e.g. "upgrade all").</summary>
-    public IReadOnlyList<QueuedOperation> EnqueueMany(IEnumerable<Package> packages, OperationKind kind)
+    public IReadOnlyList<QueuedOperation> EnqueueMany(IEnumerable<Package> packages, OperationKind kind, OperationOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(packages);
-        return [.. packages.Select(p => Enqueue(p, kind))];
+        return [.. packages.Select(p => Enqueue(p, kind, options))];
     }
 
     /// <summary>Cancels a queued operation, or asks a running one to stop if its manager supports it.</summary>
@@ -182,8 +183,8 @@ public sealed partial class OperationQueue : IAsyncDisposable
         try
         {
             var result = operation.Kind == OperationKind.Install
-                ? await manager.InstallAsync(operation.Package, progress, cancellationToken).ConfigureAwait(false)
-                : await manager.UpgradeAsync(operation.Package, progress, cancellationToken).ConfigureAwait(false);
+                ? await manager.InstallAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false)
+                : await manager.UpgradeAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false);
             return result.Succeeded || !operation.WasCancelRequested ? result : OperationResult.Cancelled();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -32,8 +32,9 @@ public sealed class QueuedOperation
     private CancellationTokenSource? _runCancellation;
     private bool _cancelRequested;
 
-    internal QueuedOperation(long sequence, Package package, OperationKind kind, bool canCancelWhileRunning)
+    internal QueuedOperation(long sequence, Package package, OperationKind kind, OperationOptions options, bool canCancelWhileRunning)
     {
+        Options = options;
         Sequence = sequence;
         Package = package;
         Kind = kind;
@@ -46,6 +47,9 @@ public sealed class QueuedOperation
     public Package Package { get; }
 
     public OperationKind Kind { get; }
+
+    /// <summary>What the user accepted for this operation.</summary>
+    public OperationOptions Options { get; }
 
     /// <summary>The owning manager supports cancelling a running install/upgrade.</summary>
     public bool CanCancelWhileRunning { get; }

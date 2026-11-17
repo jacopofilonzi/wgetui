@@ -36,9 +36,12 @@ public interface IPackageManager
     /// <param name="cancellationToken">Cancels the query.</param>
     Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken);
 
+    /// <summary>Agreements the user must accept before installing or upgrading the package. Read-only.</summary>
+    Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken);
+
     /// <summary>Installs a package. Acts for real on the machine.</summary>
-    Task<OperationResult> InstallAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
+    Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
 
     /// <summary>Upgrades an installed package. Acts for real on the machine.</summary>
-    Task<OperationResult> UpgradeAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
+    Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
 }

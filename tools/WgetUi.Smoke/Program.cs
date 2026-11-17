@@ -24,6 +24,17 @@ foreach (var p in found.Take(15))
     Console.WriteLine($"  [{p.SourceId}] {p.Id} | {p.Name} | {p.Version ?? "?"}");
 }
 
+var storeHits = await manager.SearchAsync("whatsapp", CancellationToken.None);
+foreach (var hit in storeHits.Where(p => p.SourceId == "msstore").Take(1).Concat(found.Take(1)))
+{
+    var agreements = await manager.GetAgreementsAsync(hit, CancellationToken.None);
+    Console.WriteLine($"Agreements of [{hit.SourceId}] {hit.Id}: requires acceptance={agreements.RequiresAcceptance}, license={agreements.License}");
+    foreach (var a in agreements.PackageTerms.Concat(agreements.SourceTerms))
+    {
+        Console.WriteLine($"  {a.Label} | {a.Text} | {a.Url}");
+    }
+}
+
 foreach (var includeUnknown in new[] { false, true })
 {
     sw.Restart();

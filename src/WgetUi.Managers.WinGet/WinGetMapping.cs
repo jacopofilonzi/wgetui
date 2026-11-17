@@ -122,6 +122,21 @@ internal static class WinGetMapping
         _ => ErrorCodes.InternalError,
     };
 
+    /// <summary>Maps an agreement; entries with neither label, text nor link are dropped.</summary>
+    public static Agreement? ToAgreement(string? label, string? text, string? url)
+    {
+        static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        var cleanLabel = Clean(label);
+        var cleanText = Clean(text);
+        var cleanUrl = Clean(url);
+        if (cleanLabel is null && cleanText is null && cleanUrl is null)
+        {
+            return null;
+        }
+
+        return new Agreement(cleanLabel ?? cleanUrl ?? string.Empty, cleanText, cleanUrl);
+    }
+
     private static double Percent(double fraction) => Math.Clamp(fraction, 0, 1) * 100;
 
     private static string NameOrId(WinGetPackageData data) => string.IsNullOrWhiteSpace(data.Name) ? data.Id : data.Name;

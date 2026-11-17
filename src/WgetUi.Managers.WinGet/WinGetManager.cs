@@ -20,11 +20,18 @@ namespace WgetUi.Managers.WinGet;
 /// Every COM call goes through <see cref="WinGetSerialExecutor"/> (one at a time): reads that overlap an
 /// install return partial results. COM collections are read with index loops: C#/WinRT enumerators on
 /// these out-of-proc vectors fail with E_NOINTERFACE.
+/// Agreements: the shared catalog references never accept anything (msstore connects and searches without
+/// it); an operation accepts package/source agreements only when its <see cref="OperationOptions"/> say so.
 /// Exposes the winget and msstore catalogs only (not winget-font or user-added sources).
 /// </remarks>
 public sealed partial class WinGetManager : IPackageManager, IDisposable
 {
     private const uint SearchResultLimit = 50;
+    private static readonly Dictionary<string, PredefinedPackageCatalog> PredefinedCatalogs = new(StringComparer.Ordinal)
+    {
+        [WinGetMapping.WinGetSourceId] = PredefinedPackageCatalog.OpenWindowsCatalog,
+        [WinGetMapping.MsStoreSourceId] = PredefinedPackageCatalog.MicrosoftStore,
+    };
     private readonly ILogger<WinGetManager> _logger;
     private readonly WinGetSerialExecutor _executor = new(acquireTimeout: TimeSpan.FromMinutes(2), queryTimeout: TimeSpan.FromMinutes(2));
     private readonly Dictionary<string, PackageCatalogReference> _catalogRefs = new(StringComparer.Ordinal);
@@ -39,7 +46,8 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
 
     public ManagerCapabilities Capabilities =>
         ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade
-        | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.IncludeUnknownVersions;
+        | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.IncludeUnknownVersions
+        | ManagerCapabilities.Agreements;
 
     public IReadOnlyList<PackageSource> Sources => WinGetMapping.Sources;
 
@@ -91,11 +99,18 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         return await _executor.RunQueryAsync("list upgrades", () => ListUpgrades(includeUnknown), cancellationToken).ConfigureAwait(false);
     }
 
-    public Task<OperationResult> InstallAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunOperationAsync(package, isUpgrade: false, progress, cancellationToken);
+    public async Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
+        return await _executor.RunQueryAsync($"agreements of {package.Id}", () => ReadAgreements(package), cancellationToken).ConfigureAwait(false);
+    }
 
-    public Task<OperationResult> UpgradeAsync(Package package, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunOperationAsync(package, isUpgrade: true, progress, cancellationToken);
+    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        RunOperationAsync(package, options, isUpgrade: false, progress, cancellationToken);
+
+    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        RunOperationAsync(package, options, isUpgrade: true, progress, cancellationToken);
 
     public void Dispose() => _executor.Dispose();
 
@@ -133,15 +148,9 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
             var packageManager = new PackageManager();
             var refs = new Dictionary<string, PackageCatalogReference>(StringComparer.Ordinal)
             {
-                [WinGetMapping.WinGetSourceId] = packageManager.GetPredefinedPackageCatalog(PredefinedPackageCatalog.OpenWindowsCatalog),
-                [WinGetMapping.MsStoreSourceId] = packageManager.GetPredefinedPackageCatalog(PredefinedPackageCatalog.MicrosoftStore),
+                [WinGetMapping.WinGetSourceId] = packageManager.GetPredefinedPackageCatalog(PredefinedCatalogs[WinGetMapping.WinGetSourceId]),
+                [WinGetMapping.MsStoreSourceId] = packageManager.GetPredefinedPackageCatalog(PredefinedCatalogs[WinGetMapping.MsStoreSourceId]),
             };
-            foreach (var catalogRef in refs.Values)
-            {
-                // The user confirms every install; the msstore catalog refuses to connect without this.
-                catalogRef.AcceptSourceAgreements = true;
-            }
-
             _packageManager = packageManager;
             _catalogRefs.Clear();
             foreach (var (sourceId, catalogRef) in refs)
@@ -195,13 +204,44 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         return connection.PackageCatalog;
     }
 
+    // Runs under the executor lock. A fresh reference that accepts the source agreements, used only for
+    // an operation the user accepted them for; the shared references never accept anything.
+    private PackageCatalogReference CreateAcceptingReference(string sourceId)
+    {
+        if (!PredefinedCatalogs.TryGetValue(sourceId, out var predefined))
+        {
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Unknown winget source '{sourceId}'.");
+        }
+
+        var catalogRef = RequirePackageManager().GetPredefinedPackageCatalog(predefined);
+        catalogRef.AcceptSourceAgreements = true;
+        return catalogRef;
+    }
+
+    // Runs under the executor lock.
+    private PackageCatalog ConnectSourceForOperation(string sourceId, bool acceptSourceAgreements)
+    {
+        if (!acceptSourceAgreements)
+        {
+            return ConnectSource(sourceId);
+        }
+
+        var connection = CreateAcceptingReference(sourceId).Connect();
+        if (connection.Status != ConnectResultStatus.Ok)
+        {
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Connecting to winget source '{sourceId}' failed: {connection.Status}.");
+        }
+
+        return connection.PackageCatalog;
+    }
+
     // Runs under the executor lock. Installed packages correlated with the remote catalogs.
-    private PackageCatalog ConnectInstalled()
+    private PackageCatalog ConnectInstalled(bool acceptSourceAgreements = false)
     {
         var options = new CreateCompositePackageCatalogOptions { CompositeSearchBehavior = CompositeSearchBehavior.LocalCatalogs };
-        foreach (var catalogRef in _catalogRefs.Values)
+        foreach (var (sourceId, catalogRef) in _catalogRefs)
         {
-            options.Catalogs.Add(catalogRef);
+            options.Catalogs.Add(acceptSourceAgreements ? CreateAcceptingReference(sourceId) : catalogRef);
         }
 
         var connection = RequirePackageManager().CreateCompositePackageCatalog(options).Connect();
@@ -279,6 +319,53 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         return packages;
     }
 
+    // Runs under the executor lock. Read-only: nothing is accepted here.
+    private PackageAgreements ReadAgreements(Package package)
+    {
+        try
+        {
+            var found = ConnectSource(package.SourceId).FindPackages(ExactIdOptions(package.Id));
+            if (found.Status != FindPackagesResultStatus.Ok)
+            {
+                throw new PackageManagerException(WinGetMapping.ToErrorCode(found.Status), $"Reading agreements of {package.Id} failed: {found.Status}.");
+            }
+
+            if (found.Matches.Count == 0)
+            {
+                throw new PackageManagerException(ErrorCodes.PackageNotFound, $"Reading agreements of {package.Id}: not found in '{package.SourceId}'.");
+            }
+
+            var metadata = found.Matches[0].CatalogPackage.DefaultInstallVersion?.GetCatalogPackageMetadata();
+            var packageTerms = new List<Agreement>();
+            var comTerms = metadata?.Agreements;
+            for (var i = 0; comTerms is not null && i < comTerms.Count; i++)
+            {
+                if (WinGetMapping.ToAgreement(comTerms[i].Label, comTerms[i].Text, comTerms[i].Url) is { } agreement)
+                {
+                    packageTerms.Add(agreement);
+                }
+            }
+
+            var sourceTerms = new List<Agreement>();
+            var comSourceTerms = _catalogRefs[package.SourceId].SourceAgreements;
+            for (var i = 0; i < comSourceTerms.Count; i++)
+            {
+                if (WinGetMapping.ToAgreement(comSourceTerms[i].Label, comSourceTerms[i].Text, comSourceTerms[i].Url) is { } agreement)
+                {
+                    sourceTerms.Add(agreement);
+                }
+            }
+
+            return new PackageAgreements(package, packageTerms, sourceTerms, NullIfEmpty(metadata?.License), NullIfEmpty(metadata?.LicenseUrl));
+        }
+        catch (COMException ex)
+        {
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading agreements of {package.Id} failed: {Describe(ex)}", ex);
+        }
+    }
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
     private IReadOnlyList<Package> ListUpgrades(bool includeUnknown)
     {
         try
@@ -314,9 +401,10 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         }
     }
 
-    private async Task<OperationResult> RunOperationAsync(Package package, bool isUpgrade, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    private async Task<OperationResult> RunOperationAsync(Package package, OperationOptions options, bool isUpgrade, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(progress);
         var what = $"{(isUpgrade ? "upgrade" : "install")} {package.Id}";
         if (!string.Equals(package.ManagerId, Id, StringComparison.Ordinal))
@@ -327,7 +415,7 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         try
         {
             await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
-            return await _executor.RunOperationAsync(what, () => RunLockedOperationAsync(package, isUpgrade, what, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
+            return await _executor.RunOperationAsync(what, () => RunLockedOperationAsync(package, options, isUpgrade, what, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -344,10 +432,12 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
     }
 
     // Runs under the executor lock for the whole install.
-    private async Task<OperationResult> RunLockedOperationAsync(Package package, bool isUpgrade, string what, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    private async Task<OperationResult> RunLockedOperationAsync(Package package, OperationOptions operationOptions, bool isUpgrade, string what, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var catalog = isUpgrade ? ConnectInstalled() : ConnectSource(package.SourceId);
+        var catalog = isUpgrade
+            ? ConnectInstalled(operationOptions.AcceptSourceAgreements)
+            : ConnectSourceForOperation(package.SourceId, operationOptions.AcceptSourceAgreements);
         var found = catalog.FindPackages(ExactIdOptions(package.Id));
         if (found.Status != FindPackagesResultStatus.Ok)
         {
@@ -369,8 +459,8 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         {
             PackageInstallMode = PackageInstallMode.Silent,
             PackageInstallScope = PackageInstallScope.Any,
-            // The user confirmed the operation in the UI, which is what the CLI flag asks for.
-            AcceptPackageAgreements = true,
+            // Only when the user accepted them (modal or automatic-acceptance setting), decided by Core.
+            AcceptPackageAgreements = operationOptions.AcceptPackageAgreements,
             AllowUpgradeToUnknownVersion = isUpgrade && package.IsVersionUnknown,
         };
 
