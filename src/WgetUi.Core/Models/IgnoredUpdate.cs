@@ -8,8 +8,6 @@ namespace WgetUi.Core.Models;
 /// <param name="Name">Display name when it was ignored (for the Settings list only, never used to match).</param>
 public sealed record IgnoredUpdate(string ManagerId, string SourceId, string PackageId, string Version, string? Name = null)
 {
-    /// <summary>Same identity as <see cref="Package.Key"/>.</summary>
-    public string PackageKey => $"{ManagerId}/{SourceId}/{PackageId}";
 
     /// <summary>The record for the update <paramref name="package"/> offers, or null when it offers none.</summary>
     public static IgnoredUpdate? For(Package package)
@@ -24,7 +22,8 @@ public sealed record IgnoredUpdate(string ManagerId, string SourceId, string Pac
     public bool IsFor(Package package)
     {
         ArgumentNullException.ThrowIfNull(package);
-        return string.Equals(PackageKey, package.Key, StringComparison.OrdinalIgnoreCase);
+        // Same identity as Package.Key. Not a property: this record is persisted as is (settings.json).
+        return string.Equals($"{ManagerId}/{SourceId}/{PackageId}", package.Key, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Same package and the very version that was ignored.</summary>

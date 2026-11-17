@@ -115,4 +115,11 @@
   <data name="Error_version_not_found" xml:space="preserve"><value>La versione richiesta non è più disponibile.</value></data>
   <data name="Ops_Kind_Uninstall" xml:space="preserve"><value>Disinstallazione</value></data>
   <data name="Ops_Stage_Uninstalling" xml:space="preserve"><value>disinstallazione</value></data>
+  <data name="Updates_ShowIgnored" xml:space="preserve"><value>Mostra ignorati ({0})</value></data>
+  <data name="Updates_Ignore" xml:space="preserve"><value>Ignora questo aggiornamento</value></data>
+  <data name="Updates_Unignore" xml:space="preserve"><value>Non ignorare</value></data>
+  <data name="Settings_IgnoredUpdates" xml:space="preserve"><value>Aggiornamenti ignorati</value></data>
+  <data name="Settings_IgnoredUpdatesHint" xml:space="preserve"><value>Queste versioni non vengono proposte, contate né notificate. Una versione più recente dello stesso pacchetto viene mostrata di nuovo.</value></data>
+  <data name="Settings_IgnoredUpdatesNone" xml:space="preserve"><value>Nessun aggiornamento ignorato.</value></data>
+  <data name="Settings_IgnoredRestore" xml:space="preserve"><value>Ripristina</value></data>
 </root>

@@ -39,6 +39,25 @@
         <TextBlock Classes="Secondary" Text="{l:Tr Settings_RelaunchClosedAppsHint}" TextWrapping="Wrap" />
       </StackPanel>
       <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_IgnoredUpdates}" />
+        <TextBlock Classes="Secondary" Text="{l:Tr Settings_IgnoredUpdatesHint}" TextWrapping="Wrap" />
+        <TextBlock Classes="Secondary" Text="{l:Tr Settings_IgnoredUpdatesNone}" IsVisible="{Binding !HasIgnoredUpdates}" Margin="0,4,0,0" />
+        <ItemsControl ItemsSource="{Binding IgnoredUpdates}" IsVisible="{Binding HasIgnoredUpdates}" Margin="0,4,0,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:IgnoredUpdateItemViewModel">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16" Margin="0,4">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="Secondary" Text="{Binding PackageId}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" />
+                <Button Grid.Column="2" Content="{l:Tr Settings_IgnoredRestore}" Command="{Binding RestoreCommand}" MinWidth="96" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+      <StackPanel Spacing="4">
         <TextBlock Classes="RowTitle" Text="{l:Tr Settings_About}" />
         <TextBlock Classes="Secondary" Text="{Binding Version, StringFormat='wgetui {0}'}" />
         <SelectableTextBlock Classes="Secondary" Text="{Binding SettingsFile}" />

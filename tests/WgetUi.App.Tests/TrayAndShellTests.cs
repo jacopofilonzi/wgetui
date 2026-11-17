@@ -55,7 +55,7 @@ public sealed class TrayAndShellTests : IAsyncDisposable
         _manager.Upgrades.AddRange([ScriptedManager.Package("a"), ScriptedManager.Package("b")]);
         var requester = new OperationRequester(registry, _queue, new NoAgreements(), NullLogger<OperationRequester>.Instance);
         var actions = new PackageActions(requester, _settings, NullLogger<PackageActions>.Instance);
-        var updates = new UpdatesViewModel(registry, actions, _queue, dispatcher, NullLogger<UpdatesViewModel>.Instance);
+        var updates = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance), _queue, dispatcher, NullLogger<UpdatesViewModel>.Instance);
         var operations = new OperationsViewModel(_queue, registry, dispatcher);
         var tray = new TrayViewModel(updates, operations);
         WgetUi.App.Localization.Loc.Instance.SetLanguage("en");

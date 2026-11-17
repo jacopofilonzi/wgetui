@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WgetUi.App.Infrastructure;
@@ -11,13 +12,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly SettingsService _settings;
     private readonly ThemeService _theme;
     private readonly StartWithWindowsService _startWithWindows;
+    private readonly IgnoredUpdatesService _ignored;
     private readonly bool _loading = true;
 
-    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, AppPaths paths)
+    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, IgnoredUpdatesService ignored, AppPaths paths)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(ignored);
         _settings = settings;
+        _ignored = ignored;
+        ignored.Changed += (_, _) => LoadIgnored();
+        LoadIgnored();
         _theme = theme;
         _startWithWindows = startWithWindows;
         LogFile = paths.LogFile;
@@ -69,6 +75,11 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool SaveFailed { get; set; }
+
+    /// <summary>Ignored updates, each with "Restore".</summary>
+    public ObservableCollection<IgnoredUpdateItemViewModel> IgnoredUpdates { get; } = [];
+
+    public bool HasIgnoredUpdates => IgnoredUpdates.Count > 0;
 
     public string SettingsFile => _settings.FilePath;
 
@@ -155,4 +166,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
     }
 
     private void Save(Action<AppSettings> change) => SaveFailed = !_settings.Update(change);
+
+    private void LoadIgnored()
+    {
+        IgnoredUpdates.Clear();
+        foreach (var record in _ignored.Records.OrderBy(r => r.Name ?? r.PackageId, StringComparer.CurrentCultureIgnoreCase))
+        {
+            IgnoredUpdates.Add(new IgnoredUpdateItemViewModel(record, r => SaveFailed = !_ignored.Restore(r)));
+        }
+
+        OnPropertyChanged(nameof(HasIgnoredUpdates));
+    }
 }

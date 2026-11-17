@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using WgetUi.Core.Models;
 
 namespace WgetUi.App.Infrastructure;
 
@@ -33,6 +34,12 @@ public sealed class AppSettings
 
     /// <summary>Restart the apps an upgrade closed (processes running from the package folder). On by default.</summary>
     public bool RelaunchClosedApps { get; set; } = true;
+
+    /// <summary>
+    /// Updates the user ignored (one exact version each). Pruned after each check by
+    /// <see cref="Core.Updates.IgnoredUpdateFilter"/>, so it never grows past the number of pending updates.
+    /// </summary>
+    public IReadOnlyList<IgnoredUpdate> IgnoredUpdates { get; set; } = [];
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

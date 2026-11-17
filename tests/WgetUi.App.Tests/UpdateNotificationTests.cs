@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using WgetUi.App.Infrastructure;
 using WgetUi.App.Localization;
+using WgetUi.App.Services;
 using WgetUi.App.ViewModels;
 using WgetUi.Core;
 using WgetUi.Core.Models;
@@ -27,7 +28,7 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
         (_settings, _dataDir) = TestSettings.Create();
         var requester = new OperationRequester(registry, _queue, new NoAgreements(), NullLogger<OperationRequester>.Instance);
         var actions = new PackageActions(requester, _settings, NullLogger<PackageActions>.Instance);
-        _updates = new UpdatesViewModel(registry, actions, _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
+        _updates = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _operations = new OperationsViewModel(_queue, registry, _dispatcher);
         _notifier = new UpdateNotifier(_updates, _settings, _toasts, NullLogger<UpdateNotifier>.Instance);
         Loc.Instance.SetLanguage("en");

@@ -8,11 +8,13 @@
              x:DataType="vm:UpdatesViewModel">
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="24,16,24,16" RowSpacing="12">
     <TextBlock Grid.Row="0" Classes="PageTitle" Text="{l:Tr Updates_Title}" />
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
       <ToggleSwitch Grid.Column="0" IsChecked="{Binding IncludeUnknown}" IsVisible="{Binding ShowIncludeUnknownToggle}"
                     OnContent="{l:Tr Updates_ShowUnknown}" OffContent="{l:Tr Updates_ShowUnknown}" />
-      <Button Grid.Column="1" Content="{l:Tr Updates_Refresh}" Command="{Binding RefreshCommand}" />
-      <Button Grid.Column="2" Classes="accent" Content="{l:Tr Updates_UpgradeAll}" Command="{Binding UpgradeAllCommand}" />
+      <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowIgnored}" IsVisible="{Binding ShowIgnoredToggle}" Margin="16,0,0,0"
+                    OnContent="{Binding ShowIgnoredLabel}" OffContent="{Binding ShowIgnoredLabel}" />
+      <Button Grid.Column="2" Content="{l:Tr Updates_Refresh}" Command="{Binding RefreshCommand}" />
+      <Button Grid.Column="3" Classes="accent" Content="{l:Tr Updates_UpgradeAll}" Command="{Binding UpgradeAllCommand}" />
     </Grid>
     <ProgressBar Grid.Row="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
     <StackPanel Grid.Row="3" Spacing="8">
@@ -24,20 +26,26 @@
       <ListBox ItemsSource="{Binding Upgrades}" Background="Transparent">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="vm:PackageRowViewModel">
-            <Grid ColumnSpacing="16" Margin="0,4">
+            <Grid ColumnSpacing="16" Margin="0,4" Background="Transparent">
+              <Grid.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Header="{l:Tr Updates_Ignore}" Command="{Binding IgnoreCommand}" IsVisible="{Binding !IsIgnored}" />
+                  <MenuItem Header="{l:Tr Updates_Unignore}" Command="{Binding UnignoreCommand}" IsVisible="{Binding IsIgnored}" />
+                </ContextMenu>
+              </Grid.ContextMenu>
               <Grid.ColumnDefinitions>
                 <!-- Name and versions share the free width (3:2) and both trim, so a long version
-                     can't push the badge and button out of the row when the window is narrow. -->
+                     can't push the badge and buttons out of the row when the window is narrow. -->
                 <ColumnDefinition Width="3*" />
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <StackPanel Grid.Column="0" VerticalAlignment="Center">
+              <StackPanel Grid.Column="0" VerticalAlignment="Center" Opacity="{Binding RowOpacity}">
                 <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                 <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <Grid Grid.Column="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="6" HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="{Binding RowOpacity}">
                 <Panel Grid.Column="0" HorizontalAlignment="Right">
                   <TextBlock Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
                   <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" TextTrimming="CharacterEllipsis" />
@@ -45,8 +53,11 @@
                 <TextBlock Grid.Column="1" Classes="Secondary" Text="→" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="2" Classes="RowTitle Version" Text="{Binding AvailableVersion}" ToolTip.Tip="{Binding AvailableVersion}" HorizontalAlignment="Left" />
               </Grid>
-              <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
-              <Button Grid.Column="3" Content="{l:Tr Updates_Upgrade}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
+              <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" Opacity="{Binding RowOpacity}" />
+              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                <Button Content="{l:Tr Updates_Upgrade}" Command="{Binding ActCommand}" IsVisible="{Binding ShowAction}" MinWidth="96" />
+                <Button Content="{l:Tr Updates_Unignore}" Command="{Binding UnignoreCommand}" IsVisible="{Binding IsIgnored}" MinWidth="96" />
+              </StackPanel>
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>
