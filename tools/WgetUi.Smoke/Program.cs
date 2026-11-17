@@ -1,5 +1,5 @@
-// Opt-in live check: activates winget over COM, searches, lists upgrades and their install locations.
-// Read-only: never installs.
+// Opt-in live check: activates winget over COM, searches, lists upgrades and their install locations, the
+// installed packages and the details of a few packages. Read-only: never installs, upgrades or uninstalls.
 // Console output is the purpose of this tool; the app itself logs through ILogger.
 using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -51,6 +51,27 @@ var upgradable = await manager.GetUpgradesAsync(false, CancellationToken.None);
 foreach (var p in upgradable.Take(8))
 {
     Console.WriteLine($"Install location of {p.Id}: {await manager.GetInstallLocationAsync(p, CancellationToken.None) ?? "(unknown)"}");
+}
+
+sw.Restart();
+var installed = await manager.GetInstalledAsync(CancellationToken.None);
+Console.WriteLine($"Installed: {installed.Count} ({sw.ElapsedMilliseconds} ms)");
+foreach (var group in installed.GroupBy(p => p.SourceId).OrderBy(g => g.Key, StringComparer.Ordinal))
+{
+    Console.WriteLine($"  [{group.Key}] {group.Count()}, e.g. {string.Join(", ", group.Take(3).Select(p => $"{p.Id} {p.Version ?? "?"}"))}");
+}
+
+var detailTargets = found.Where(p => p.Id == "7zip.7zip").Take(1)
+    .Concat(storeHits.Where(p => p.SourceId == "msstore").Take(1))
+    .Concat(installed.Where(p => p.SourceId == "local").Take(1));
+foreach (var target in detailTargets)
+{
+    sw.Restart();
+    var d = await manager.GetDetailsAsync(target, CancellationToken.None);
+    Console.WriteLine($"Details of [{target.SourceId}] {target.Id} ({sw.ElapsedMilliseconds} ms):");
+    Console.WriteLine($"  publisher={d.Publisher} | homepage={d.HomepageUrl} | license={d.License} ({d.LicenseUrl}) | notes={d.ReleaseNotesUrl}");
+    Console.WriteLine($"  installed={d.InstalledVersion ?? "-"} available={d.AvailableVersion ?? "-"} versions={d.Versions.Count}: {string.Join(", ", d.Versions.Take(6))}");
+    Console.WriteLine($"  description={d.Description?.ReplaceLineEndings(" ")[..Math.Min(d.Description.Length, 120)]}");
 }
 
 return 0;

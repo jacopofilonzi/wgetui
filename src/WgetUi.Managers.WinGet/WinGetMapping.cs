@@ -69,6 +69,64 @@ internal static class WinGetMapping
         return new Package(ManagerId, sourceId, data.Id, NameOrId(data), unknownInstalled ? null : data.InstalledVersion, data.AvailableVersion);
     }
 
+    /// <summary>
+    /// Any installed package, for the Installed page. Packages no exposed catalog offers (local installs, ARP,
+    /// MSIX, or sources we don't expose) get <see cref="PackageSource.LocalId"/>.
+    /// </summary>
+    public static Package? ToInstalled(WinGetPackageData data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (string.IsNullOrWhiteSpace(data.Id))
+        {
+            return null;
+        }
+
+        var sourceId = ToSourceId(data.SourceName) ?? PackageSource.LocalId;
+        var installed = IsUnknownVersion(data.InstalledVersion) ? null : data.InstalledVersion;
+        var update = data.IsUpdateAvailable && sourceId != PackageSource.LocalId && !IsUnknownVersion(data.AvailableVersion) ? data.AvailableVersion : null;
+        return new Package(ManagerId, sourceId, data.Id, NameOrId(data), installed, update);
+    }
+
+    /// <summary>Details for the popup: empty values dropped, http(s) links only, versions de-duplicated in winget's order.</summary>
+    public static PackageDetails ToDetails(Package package, WinGetDetailsData data)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(data);
+        static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        var (license, licenseUrl) = ToLicense(data.License, data.LicenseUrl);
+        var versions = data.Versions
+            .Where(v => !IsUnknownVersion(v))
+            .Select(v => v.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return new PackageDetails(
+            package,
+            Clean(data.Description) ?? Clean(data.ShortDescription),
+            Clean(data.Publisher),
+            PackageDetails.WebLink(data.PackageUrl) ?? PackageDetails.WebLink(data.PublisherUrl),
+            license,
+            licenseUrl,
+            PackageDetails.WebLink(data.ReleaseNotesUrl),
+            IsUnknownVersion(data.InstalledVersion) ? null : data.InstalledVersion!.Trim(),
+            IsUnknownVersion(data.AvailableVersion) ? null : data.AvailableVersion!.Trim(),
+            versions);
+    }
+
+    /// <summary>Index of <paramref name="target"/> in winget's available versions, or -1.</summary>
+    public static int IndexOfVersion(IReadOnlyList<string?> versions, string target)
+    {
+        ArgumentNullException.ThrowIfNull(versions);
+        for (var i = 0; i < versions.Count; i++)
+        {
+            if (string.Equals(versions[i]?.Trim(), target.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     /// <summary>Drops repeated packages (same manager, source and id), keeping the first.</summary>
     public static IReadOnlyList<Package> Distinct(IEnumerable<Package> packages) =>
         [.. packages.DistinctBy(p => p.Key, StringComparer.OrdinalIgnoreCase)];
@@ -83,6 +141,42 @@ internal static class WinGetMapping
         PackageInstallProgressState.Finished => new OperationProgress(OperationStage.Finalizing, 100),
         _ => new OperationProgress(OperationStage.Preparing, null),
     };
+
+    public static OperationProgress ToUninstallProgress(PackageUninstallProgressState state, double uninstallationProgress) => state switch
+    {
+        PackageUninstallProgressState.Queued => new OperationProgress(OperationStage.Preparing, null),
+        // Like installers, most uninstallers report nothing: 0 means "unknown".
+        PackageUninstallProgressState.Uninstalling => new OperationProgress(OperationStage.Uninstalling, uninstallationProgress > 0 ? Percent(uninstallationProgress) : null),
+        PackageUninstallProgressState.PostUninstall => new OperationProgress(OperationStage.Finalizing, null),
+        PackageUninstallProgressState.Finished => new OperationProgress(OperationStage.Finalizing, 100),
+        _ => new OperationProgress(OperationStage.Preparing, null),
+    };
+
+    /// <summary>Maps the result of an uninstall to an <see cref="OperationResult"/>.</summary>
+    /// <param name="status">winget result status.</param>
+    /// <param name="extendedErrorCode">HRESULT from <c>UninstallResult.ExtendedErrorCode</c> (0 when none).</param>
+    /// <param name="uninstallerErrorCode">Uninstaller exit code.</param>
+    /// <param name="rebootRequired">Uninstaller asked for a reboot.</param>
+    /// <param name="what">"uninstall 7zip.7zip", for the log message.</param>
+    public static OperationResult ToUninstallResult(UninstallResultStatus status, int extendedErrorCode, uint uninstallerErrorCode, bool rebootRequired, string what)
+    {
+        if (status == UninstallResultStatus.Ok)
+        {
+            return OperationResult.Success(rebootRequired);
+        }
+
+        var code = status switch
+        {
+            UninstallResultStatus.BlockedByPolicy => ErrorCodes.BlockedByPolicy,
+            UninstallResultStatus.CatalogError => ErrorCodes.CatalogError,
+            UninstallResultStatus.InvalidOptions => ErrorCodes.InvalidOptions,
+            UninstallResultStatus.UninstallError => ErrorCodes.UninstallFailed,
+            UninstallResultStatus.ManifestError => ErrorCodes.ManifestError,
+            _ => ErrorCodes.InternalError,
+        };
+
+        return OperationResult.Failure(code, $"winget {what} failed: {status} (HRESULT 0x{extendedErrorCode:X8}, uninstaller exit code {uninstallerErrorCode}).");
+    }
 
     /// <summary>Maps the result of an install/upgrade to an <see cref="OperationResult"/>.</summary>
     /// <param name="status">winget result status.</param>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Management.Deployment;
 using WgetUi.Core.Managers;
 using WgetUi.Core.Models;
+using WgetUi.Core.Operations;
 using Package = WgetUi.Core.Models.Package;
 
 namespace WgetUi.Managers.WinGet;
@@ -22,7 +23,10 @@ namespace WgetUi.Managers.WinGet;
 /// these out-of-proc vectors fail with E_NOINTERFACE.
 /// Agreements: the shared catalog references never accept anything (msstore connects and searches without
 /// it); an operation accepts package/source agreements only when its <see cref="OperationOptions"/> say so.
-/// Exposes the winget and msstore catalogs only (not winget-font or user-added sources).
+/// Exposes the winget and msstore catalogs only (not winget-font or user-added sources). The installed list
+/// reports packages no exposed catalog offers under <see cref="PackageSource.LocalId"/>.
+/// Uninstalls go through the installed catalog, silent and any scope. A specific version is installed through
+/// <c>InstallOptions.PackageVersionId</c>, looked up in the package's <c>AvailableVersions</c>.
 /// </remarks>
 public sealed partial class WinGetManager : IPackageManager, IDisposable
 {
@@ -47,7 +51,8 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
     public ManagerCapabilities Capabilities =>
         ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade
         | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.IncludeUnknownVersions
-        | ManagerCapabilities.Agreements | ManagerCapabilities.InstallLocation;
+        | ManagerCapabilities.Agreements | ManagerCapabilities.InstallLocation | ManagerCapabilities.ListInstalled
+        | ManagerCapabilities.Uninstall | ManagerCapabilities.Details | ManagerCapabilities.InstallVersion;
 
     public IReadOnlyList<PackageSource> Sources => WinGetMapping.Sources;
 
@@ -113,11 +118,27 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         return await _executor.RunQueryAsync($"install location of {package.Id}", () => ReadInstallLocation(package), cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<Package>> GetInstalledAsync(CancellationToken cancellationToken)
+    {
+        await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
+        return await _executor.RunQueryAsync("list installed", ListInstalled, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PackageDetails> GetDetailsAsync(Package package, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
+        return await _executor.RunQueryAsync($"details of {package.Id}", () => ReadDetails(package), cancellationToken).ConfigureAwait(false);
+    }
+
     public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunOperationAsync(package, options, isUpgrade: false, progress, cancellationToken);
+        RunOperationAsync(package, options, OperationKind.Install, progress, cancellationToken);
 
     public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunOperationAsync(package, options, isUpgrade: true, progress, cancellationToken);
+        RunOperationAsync(package, options, OperationKind.Upgrade, progress, cancellationToken);
+
+    public Task<OperationResult> UninstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        RunOperationAsync(package, options, OperationKind.Uninstall, progress, cancellationToken);
 
     public void Dispose() => _executor.Dispose();
 
@@ -392,6 +413,133 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         }
     }
 
+    // Runs under the executor lock. Read-only. The Id filter does not match local entries ("ARP\Machine\X64\…"),
+    // so those fall back to scanning the whole installed list (about a second).
+    private CatalogPackage? FindInstalled(string id)
+    {
+        var catalog = ConnectInstalled();
+        var exact = catalog.FindPackages(ExactIdOptions(id));
+        if (exact.Status == FindPackagesResultStatus.Ok && exact.Matches.Count > 0)
+        {
+            return exact.Matches[0].CatalogPackage;
+        }
+
+        var all = catalog.FindPackages(new FindPackagesOptions());
+        if (all.Status != FindPackagesResultStatus.Ok)
+        {
+            throw new PackageManagerException(WinGetMapping.ToErrorCode(all.Status), $"Listing installed packages failed: {all.Status}.");
+        }
+
+        var matches = all.Matches;
+        for (var i = 0; i < matches.Count; i++)
+        {
+            var candidate = matches[i].CatalogPackage;
+            if (string.Equals(candidate.Id, id, StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    // Runs under the executor lock. Read-only.
+    private IReadOnlyList<Package> ListInstalled()
+    {
+        try
+        {
+            var result = ConnectInstalled().FindPackages(new FindPackagesOptions());
+            if (result.Status != FindPackagesResultStatus.Ok)
+            {
+                throw new PackageManagerException(WinGetMapping.ToErrorCode(result.Status), $"Listing installed packages failed: {result.Status}.");
+            }
+
+            var packages = new List<Package>();
+            var matches = result.Matches;
+            for (var i = 0; i < matches.Count; i++)
+            {
+                try
+                {
+                    if (WinGetMapping.ToInstalled(Snapshot(matches[i].CatalogPackage)) is { } package)
+                    {
+                        packages.Add(package);
+                    }
+                }
+                catch (COMException ex)
+                {
+                    LogPackageSkipped(ex, "installed", i);
+                }
+            }
+
+            return WinGetMapping.Distinct(packages);
+        }
+        catch (COMException ex)
+        {
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Listing installed packages failed: {Describe(ex)}", ex);
+        }
+    }
+
+    // Runs under the executor lock. Read-only. Installed state from the installed catalog, metadata and versions
+    // from the package's own source (local packages only have what the installed entry knows).
+    private PackageDetails ReadDetails(Package package)
+    {
+        try
+        {
+            var installed = FindInstalled(package.Id);
+            CatalogPackage? remote = null;
+            if (package.SourceId != PackageSource.LocalId)
+            {
+                var found = ConnectSource(package.SourceId).FindPackages(ExactIdOptions(package.Id));
+                if (found.Status != FindPackagesResultStatus.Ok)
+                {
+                    throw new PackageManagerException(WinGetMapping.ToErrorCode(found.Status), $"Reading details of {package.Id} failed: {found.Status}.");
+                }
+
+                remote = found.Matches.Count > 0 ? found.Matches[0].CatalogPackage : null;
+            }
+
+            if (installed is null && remote is null)
+            {
+                throw new PackageManagerException(ErrorCodes.PackageNotFound, $"Reading details of {package.Id}: not found in '{package.SourceId}' nor installed.");
+            }
+
+            var metadata = remote?.DefaultInstallVersion?.GetCatalogPackageMetadata();
+            var versions = new List<string>();
+            var available = remote?.AvailableVersions;
+            for (var i = 0; available is not null && i < available.Count; i++)
+            {
+                versions.Add(available[i].Version);
+            }
+
+            var installedVersion = installed?.InstalledVersion;
+            var publisher = metadata?.Publisher;
+            if (string.IsNullOrWhiteSpace(publisher) && installedVersion is not null)
+            {
+                publisher = installedVersion.GetMetadata(PackageVersionMetadataField.PublisherDisplayName);
+            }
+
+            var data = new WinGetDetailsData(
+                metadata?.Description,
+                metadata?.ShortDescription,
+                publisher,
+                metadata?.PackageUrl,
+                metadata?.PublisherUrl,
+                metadata?.License,
+                metadata?.LicenseUrl,
+                metadata?.ReleaseNotesUrl,
+                installedVersion?.Version,
+                installed is { IsUpdateAvailable: true } ? installed.DefaultInstallVersion?.Version : null,
+                versions);
+            return WinGetMapping.ToDetails(package, data);
+        }
+        catch (COMException ex)
+        {
+            // A stale connection fails with a COM error: reconnect next time.
+            _connectedCatalogs.Remove(package.SourceId);
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading details of {package.Id} failed: {Describe(ex)}", ex);
+        }
+    }
+
     private IReadOnlyList<Package> ListUpgrades(bool includeUnknown)
     {
         try
@@ -427,12 +575,18 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         }
     }
 
-    private async Task<OperationResult> RunOperationAsync(Package package, OperationOptions options, bool isUpgrade, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    private async Task<OperationResult> RunOperationAsync(Package package, OperationOptions options, OperationKind kind, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(package);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(progress);
-        var what = $"{(isUpgrade ? "upgrade" : "install")} {package.Id}";
+        var what = kind switch
+        {
+            OperationKind.Install when options.TargetVersion is not null => $"install {package.Id} {options.TargetVersion}",
+            OperationKind.Install => $"install {package.Id}",
+            OperationKind.Upgrade => $"upgrade {package.Id}",
+            _ => $"uninstall {package.Id}",
+        };
         if (!string.Equals(package.ManagerId, Id, StringComparison.Ordinal))
         {
             return OperationResult.Failure(ErrorCodes.ManagerNotFound, $"{what}: package belongs to '{package.ManagerId}', not winget.");
@@ -441,7 +595,12 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         try
         {
             await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
-            return await _executor.RunOperationAsync(what, () => RunLockedOperationAsync(package, options, isUpgrade, what, progress, cancellationToken), cancellationToken).ConfigureAwait(false);
+            return await _executor.RunOperationAsync(
+                what,
+                () => kind == OperationKind.Uninstall
+                    ? RunLockedUninstallAsync(package, what, progress, cancellationToken)
+                    : RunLockedOperationAsync(package, options, kind == OperationKind.Upgrade, what, progress, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -490,6 +649,24 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
             AllowUpgradeToUnknownVersion = isUpgrade && package.IsVersionUnknown,
         };
 
+        if (!isUpgrade && operationOptions.TargetVersion is { } target)
+        {
+            var available = catalogPackage.AvailableVersions;
+            var versions = new List<string?>(available.Count);
+            for (var i = 0; i < available.Count; i++)
+            {
+                versions.Add(available[i].Version);
+            }
+
+            var index = WinGetMapping.IndexOfVersion(versions, target);
+            if (index < 0)
+            {
+                return OperationResult.Failure(ErrorCodes.VersionNotFound, $"winget {what}: version {target} is not offered by '{package.SourceId}'.");
+            }
+
+            options.PackageVersionId = available[index];
+        }
+
         LogOperationStarting(what);
         var packageManager = RequirePackageManager();
         var operation = isUpgrade
@@ -498,6 +675,33 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         var comProgress = new ComProgress(progress);
         var result = await operation.AsTask(cancellationToken, comProgress).ConfigureAwait(false);
         return WinGetMapping.ToResult(result.Status, result.ExtendedErrorCode?.HResult ?? 0, result.InstallerErrorCode, result.RebootRequired, what);
+    }
+
+    // Runs under the executor lock for the whole uninstall.
+    private async Task<OperationResult> RunLockedUninstallAsync(Package package, string what, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var installed = FindInstalled(package.Id);
+        if (installed?.InstalledVersion is null)
+        {
+            return OperationResult.Failure(ErrorCodes.PackageNotFound, $"winget {what}: package is not installed any more.");
+        }
+
+        var options = new UninstallOptions
+        {
+            PackageUninstallMode = PackageUninstallMode.Silent,
+            PackageUninstallScope = PackageUninstallScope.Any,
+        };
+
+        LogOperationStarting(what);
+        var operation = RequirePackageManager().UninstallPackageAsync(installed, options);
+        var result = await operation.AsTask(cancellationToken, new ComUninstallProgress(progress)).ConfigureAwait(false);
+        return WinGetMapping.ToUninstallResult(result.Status, result.ExtendedErrorCode?.HResult ?? 0, result.UninstallerErrorCode, result.RebootRequired, what);
+    }
+
+    private sealed class ComUninstallProgress(IProgress<OperationProgress> target) : IProgress<UninstallProgress>
+    {
+        public void Report(UninstallProgress value) => target.Report(WinGetMapping.ToUninstallProgress(value.State, value.UninstallationProgress));
     }
 
     private sealed class ComProgress(IProgress<OperationProgress> target) : IProgress<InstallProgress>
