@@ -20,6 +20,7 @@ repo/
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>
 ├── global.json                   SDK 10.0.403, test runner = Microsoft.Testing.Platform
 ├── .editorconfig                 code style (checked by `dotnet format` in `make check`)
+├── ROADMAP.md                    agreed follow-ups and ideas out of the current scope
 └── Makefile                      dev commands (`make help`)
 ```
 

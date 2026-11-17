@@ -10,7 +10,7 @@
     "*.slnx": "Directory.Build.props, Directory.Build.targets, Directory.Packages.props, global.json, nuget.config, NuGet.Config, .editorconfig",
     "*.sln": "Directory.Build.props, Directory.Build.targets, Directory.Packages.props, global.json, nuget.config, NuGet.Config, .editorconfig",
     "appsettings.json": "appsettings.*.json",
-    "README.md": "AGENTS.md, CLAUDE.md, STRUCTURE.md, CHANGELOG.md, LICENSE*",
+    "README.md": "AGENTS.md, CLAUDE.md, STRUCTURE.md, ROADMAP.md, CHANGELOG.md, LICENSE*",
     ".gitignore": ".gitattributes"
   }
 }
