@@ -11,7 +11,7 @@ namespace WgetUi.Core.Operations;
 public sealed record OperationRequestResult(IReadOnlyList<QueuedOperation> Queued, bool Declined, IReadOnlyList<ManagerError> AgreementErrors);
 
 /// <summary>
-/// Turns a click on Install / Upgrade / Upgrade all into queued operations, deciding about agreements.
+/// Turns a click on Install / Upgrade / Upgrade all / Uninstall into queued operations, deciding about agreements.
 /// </summary>
 /// <remarks>
 /// Rules (the user's decision, manager-independent):
@@ -22,6 +22,7 @@ public sealed record OperationRequestResult(IReadOnlyList<QueuedOperation> Queue
 /// - otherwise installs read the agreements (read-only); if any package or source has some, one modal
 ///   lists all of them for the whole request. Accept → queue everything, accepting only for the packages
 ///   whose agreements were shown. Cancel → nothing is queued and nothing is accepted;
+/// - uninstalls never read or accept agreements (the "Uninstall X?" confirmation is the UI's);
 /// - a package whose agreements cannot be read is queued without accepting: the manager then fails it
 ///   with <see cref="ErrorCodes.AgreementsNotAccepted"/> if acceptance was actually needed.
 /// Nothing is persisted: each install request decides again.
@@ -41,7 +42,12 @@ public sealed partial class OperationRequester
         _logger = logger;
     }
 
-    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind, bool autoAcceptAgreements, CancellationToken cancellationToken)
+    /// <param name="packages">Packages to act on.</param>
+    /// <param name="kind">Install, upgrade or uninstall.</param>
+    /// <param name="autoAcceptAgreements">The user's "accept agreements automatically" setting.</param>
+    /// <param name="cancellationToken">Cancels reading the agreements.</param>
+    /// <param name="targetVersion">Installs only: this exact version for every package (null = the default one).</param>
+    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind, bool autoAcceptAgreements, CancellationToken cancellationToken, string? targetVersion = null)
     {
         ArgumentNullException.ThrowIfNull(packages);
         if (packages.Count == 0)
@@ -49,9 +55,16 @@ public sealed partial class OperationRequester
             return new OperationRequestResult([], false, []);
         }
 
+        if (kind == OperationKind.Uninstall)
+        {
+            // Nothing to accept; the confirmation ("Uninstall X?") is the caller's.
+            return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.None), false, []);
+        }
+
+        var version = kind == OperationKind.Install ? targetVersion : null;
         if (kind == OperationKind.Upgrade || autoAcceptAgreements)
         {
-            return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.AcceptAll), false, []);
+            return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.AcceptAll with { TargetVersion = version }), false, []);
         }
 
         var errors = new List<ManagerError>();
@@ -69,7 +82,7 @@ public sealed partial class OperationRequester
         }
 
         var queued = agreements
-            .Select(a => _queue.Enqueue(a.Package, kind, new OperationOptions(a.PackageTerms.Count > 0, a.SourceTerms.Count > 0)))
+            .Select(a => _queue.Enqueue(a.Package, kind, new OperationOptions(a.PackageTerms.Count > 0, a.SourceTerms.Count > 0, version)))
             .ToList();
         return new OperationRequestResult(queued, false, errors);
     }

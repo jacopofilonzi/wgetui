@@ -54,6 +54,10 @@ public sealed partial class ManagerRegistry
     public Task<AggregateResult> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) =>
         FanOutAsync(ManagerCapabilities.ListUpgrades, (m, ct) => m.GetUpgradesAsync(includeUnknown, ct), "list upgrades", cancellationToken);
 
+    /// <summary>Every installed package from the managers that can list them.</summary>
+    public Task<AggregateResult> GetInstalledAsync(CancellationToken cancellationToken) =>
+        FanOutAsync(ManagerCapabilities.ListInstalled, (m, ct) => m.GetInstalledAsync(ct), "list installed packages", cancellationToken);
+
     private async Task<ManagerError?> InitializeOneAsync(IPackageManager manager, CancellationToken cancellationToken)
     {
         try

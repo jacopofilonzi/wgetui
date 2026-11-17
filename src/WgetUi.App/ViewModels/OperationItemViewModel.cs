@@ -30,7 +30,7 @@ public sealed partial class OperationItemViewModel : ObservableObject
 
     public string SourceName { get; }
 
-    public string KindText => Loc.Instance[Operation.Kind == OperationKind.Install ? "Ops_Kind_Install" : "Ops_Kind_Upgrade"];
+    public string KindText => Loc.Instance["Ops_Kind_" + Operation.Kind];
 
     public OperationState State { get; private set; }
 

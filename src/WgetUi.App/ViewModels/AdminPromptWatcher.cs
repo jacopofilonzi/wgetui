@@ -140,7 +140,7 @@ public sealed partial class AdminPromptWatcher : IDisposable
 
     private void OnOperationChanged(QueuedOperation operation)
     {
-        if (operation.State == OperationState.Running && operation.Progress?.Stage == OperationStage.Installing)
+        if (operation.State == OperationState.Running && operation.Progress?.Stage is OperationStage.Installing or OperationStage.Uninstalling)
         {
             Watch(operation.Sequence, operation.Package.Name, _time.GetUtcNow());
         }

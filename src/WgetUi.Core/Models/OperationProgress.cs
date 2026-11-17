@@ -1,12 +1,13 @@
 namespace WgetUi.Core.Models;
 
-/// <summary>Phase of a running install or upgrade.</summary>
+/// <summary>Phase of a running install, upgrade or uninstall.</summary>
 public enum OperationStage
 {
     Preparing,
     Downloading,
     Installing,
     Finalizing,
+    Uninstalling,
 }
 
 /// <summary>Progress report of a running operation.</summary>

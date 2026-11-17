@@ -36,6 +36,12 @@ internal sealed class FakePackageManager : IPackageManager
 
     public Func<bool, CancellationToken, Task<IReadOnlyList<Package>>>? UpgradesBehaviour { get; set; }
 
+    /// <summary>Null: fall back to the interface default (not supported).</summary>
+    public Func<CancellationToken, Task<IReadOnlyList<Package>>>? InstalledBehaviour { get; set; }
+
+    /// <summary>Which method ran each operation, in start order ("install:a", "uninstall:b"…).</summary>
+    public ConcurrentQueue<string> Calls { get; } = new();
+
     /// <summary>Package ids in the order their install/upgrade started.</summary>
     public ConcurrentQueue<string> Started { get; } = new();
 
@@ -67,11 +73,26 @@ internal sealed class FakePackageManager : IPackageManager
     public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) =>
         Task.FromResult(Agreements.TryGetValue(package.Id, out var agreements) ? agreements(package) : PackageAgreements.None(package));
 
-    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunAsync(package, options, progress, cancellationToken);
+    public Task<IReadOnlyList<Package>> GetInstalledAsync(CancellationToken cancellationToken) =>
+        InstalledBehaviour?.Invoke(cancellationToken) ?? ((IPackageManager)new BareManager(Id)).GetInstalledAsync(cancellationToken);
 
-    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        RunAsync(package, options, progress, cancellationToken);
+    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        Calls.Enqueue("install:" + package.Id);
+        return RunAsync(package, options, progress, cancellationToken);
+    }
+
+    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        Calls.Enqueue("upgrade:" + package.Id);
+        return RunAsync(package, options, progress, cancellationToken);
+    }
+
+    public Task<OperationResult> UninstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        Calls.Enqueue("uninstall:" + package.Id);
+        return RunAsync(package, options, progress, cancellationToken);
+    }
 
     private async Task<OperationResult> RunAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
@@ -90,4 +111,32 @@ internal sealed class FakePackageManager : IPackageManager
             Interlocked.Decrement(ref _running);
         }
     }
+}
+
+/// <summary>A manager that overrides none of the optional members, to test the interface defaults.</summary>
+internal sealed class BareManager(string id = "bare") : IPackageManager
+{
+    public string Id => id;
+
+    public string DisplayName => id;
+
+    public ManagerCapabilities Capabilities => ManagerCapabilities.Install;
+
+    public IReadOnlyList<PackageSource> Sources => [];
+
+    public ManagerAvailability? Availability => ManagerAvailability.Available;
+
+    public Task<ManagerAvailability> InitializeAsync(CancellationToken cancellationToken) => Task.FromResult(ManagerAvailability.Available);
+
+    public Task<IReadOnlyList<Package>> SearchAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
+
+    public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
+
+    public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) => Task.FromResult(PackageAgreements.None(package));
+
+    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        Task.FromResult(OperationResult.Success());
+
+    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        Task.FromResult(OperationResult.Success());
 }

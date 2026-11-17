@@ -24,4 +24,16 @@ public enum ManagerCapabilities
 
     /// <summary>Can tell where an installed package lives on disk (see <see cref="IPackageManager.GetInstallLocationAsync"/>).</summary>
     InstallLocation = 1 << 8,
+
+    /// <summary>Can list every installed package (see <see cref="IPackageManager.GetInstalledAsync"/>).</summary>
+    ListInstalled = 1 << 9,
+
+    /// <summary>Can uninstall a package (see <see cref="IPackageManager.UninstallAsync"/>).</summary>
+    Uninstall = 1 << 10,
+
+    /// <summary>Can describe a package: description, links, available versions (see <see cref="IPackageManager.GetDetailsAsync"/>).</summary>
+    Details = 1 << 11,
+
+    /// <summary>Can install a specific version (<see cref="Models.OperationOptions.TargetVersion"/>).</summary>
+    InstallVersion = 1 << 12,
 }

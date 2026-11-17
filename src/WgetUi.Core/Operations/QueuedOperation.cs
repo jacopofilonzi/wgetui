@@ -6,6 +6,7 @@ public enum OperationKind
 {
     Install,
     Upgrade,
+    Uninstall,
 }
 
 public enum OperationState

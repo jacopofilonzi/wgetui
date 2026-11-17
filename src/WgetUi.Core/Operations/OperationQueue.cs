@@ -7,7 +7,7 @@ using WgetUi.Core.Models;
 namespace WgetUi.Core.Operations;
 
 /// <summary>
-/// Single sequential queue of installs and upgrades: one operation runs at a time, in enqueue order.
+/// Single sequential queue of installs, upgrades and uninstalls: one operation runs at a time, in enqueue order.
 /// </summary>
 /// <remarks>
 /// Sequential on purpose: installers fight over locks (MSI, the winget server) and the user expects
@@ -214,8 +214,13 @@ public sealed partial class OperationQueue : IAsyncDisposable
             return OperationResult.Failure(ErrorCodes.ManagerNotFound, $"No package manager '{operation.Package.ManagerId}' is registered.");
         }
 
-        var required = operation.Kind == OperationKind.Install ? ManagerCapabilities.Install : ManagerCapabilities.Upgrade;
-        if (!manager.Capabilities.HasFlag(required))
+        var required = operation.Kind switch
+        {
+            OperationKind.Install => operation.Options.TargetVersion is null ? ManagerCapabilities.Install : ManagerCapabilities.Install | ManagerCapabilities.InstallVersion,
+            OperationKind.Upgrade => ManagerCapabilities.Upgrade,
+            _ => ManagerCapabilities.Uninstall,
+        };
+        if ((manager.Capabilities & required) != required)
         {
             return OperationResult.Failure(ErrorCodes.NotSupported, $"{manager.Id} does not support {operation.Kind}.");
         }
@@ -223,9 +228,12 @@ public sealed partial class OperationQueue : IAsyncDisposable
         var progress = new ProgressSink(this, operation);
         try
         {
-            var result = operation.Kind == OperationKind.Install
-                ? await manager.InstallAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false)
-                : await manager.UpgradeAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false);
+            var result = operation.Kind switch
+            {
+                OperationKind.Install => await manager.InstallAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false),
+                OperationKind.Upgrade => await manager.UpgradeAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false),
+                _ => await manager.UninstallAsync(operation.Package, operation.Options, progress, cancellationToken).ConfigureAwait(false),
+            };
             return result.Succeeded || !operation.WasCancelRequested ? result : OperationResult.Cancelled();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

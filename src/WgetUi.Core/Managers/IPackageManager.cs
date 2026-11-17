@@ -45,9 +45,37 @@ public interface IPackageManager
     /// </summary>
     Task<string?> GetInstallLocationAsync(Package package, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
 
-    /// <summary>Installs a package. Acts for real on the machine.</summary>
+    /// <summary>
+    /// Every installed package, including ones no source offers (source <see cref="PackageSource.LocalId"/>).
+    /// <see cref="Package.Version"/> is the installed version (null when unknown), <see cref="Package.AvailableVersion"/>
+    /// the applicable update, if any. Read-only. Optional: managers that declare
+    /// <see cref="ManagerCapabilities.ListInstalled"/> override it.
+    /// </summary>
+    Task<IReadOnlyList<Package>> GetInstalledAsync(CancellationToken cancellationToken) =>
+        Task.FromException<IReadOnlyList<Package>>(NotSupported("listing installed packages"));
+
+    /// <summary>
+    /// Description, links and available versions of a package. Read-only. Optional: managers that declare
+    /// <see cref="ManagerCapabilities.Details"/> override it.
+    /// </summary>
+    Task<PackageDetails> GetDetailsAsync(Package package, CancellationToken cancellationToken) =>
+        Task.FromException<PackageDetails>(NotSupported("package details"));
+
+    /// <summary>
+    /// Installs a package (the version in <see cref="OperationOptions.TargetVersion"/> when set). Acts for real on
+    /// the machine.
+    /// </summary>
     Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
 
     /// <summary>Upgrades an installed package. Acts for real on the machine.</summary>
     Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Uninstalls an installed package. Acts for real on the machine. Optional: managers that declare
+    /// <see cref="ManagerCapabilities.Uninstall"/> override it.
+    /// </summary>
+    Task<OperationResult> UninstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
+        Task.FromResult(OperationResult.Failure(ErrorCodes.NotSupported, $"{Id} does not support uninstalling."));
+
+    private PackageManagerException NotSupported(string what) => new(ErrorCodes.NotSupported, $"{Id} does not support {what}.");
 }

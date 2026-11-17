@@ -25,4 +25,6 @@ public static class ErrorCodes
     public const string NoApplicableUpgrade = "no_applicable_upgrade";
     public const string AgreementsNotAccepted = "agreements_not_accepted";
     public const string InternalError = "internal_error";
+    public const string UninstallFailed = "uninstall_failed";
+    public const string VersionNotFound = "version_not_found";
 }
