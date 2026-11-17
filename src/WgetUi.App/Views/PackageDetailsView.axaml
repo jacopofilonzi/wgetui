@@ -5,12 +5,14 @@
              xmlns:c="using:WgetUi.App.Controls"
              xmlns:l="using:WgetUi.App.Localization"
              x:Class="WgetUi.App.Views.PackageDetailsView"
-             x:DataType="vm:PackageDetailsViewModel"
-             Width="592">
+             x:DataType="vm:PackageDetailsViewModel">
   <UserControl.Styles>
     <Style Selector="TextBlock.FieldLabel">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock.Strong">
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="HyperlinkButton.Field">
       <Setter Property="Padding" Value="0" />
@@ -21,9 +23,13 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
   </UserControl.Styles>
-  <StackPanel Spacing="20">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+  </UserControl.KeyBindings>
+  <!-- Header and footer stay put; the body scrolls when the window is short. -->
+  <Grid RowDefinitions="Auto,*,Auto">
     <!-- Header: tile, name, "id · publisher · source", close. -->
-    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Margin="24,24,24,0">
       <Border Width="48" Height="48" CornerRadius="10" Background="{DynamicResource PackageTileBackground}" VerticalAlignment="Top">
         <ui:FASymbolIcon Symbol="Library" FontSize="24" Foreground="{DynamicResource PackageTileForeground}" />
       </Border>
@@ -37,77 +43,69 @@
         </WrapPanel>
       </StackPanel>
       <Button Grid.Column="2" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" VerticalAlignment="Top"
-              Command="{Binding CloseCommand}" ToolTip.Tip="{l:Tr Details_Close}">
+              Command="{Binding CloseCommand}" ToolTip.Tip="{l:Tr Details_Close}" AutomationProperties.Name="{l:Tr Details_Close}">
         <ui:FASymbolIcon Symbol="Dismiss" FontSize="14" />
       </Button>
     </Grid>
 
-    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
-    <TextBlock Classes="Secondary" Text="{Binding ErrorText}" IsVisible="{Binding HasError}" TextWrapping="Wrap" />
-    <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}" TextWrapping="Wrap" LineHeight="21" MaxHeight="150" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" />
+    <ScrollViewer Grid.Row="1" Margin="0,20,0,0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="20" Margin="24,0,24,0">
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
+        <TextBlock Classes="Secondary" Text="{Binding ErrorText}" IsVisible="{Binding HasError}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}" TextWrapping="Wrap" LineHeight="21" />
 
-    <!-- Info card: two columns; missing fields are simply hidden (WrapPanel skips them). -->
-    <Border Padding="16" CornerRadius="8" Background="{DynamicResource DetailsCardBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="1">
-      <WrapPanel ItemWidth="272" ItemSpacing="16" LineSpacing="16">
-        <StackPanel Spacing="4">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_InstalledVersion}" />
-          <TextBlock Text="{Binding InstalledVersion}" IsVisible="{Binding HasInstalledVersion}" TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="Secondary" Text="{l:Tr Details_NotInstalled}" IsVisible="{Binding !HasInstalledVersion}" />
-        </StackPanel>
-        <StackPanel Spacing="4" IsVisible="{Binding HasAvailableVersion}">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_AvailableVersion}" />
-          <TextBlock Text="{Binding AvailableVersion}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-        <StackPanel Spacing="4" IsVisible="{Binding HasLicense}">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_License}" />
-          <HyperlinkButton Classes="Field" Content="{Binding License}" NavigateUri="{Binding LicenseUri}" IsVisible="{Binding HasLicenseLink}" />
-          <TextBlock Text="{Binding License}" IsVisible="{Binding HasLicenseText}" TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-        <StackPanel Spacing="4" IsVisible="{Binding HasHomepage}">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_Homepage}" />
-          <HyperlinkButton Classes="Field" Content="{Binding HomepageText}" NavigateUri="{Binding HomepageUri}" ToolTip.Tip="{Binding HomepageUri}" />
-        </StackPanel>
-        <StackPanel Spacing="4" IsVisible="{Binding HasReleaseNotes}">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_ReleaseNotes}" />
-          <HyperlinkButton Classes="Field" Content="{l:Tr Details_ReleaseNotesOpen}" NavigateUri="{Binding ReleaseNotesUri}" ToolTip.Tip="{Binding ReleaseNotesUri}" />
-        </StackPanel>
-        <StackPanel Spacing="4">
-          <TextBlock Classes="FieldLabel" Text="{l:Tr Details_Source}" />
-          <TextBlock Text="{Binding SourceName}" />
-        </StackPanel>
-      </WrapPanel>
-    </Border>
+        <!-- Info card: only the known fields (view model), two per row. -->
+        <Border Padding="16,16,0,0" CornerRadius="8" Background="{DynamicResource DetailsCardBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="1">
+          <ItemsControl ItemsSource="{Binding Fields}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DetailsField">
+                <StackPanel Spacing="4" Margin="0,0,16,16">
+                  <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+                  <HyperlinkButton Classes="Field" Content="{Binding Text}" NavigateUri="{Binding Link}" ToolTip.Tip="{Binding Link}" IsVisible="{Binding HasLink}" />
+                  <TextBlock Text="{Binding Text}" Classes.Strong="{Binding IsStrong}" Classes.Secondary="{Binding IsMuted}" IsVisible="{Binding HasText}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
 
-    <StackPanel Spacing="8" IsVisible="{Binding HasVersions}">
-      <TextBlock Text="{l:Tr Details_Versions}" FontWeight="SemiBold" />
-      <ListBox ItemsSource="{Binding Versions}" MaxHeight="200" Background="Transparent">
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:PackageVersionItemViewModel">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" MinHeight="28">
-              <TextBlock Text="{Binding Version}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" />
-              <Border Grid.Column="1" Classes="Tag" Background="{DynamicResource Tag.Latest.Background}" IsVisible="{Binding IsLatest}">
-                <TextBlock Text="{l:Tr Details_Latest}" FontSize="11" Foreground="{DynamicResource Tag.Latest.Foreground}" />
-              </Border>
-              <Border Grid.Column="2" Classes="Tag" Background="{DynamicResource Tag.Installed.Background}" IsVisible="{Binding IsInstalled}">
-                <TextBlock Text="{l:Tr Details_Installed}" FontSize="11" Foreground="{DynamicResource Tag.Installed.Foreground}" />
-              </Border>
-              <Button Grid.Column="4" Content="{l:Tr Details_InstallVersion}" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" FontSize="12" Padding="12,4" />
-            </Grid>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-    </StackPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding HasVersions}">
+          <TextBlock Text="{l:Tr Details_Versions}" FontWeight="SemiBold" />
+          <ListBox ItemsSource="{Binding Versions}" MaxHeight="200" Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PackageVersionItemViewModel">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" MinHeight="28">
+                  <TextBlock Text="{Binding Version}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="1" Classes="Tag" Background="{DynamicResource Tag.Latest.Background}" IsVisible="{Binding IsLatest}">
+                    <TextBlock Text="{l:Tr Details_Latest}" FontSize="11" Foreground="{DynamicResource Tag.Latest.Foreground}" />
+                  </Border>
+                  <Border Grid.Column="2" Classes="Tag" Background="{DynamicResource Tag.Installed.Background}" IsVisible="{Binding IsInstalled}">
+                    <TextBlock Text="{l:Tr Details_Installed}" FontSize="11" Foreground="{DynamicResource Tag.Installed.Foreground}" />
+                  </Border>
+                  <Button Grid.Column="4" Content="{l:Tr Details_InstallVersion}" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" FontSize="12" Padding="12,4" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
 
     <!-- Footer: ignore on the left, close + primary action on the right. -->
-    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-      <Button Grid.Column="0" Command="{Binding IgnoreCommand}" IsVisible="{Binding ShowIgnore}">
-        <StackPanel Orientation="Horizontal" Spacing="6">
-          <ui:FAFontIcon Glyph="&#xED1A;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" />
-          <TextBlock Text="{Binding IgnoreText}" />
-        </StackPanel>
-      </Button>
-      <Button Grid.Column="2" Content="{l:Tr Details_Close}" Command="{Binding CloseCommand}" MinWidth="96" />
-      <Button Grid.Column="3" Classes="accent" Content="{Binding PrimaryText}" Command="{Binding PrimaryCommand}" IsVisible="{Binding ShowPrimary}" MinWidth="96" />
-    </Grid>
-  </StackPanel>
+    <Border Grid.Row="2" Margin="0,20,0,0" Padding="24,16" Background="{DynamicResource DetailsFooterBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <Button Grid.Column="0" Command="{Binding IgnoreCommand}" IsVisible="{Binding ShowIgnore}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ui:FAFontIcon Glyph="&#xED1A;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" />
+            <TextBlock Text="{Binding IgnoreText}" />
+          </StackPanel>
+        </Button>
+        <Button Grid.Column="2" Content="{l:Tr Details_Close}" Command="{Binding CloseCommand}" MinWidth="96" />
+        <Button Grid.Column="3" Classes="accent" Content="{Binding PrimaryText}" Command="{Binding PrimaryCommand}" IsVisible="{Binding ShowPrimary}" MinWidth="96" />
+      </Grid>
+    </Border>
+  </Grid>
 </UserControl>

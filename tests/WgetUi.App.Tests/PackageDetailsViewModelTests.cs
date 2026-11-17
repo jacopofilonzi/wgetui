@@ -68,6 +68,8 @@ public sealed class PackageDetailsViewModelTests : IAsyncDisposable
         Assert.Equal("7-zip.org", vm.HomepageText);
         Assert.True(vm.HasLicenseLink);
         Assert.False(vm.HasReleaseNotes);
+        Assert.Equal(["Installed version", "Available", "License", "Homepage", "Source"], vm.Fields.Select(f => f.Label));
+        Assert.Equal(new Uri("https://7-zip.org/license.txt"), vm.Fields[2].Link);
         Assert.Equal(["2.0", "1.5", "1.0"], vm.Versions.Select(v => v.Version));
         Assert.True(vm.Versions[0].IsLatest);
         Assert.True(vm.Versions[2].IsInstalled);
@@ -85,6 +87,7 @@ public sealed class PackageDetailsViewModelTests : IAsyncDisposable
         await vm.LoadAsync(Ct);
 
         Assert.True(vm.HasError);
+        Assert.Equal(["Installed version", "Available", "Source"], vm.Fields.Select(f => f.Label));
         Assert.Equal("unknown", vm.Name);
         Assert.Equal("2.0", vm.AvailableVersion);
         Assert.Empty(vm.Versions);
@@ -217,5 +220,33 @@ public sealed class PackageDetailsViewModelTests : IAsyncDisposable
         _manager.Complete("a", OperationResult.Success());
         await operation.Completion.WaitAsync(Timeout, Ct);
         Assert.Equal("1.5", _manager.Received["install:a"].TargetVersion);
+    }
+}
+
+public sealed class DetailsOverlayTests
+{
+    [Fact]
+    public async Task ShowsUntilClosedThenRunsTheChosenAction()
+    {
+        var manager = new ScriptedManager { ExtraCapabilities = ManagerCapabilities.Details };
+        var registry = new ManagerRegistry([manager], NullLogger<ManagerRegistry>.Instance);
+        var ran = false;
+        var vm = new PackageDetailsViewModel(ScriptedManager.Package("a"), "Main", DetailsContext.Updates, registry, new PackageDetailsActions(_ =>
+        {
+            ran = true;
+            return Task.CompletedTask;
+        }), NullLogger.Instance);
+        var overlay = new DetailsOverlay();
+
+        var shown = overlay.ShowAsync(vm);
+        Assert.True(overlay.IsOpen);
+        Assert.Same(vm, overlay.Current);
+        Assert.False(shown.IsCompleted);
+
+        vm.PrimaryCommand.Execute(null);
+        await shown.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.False(overlay.IsOpen);
+        Assert.True(ran);
     }
 }

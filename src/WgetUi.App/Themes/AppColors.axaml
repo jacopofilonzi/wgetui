@@ -4,6 +4,10 @@
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
       <SolidColorBrush x:Key="InfoButtonForeground" Color="#FF2563EB" />
+      <SolidColorBrush x:Key="OverlayBackdrop" Color="#66000000" />
+      <SolidColorBrush x:Key="DetailsDialogBackground" Color="#FFFFFFFF" />
+      <SolidColorBrush x:Key="DetailsDialogBorder" Color="#FFD6D6D6" />
+      <SolidColorBrush x:Key="DetailsFooterBackground" Color="#FFF3F3F3" />
       <SolidColorBrush x:Key="PackageTileBackground" Color="#FFE6E6E6" />
       <SolidColorBrush x:Key="PackageTileForeground" Color="#FF404040" />
       <SolidColorBrush x:Key="DetailsCardBackground" Color="#FFF7F7F7" />
@@ -15,6 +19,10 @@
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="InfoButtonForeground" Color="#FF60A5FA" />
+      <SolidColorBrush x:Key="OverlayBackdrop" Color="#8C000000" />
+      <SolidColorBrush x:Key="DetailsDialogBackground" Color="#FF2B2B2B" />
+      <SolidColorBrush x:Key="DetailsDialogBorder" Color="#FF3D3D3D" />
+      <SolidColorBrush x:Key="DetailsFooterBackground" Color="#FF202020" />
       <SolidColorBrush x:Key="PackageTileBackground" Color="#FF3A3A3A" />
       <SolidColorBrush x:Key="PackageTileForeground" Color="#FFE4E4E4" />
       <SolidColorBrush x:Key="DetailsCardBackground" Color="#FF252525" />

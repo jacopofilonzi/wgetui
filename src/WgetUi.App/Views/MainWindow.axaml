@@ -46,5 +46,17 @@
     </ui:FANavigationView>
     <v:QueuePanel Grid.Column="1" DataContext="{Binding Operations}" />
     </Grid>
+    <!-- Package details: modal overlay over the whole window (see DetailsOverlay). -->
+    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding Details.IsOpen}" Background="{DynamicResource OverlayBackdrop}">
+      <Border Width="640" Margin="24" MaxHeight="760" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="8" ClipToBounds="True"
+              Background="{DynamicResource DetailsDialogBackground}" BorderBrush="{DynamicResource DetailsDialogBorder}" BorderThickness="1"
+              BoxShadow="0 24 64 0 #80000000">
+        <ContentControl Content="{Binding Details.Current}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:PackageDetailsViewModel"><v:PackageDetailsView /></DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
+      </Border>
+    </Panel>
   </Grid>
 </Window>

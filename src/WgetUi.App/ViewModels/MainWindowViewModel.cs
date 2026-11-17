@@ -14,9 +14,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private IReadOnlyList<ManagerError> _initErrors = [];
 
-    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings)
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details)
     {
         _registry = registry;
+        Details = details;
         Search = search;
         Updates = updates;
         Installed = installed;
@@ -37,6 +38,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public UpdatesViewModel Updates { get; }
 
     public InstalledViewModel Installed { get; }
+
+    /// <summary>The package details popup, shown over the whole window while open.</summary>
+    public DetailsOverlay Details { get; }
 
     public OperationsViewModel Operations { get; }
 

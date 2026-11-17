@@ -81,7 +81,8 @@ internal static class Program
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
         services.AddSingleton<IgnoredUpdatesService>();
         services.AddSingleton<PackageActions>();
-        services.AddSingleton<IPackageDetailsPresenter, PackageDetailsDialog>();
+        services.AddSingleton<DetailsOverlay>();
+        services.AddSingleton<IPackageDetailsPresenter>(sp => sp.GetRequiredService<DetailsOverlay>());
         services.AddSingleton<PackageDetailsLauncher>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<UpdatesViewModel>();

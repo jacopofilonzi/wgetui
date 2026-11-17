@@ -126,6 +126,9 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
 
     public bool HasReleaseNotes => ReleaseNotesUri is not null;
 
+    /// <summary>The info card: only the fields the manager knows, in a fixed order, two per row.</summary>
+    public ObservableCollection<DetailsField> Fields { get; } = [];
+
     public ObservableCollection<PackageVersionItemViewModel> Versions { get; } = [];
 
     public bool HasVersions => Versions.Count > 0;
@@ -236,6 +239,31 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
     private void Refresh()
     {
         PrimaryText = _actions.Primary is null ? null : ComputePrimaryText();
+        Fields.Clear();
+        Fields.Add(InstalledVersion is null
+            ? new DetailsField(Loc["Details_InstalledVersion"], Loc["Details_NotInstalled"], IsMuted: true)
+            : new DetailsField(Loc["Details_InstalledVersion"], InstalledVersion));
+        if (AvailableVersion is not null)
+        {
+            Fields.Add(new DetailsField(Loc["Details_AvailableVersion"], AvailableVersion, IsStrong: true));
+        }
+
+        if (License is not null)
+        {
+            Fields.Add(new DetailsField(Loc["Details_License"], License, LicenseUri));
+        }
+
+        if (HomepageUri is not null)
+        {
+            Fields.Add(new DetailsField(Loc["Details_Homepage"], HomepageText!, HomepageUri));
+        }
+
+        if (ReleaseNotesUri is not null)
+        {
+            Fields.Add(new DetailsField(Loc["Details_ReleaseNotes"], Loc["Details_ReleaseNotesOpen"], ReleaseNotesUri));
+        }
+
+        Fields.Add(new DetailsField(Loc["Details_Source"], SourceName));
         var canInstallVersion = _actions.InstallVersion is not null
             && Capabilities.HasFlag(ManagerCapabilities.InstallVersion)
             && Package.SourceId != PackageSource.LocalId;
@@ -254,6 +282,19 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read the details of {PackageKey}: {ErrorCode}")]
     private static partial void LogLoadFailed(ILogger logger, Exception ex, string packageKey, string errorCode);
+}
+
+/// <summary>One cell of the details info card.</summary>
+/// <param name="Label">Field name ("License").</param>
+/// <param name="Text">Value, or the link text.</param>
+/// <param name="Link">Opens in the default browser when set.</param>
+/// <param name="IsStrong">Shown semibold (the available version).</param>
+/// <param name="IsMuted">Shown secondary ("Not installed").</param>
+public sealed record DetailsField(string Label, string Text, Uri? Link = null, bool IsStrong = false, bool IsMuted = false)
+{
+    public bool HasLink => Link is not null;
+
+    public bool HasText => Link is null;
 }
 
 /// <summary>One row of "Available versions".</summary>
