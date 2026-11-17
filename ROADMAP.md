@@ -26,4 +26,7 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
   silently: download the MSI, verify it (hash from the release, signature once signed), run `msiexec`
   quietly with the same scope as the current install (per-machine needs UAC), close and relaunch the new
   version. No "go to GitHub and download it" link. Needs CI publishing versioned MSIs with a manifest the app
-  can read. Alternative to weigh then: publish wgetui to winget-pkgs and update it through its own winget.
+  can read. Keep the update source behind one interface so it can be swapped later.
+- **Publish to winget-pkgs** (after self-update works). CI opens the manifest PR on each release
+  (wingetcreate/winget-releaser); signing is not required. Then the self-update flow can switch to wgetui's
+  own winget by replacing the update source, without touching the UI.
