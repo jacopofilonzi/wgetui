@@ -25,4 +25,13 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.15" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.15" />
   </ItemGroup>
+
+  <!-- SkiaSharp and HarfBuzzSharp ship native .pdb symbols next to their DLLs in runtimes/win-x64/native;
+       the SDK publishes every file there, and symbols are never bundled into the single-file exe, so ~105 MB
+       of debug symbols would sit loose in publish/. DebugType=None only covers our own symbols. -->
+  <Target Name="ExcludePdbFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
 </Project>
