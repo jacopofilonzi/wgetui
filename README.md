@@ -12,6 +12,14 @@ It talks to winget through its COM API (no console parsing) and is built so othe
   Don't run wgetui as administrator: winget refuses that connection.
 - Packages with agreements (for example from the Microsoft Store) show them before installing, unless you turn
   on automatic acceptance in Settings. Upgrades don't ask.
+- Lives in the notification area: closing the window keeps it running there (Settings can change that). The tray
+  icon shows a dot for available updates (blue), a running operation (green), an installer waiting for
+  administrator permission (orange) or a failure (red), and its menu can upgrade everything or check now. It can
+  start with Windows, minimized to the tray.
+- Checks for updates at startup and every hour, and notifies you about new ones if you said yes on first run.
+- When an installer waits on the Windows permission prompt (UAC), wgetui tells you instead of looking stuck.
+- Reopens apps an upgrade closed and did not restart (on by default, in Settings).
+- One window per data folder: launching it again brings the running one forward.
 
 ## Requirements
 
@@ -32,10 +40,14 @@ Run from the repository root (`make help` lists them):
 | `make format` | apply code formatting |
 | `make check` | formatting check + Release build with warnings as errors + tests (must be clean before committing) |
 | `make publish` | self-contained single-file `publish/wgetui.exe` (keep the two `Microsoft.Management.Deployment.*` files next to it) |
-| `make smoke` | opt-in live check: read-only winget search, agreements and upgrade listing; never installs |
+| `make smoke` | opt-in live check: read-only winget search, agreements, upgrade listing and install locations; never installs |
+| `make icons` | regenerate `src/WgetUi.App/Assets/wgetui.ico` from the artwork in `src/WgetUi.App/Icons/IconArt.cs` |
 | `make clean` | `dotnet clean` |
 
 Settings are stored in `%APPDATA%\wgetui\settings.json`, logs in `%LOCALAPPDATA%\wgetui\logs\wgetui.log`.
-`wgetui.exe --data-dir <folder>` keeps both in one folder instead.
+`wgetui.exe --data-dir <folder>` keeps both in one folder instead (and runs as a separate instance);
+`--tray` starts it hidden in the notification area. "Start with Windows" adds an entry under
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; notifications register the name `wgetui` under
+`HKCU\Software\Classes\AppUserModelId`.
 
 See [STRUCTURE.md](STRUCTURE.md) for the code layout and [AGENTS.md](AGENTS.md) for development guidelines.

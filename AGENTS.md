@@ -47,7 +47,8 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   language) for file operations.
 - The app has no env vars: user configuration is `settings.json` (see STRUCTURE.md). A new setting goes in
   `AppSettings` with a default that keeps the old behaviour, plus a control in Settings (EN + IT strings).
-  The only command-line option is `--data-dir <path>` (settings and logs in one folder, for local checks).
+  Command-line options: `--data-dir <path>` (settings and logs in one folder, for local checks; also a separate
+  single instance) and `--tray` (start hidden in the notification area, used by "Start with Windows").
 - **Never cause real side effects without asking**: payments, bookings, emails, messages to real users,
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
@@ -55,8 +56,18 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   `IPackageManager.InstallAsync` / `UpgradeAsync` (and `WinGetManager`'s implementations), anything that
   queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all buttons), and the
   winget CLI `install`/`upgrade` commands. Read-only calls are fine live: activation, search, listing upgrades,
-  reading agreements (`make smoke`). When launching the app for a check use `--data-dir` with an empty
-  scratch folder and don't click Install/Upgrade.
+  reading agreements and install locations (`make smoke`). Also real, on the user's machine:
+  - `IToastNotifier` / `WindowsToastNotifier`: desktop notifications (a few test toasts are fine), and its
+    registration under `HKCU\Software\Classes\AppUserModelId\wgetui` (written at every start, plus
+    `%LOCALAPPDATA%\wgetui\notification-icon.png`);
+  - `IRunKey` / `HkcuRunKey` (`StartWithWindowsService`): the HKCU `Run` value `wgetui`. Never toggle "Start
+    with Windows" in a check; test it with `FakeRunKey`;
+  - `IProcessLauncher` / `WindowsProcessLauncher` (`RelaunchAfterUpgrade`): starts programs. Tests use
+    `FakeLauncher`; it only runs after a real upgrade anyway;
+  - `IWindowFlasher`: flashes the taskbar button.
+  When launching the app for a check use `--data-dir` with an empty scratch folder, don't click
+  Install/Upgrade, and stop it afterwards (if `make dev` is running, build and launch the Release output: the
+  dev instance locks the Debug one).
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
   keys and a separate database.
 
@@ -111,6 +122,16 @@ and align this project's copies with it:
   fails to parse falls back to defaults instead of crashing.
 - The COM activation DLL and `.winmd` must sit next to the exe (also in the single-file publish): see the WinGet
   csproj.
+- **One instance per data directory** (`SingleInstance`: named mutex + pipe keyed by user and data dir). A second
+  launch hands over to the first and exits; a different `--data-dir` is a separate instance.
+- **The app lives in the tray**: the lifetime uses an explicit shutdown, so closing or hiding the window never
+  quits. Quitting goes through `ShellHost.QuitAsync` / `ShellCoordinator.TryQuitAsync`: confirmation when
+  operations are queued or running, which are then cancelled.
+- **Operation hooks (`IOperationHook`) never fail or hold up an operation**: the queue logs a hook that throws;
+  long work in `After` runs in the background.
+- **Relaunch is conservative**: only non-elevated processes of the user's session running from the package's
+  install folder, never installers/updaters, child processes or broad folders (see `RelaunchPlanner`), and
+  always started with wgetui's own (non-elevated) token.
 
 ## Code
 
@@ -125,7 +146,9 @@ and align this project's copies with it:
 - Use `ILogger<T>` with `[LoggerMessage]` source-generated methods (CA1848), never `Console.WriteLine` in app or
   library code (only `tools/WgetUi.Smoke` prints to the console). Logs go to `%LOCALAPPDATA%\wgetui\logs\wgetui.log`.
 - Windows-only APIs (COM, `WindowsIdentity`) live in the manager projects; `WgetUi.Core` targets plain `net10.0` and
-  stays OS-neutral. Build paths with `Path.Combine` and `Environment.GetFolderPath`, never by concatenating.
+  stays OS-neutral. In the App, OS-specific code (registry, toasts, processes, P/Invoke) lives in
+  `src/WgetUi.App/Platform/`: interfaces at the top level, Windows implementations in `Platform/Windows/`, wired
+  only in `Program.cs`. View models and services use the interfaces, so tests use fakes. Build paths with `Path.Combine` and `Environment.GetFolderPath`, never by concatenating.
 - Reuse shared clients and connections (the winget `PackageManager` and connected catalogs) instead of creating
   them per call.
 - **Dependencies are recent majors whose APIs differ from most online examples:** check the docs for the
@@ -177,6 +200,8 @@ $1
    referencing `WgetUi.Core`, with a class implementing `IPackageManager`:
    - a stable `Id` and its `Sources` (`PackageSource(managerId, sourceId, displayName)`);
    - honest `Capabilities`: the UI hides what is not declared (`Install`, `Upgrade`, `Cancel`, `Agreements`…);
+   - optional: `InstallLocation` plus an override of `GetInstallLocationAsync` (read-only) enables "reopen apps
+     closed by an upgrade" for its packages; without it the default returns null and nothing is relaunched;
    - queries throw `PackageManagerException(ErrorCodes.X, englishMessage)`; install/upgrade return `OperationResult`;
    - accept agreements only when the `OperationOptions` passed in say so;
    - serialize calls yourself if the tool can't run them concurrently.
@@ -210,3 +235,14 @@ $1
 - The projects that touch COM are built for `win-x64` (RuntimeIdentifier set in the csproj): AnyCPU can't copy the
   native activation DLL.
 - Stop `wgetui.exe` before rebuilding or publishing (exe lock, see above).
+- **Toasts from the unpackaged exe need the HKCU AppUserModelId registration** (done at startup) and the same id
+  on the process. `ToastNotifier.Setting` throws `0x80070490` until the first toast after registering: never use
+  it as a gate. Without a COM activator a toast click reaches the app only while it runs.
+- **Windows 11 puts a new tray icon in the overflow (^)**: look there in checks. A window started from a
+  background shell opens behind the foreground app: capture it with `PrintWindow` (by handle), not a screen grab.
+- **A non-elevated process can read the path and command line of the user's elevated processes**: check the
+  token elevation (`ProcessSnapshot.IsElevated`) before treating a process as safe to restart.
+- **`LibraryImport` needs `AllowUnsafeBlocks`** (set in the App csproj) and doesn't marshal `char[]`: pass pointers
+  from `fixed` blocks. Interface members named `Get`/`Set` trip CA1716.
+- **`QueuedOperation.Completion` completes just before the queue runs the `After` hooks**: tests that check hook
+  effects must wait for them, not only for the completion.
