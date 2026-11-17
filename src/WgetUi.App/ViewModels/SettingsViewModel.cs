@@ -5,23 +5,27 @@ using WgetUi.App.Services;
 
 namespace WgetUi.App.ViewModels;
 
-/// <summary>Language, theme and agreements; every change is applied and saved immediately.</summary>
+/// <summary>Language, theme, agreements and background behaviour; every change is applied and saved immediately.</summary>
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly SettingsService _settings;
     private readonly ThemeService _theme;
+    private readonly StartWithWindowsService _startWithWindows;
     private readonly bool _loading = true;
 
-    public SettingsViewModel(SettingsService settings, ThemeService theme, AppPaths paths)
+    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, AppPaths paths)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(paths);
         _settings = settings;
         _theme = theme;
+        _startWithWindows = startWithWindows;
         LogFile = paths.LogFile;
         SelectedLanguage = Languages.FirstOrDefault(o => o.Value == settings.Current.Language) ?? Languages[0];
         SelectedTheme = Themes.FirstOrDefault(o => o.Value == settings.Current.Theme) ?? Themes[0];
         AutoAcceptAgreements = settings.Current.AutoAcceptAgreements;
+        CloseToTray = settings.Current.CloseToTray;
+        StartWithWindows = startWithWindows.IsEnabled;
         _loading = false;
     }
 
@@ -47,6 +51,13 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool AutoAcceptAgreements { get; set; }
+
+    [ObservableProperty]
+    public partial bool CloseToTray { get; set; }
+
+    /// <summary>Read from and written to the Run key, not settings.json.</summary>
+    [ObservableProperty]
+    public partial bool StartWithWindows { get; set; }
 
     [ObservableProperty]
     public partial bool SaveFailed { get; set; }
@@ -93,6 +104,22 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!_loading)
         {
             Save(s => s.AutoAcceptAgreements = value);
+        }
+    }
+
+    partial void OnCloseToTrayChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.CloseToTray = value);
+        }
+    }
+
+    partial void OnStartWithWindowsChanged(bool value)
+    {
+        if (!_loading)
+        {
+            SaveFailed = !_startWithWindows.SetEnabled(value);
         }
     }
 

@@ -17,6 +17,7 @@ public sealed partial class OperationsViewModel : ViewModelBase
     private readonly OperationQueue _queue;
     private readonly IUiDispatcher _dispatcher;
     private readonly Dictionary<string, string> _sourceNames;
+    private bool _windowActive;
 
     public OperationsViewModel(OperationQueue queue, ManagerRegistry registry, IUiDispatcher dispatcher)
     {
@@ -40,7 +41,14 @@ public sealed partial class OperationsViewModel : ViewModelBase
         });
         queue.OperationChanged += (_, operation) => _dispatcher.Post(() =>
         {
-            Items.FirstOrDefault(i => i.Operation == operation)?.Refresh();
+            var item = Items.FirstOrDefault(i => i.Operation == operation);
+            var wasFailed = item?.State == OperationState.Failed;
+            item?.Refresh();
+            if (item is { State: OperationState.Failed } && !wasFailed && !IsBeingViewed)
+            {
+                HasUnseenFailure = true;
+            }
+
             Changed();
         });
     }
@@ -63,6 +71,36 @@ public sealed partial class OperationsViewModel : ViewModelBase
 
     public bool IsCollapsed => !IsExpanded;
 
+    /// <summary>Queued or running operations exist and one of them is running.</summary>
+    public bool IsRunning => Items.Any(i => i.State == OperationState.Running);
+
+    /// <summary>
+    /// An operation failed while the user was not looking at the panel. Drives the red tray dot; cleared when
+    /// the panel is seen (window active with the panel expanded) or the finished items are cleared.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool HasUnseenFailure { get; set; }
+
+    private bool IsBeingViewed => _windowActive && IsExpanded;
+
+    /// <summary>The shell reports whether the main window is the active one.</summary>
+    public void SetWindowActive(bool active)
+    {
+        _windowActive = active;
+        if (IsBeingViewed && IsPanelVisible)
+        {
+            HasUnseenFailure = false;
+        }
+    }
+
+    partial void OnIsExpandedChanged(bool value)
+    {
+        if (value && _windowActive)
+        {
+            HasUnseenFailure = false;
+        }
+    }
+
     public override void OnLanguageChanged()
     {
         foreach (var item in Items)
@@ -77,6 +115,7 @@ public sealed partial class OperationsViewModel : ViewModelBase
     [RelayCommand]
     private void ClearFinished()
     {
+        HasUnseenFailure = false;
         var removed = _queue.ClearFinished();
         foreach (var item in Items.Where(i => removed.Contains(i.Operation)).ToList())
         {
@@ -95,5 +134,6 @@ public sealed partial class OperationsViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasPending));
         OnPropertyChanged(nameof(HasFinished));
         OnPropertyChanged(nameof(IsPanelVisible));
+        OnPropertyChanged(nameof(IsRunning));
     }
 }

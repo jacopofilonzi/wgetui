@@ -60,3 +60,57 @@ internal sealed class ScriptedManager : IPackageManager
     private TaskCompletionSource<OperationResult> Pending(string id) =>
         _pending.GetOrAdd(id, _ => new TaskCompletionSource<OperationResult>(TaskCreationOptions.RunContinuationsAsynchronously));
 }
+
+/// <summary>In-memory Run key: tests never write the real registry.</summary>
+internal sealed class FakeRunKey : WgetUi.App.Platform.IRunKey
+{
+    public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public string? Read(string name) => Values.GetValueOrDefault(name);
+
+    public void Write(string name, string command) => Values[name] = command;
+
+    public void Delete(string name) => Values.Remove(name);
+}
+
+/// <summary>Records notifications instead of showing them.</summary>
+internal sealed class FakeNotifier : WgetUi.App.Platform.IToastNotifier
+{
+    public event EventHandler? Activated;
+
+    public List<(string Title, string Body)> Shown { get; } = [];
+
+    public void Show(string title, string body) => Shown.Add((title, body));
+
+    public void Click() => Activated?.Invoke(this, EventArgs.Empty);
+}
+
+/// <summary>Answers the quit confirmation with a fixed value and counts the questions.</summary>
+internal sealed class FixedQuitConfirmer(bool answer) : WgetUi.App.ViewModels.IQuitConfirmer
+{
+    public int Asked { get; private set; }
+
+    public Task<bool> ConfirmQuitAsync(int pendingCount)
+    {
+        Asked++;
+        return Task.FromResult(answer);
+    }
+}
+
+/// <summary>A settings service on a fresh temp folder; delete <see cref="Directory"/> after the test.</summary>
+internal static class TestSettings
+{
+    public static (WgetUi.App.Infrastructure.SettingsService Service, string Directory) Create()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "wgetui-tests", Guid.NewGuid().ToString("N"));
+        var paths = WgetUi.App.Infrastructure.AppPaths.FromArgs(["--data-dir", dir]);
+        var store = new WgetUi.App.Infrastructure.SettingsStore(paths, Microsoft.Extensions.Logging.Abstractions.NullLogger<WgetUi.App.Infrastructure.SettingsStore>.Instance);
+        return (new WgetUi.App.Infrastructure.SettingsService(store), dir);
+    }
+}
+
+/// <summary>Agreements confirmer that is never reached in tests that only upgrade (upgrades never prompt).</summary>
+internal sealed class NoAgreements : WgetUi.Core.Operations.IAgreementsConfirmer
+{
+    public Task<bool> ConfirmAsync(IReadOnlyList<PackageAgreements> agreements, CancellationToken cancellationToken) => Task.FromResult(false);
+}

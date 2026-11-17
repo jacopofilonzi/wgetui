@@ -31,6 +31,11 @@
         <TextBlock Classes="Secondary" Text="{l:Tr Settings_AutoAcceptHint}" TextWrapping="Wrap" />
       </StackPanel>
       <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_Background}" />
+        <CheckBox IsChecked="{Binding CloseToTray}" Content="{l:Tr Settings_CloseToTray}" />
+        <CheckBox IsChecked="{Binding StartWithWindows}" Content="{l:Tr Settings_StartWithWindows}" />
+      </StackPanel>
+      <StackPanel Spacing="4">
         <TextBlock Classes="RowTitle" Text="{l:Tr Settings_About}" />
         <TextBlock Classes="Secondary" Text="{Binding Version, StringFormat='wgetui {0}'}" />
         <SelectableTextBlock Classes="Secondary" Text="{Binding SettingsFile}" />

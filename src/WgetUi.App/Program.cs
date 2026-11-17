@@ -2,6 +2,8 @@ using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WgetUi.App.Infrastructure;
+using WgetUi.App.Platform;
+using WgetUi.App.Platform.Windows;
 using WgetUi.App.Services;
 using WgetUi.App.ViewModels;
 using WgetUi.Core;
@@ -17,7 +19,16 @@ internal static class Program
     public static int Main(string[] args)
     {
         var paths = AppPaths.FromArgs(args);
-        var services = ConfigureServices(paths);
+        using var instance = SingleInstance.Acquire(SingleInstance.KeyFor(paths.DataDirectory));
+        if (!instance.IsPrimary)
+        {
+            // Already running for this data directory: bring it forward (unless this is a --tray start) and leave.
+            instance.Send(paths.StartInTray ? SingleInstance.TrayMessage : SingleInstance.ActivateMessage, TimeSpan.FromSeconds(3));
+            return 0;
+        }
+
+        WindowsToastNotifier.SetProcessAppUserModelId();
+        var services = ConfigureServices(paths, instance);
         try
         {
             return AppBuilder.Configure(() => new App(services))
@@ -32,7 +43,7 @@ internal static class Program
         }
     }
 
-    private static ServiceProvider ConfigureServices(AppPaths paths)
+    private static ServiceProvider ConfigureServices(AppPaths paths, SingleInstance instance)
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder
@@ -40,17 +51,26 @@ internal static class Program
             .AddDebug()
             .AddProvider(new FileLoggerProvider(paths.LogFile)));
         services.AddSingleton(paths);
+        services.AddSingleton(instance);
 
         // Package managers: one line each. The rest of the app only sees IPackageManager.
         services.AddSingleton<IPackageManager, WinGetManager>();
 
+        // Platform (Windows): the only place that touches the registry, toasts and processes.
+        services.AddSingleton<WindowsToastNotifier>();
+        services.AddSingleton<IToastNotifier>(sp => sp.GetRequiredService<WindowsToastNotifier>());
+        services.AddSingleton<IRunKey, HkcuRunKey>();
+        services.AddSingleton<ITaskbarTheme, RegistryTaskbarTheme>();
+
         services.AddSingleton<ManagerRegistry>();
         services.AddSingleton<OperationQueue>();
         services.AddSingleton<IAgreementsConfirmer, AgreementsDialog>();
+        services.AddSingleton<IQuitConfirmer, QuitConfirmDialog>();
         services.AddSingleton<OperationRequester>();
         services.AddSingleton<SettingsStore>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<ThemeService>();
+        services.AddSingleton(sp => new StartWithWindowsService(sp.GetRequiredService<IRunKey>(), paths, sp.GetRequiredService<ILogger<StartWithWindowsService>>()));
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
         services.AddSingleton<PackageActions>();
         services.AddSingleton<SearchViewModel>();
@@ -58,6 +78,8 @@ internal static class Program
         services.AddSingleton<OperationsViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<TrayViewModel>();
+        services.AddSingleton<ShellCoordinator>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

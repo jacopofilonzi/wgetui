@@ -134,4 +134,45 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
         Assert.Equal(0, _vm.PendingCount);
         Assert.All(_vm.Items, i => Assert.False(i.CanCancel));
     }
+
+    [Fact]
+    public async Task FailureWhileNotLookingIsUnseenUntilThePanelIsSeen()
+    {
+        _queue.Enqueue(ScriptedManager.Package("a"), OperationKind.Upgrade);
+        await UntilAsync(() => _vm.IsRunning);
+
+        _manager.Complete("a", OperationResult.Failure(ErrorCodes.InstallFailed, "boom"));
+        await UntilAsync(() => _vm.Items[0].State == OperationState.Failed);
+
+        Assert.True(_vm.HasUnseenFailure);
+        Assert.False(_vm.IsRunning);
+        _vm.SetWindowActive(true);
+        Assert.False(_vm.HasUnseenFailure);
+    }
+
+    [Fact]
+    public async Task FailureSeenInTheOpenPanelIsNotFlagged()
+    {
+        _vm.SetWindowActive(true);
+        _queue.Enqueue(ScriptedManager.Package("a"), OperationKind.Upgrade);
+        await UntilAsync(() => _vm.IsRunning);
+
+        _manager.Complete("a", OperationResult.Failure(ErrorCodes.InstallFailed, "boom"));
+        await UntilAsync(() => _vm.Items[0].State == OperationState.Failed);
+
+        Assert.False(_vm.HasUnseenFailure);
+    }
+
+    [Fact]
+    public async Task ClearingFinishedAcknowledgesFailures()
+    {
+        _queue.Enqueue(ScriptedManager.Package("a"), OperationKind.Upgrade);
+        await UntilAsync(() => _vm.IsRunning);
+        _manager.Complete("a", OperationResult.Failure(ErrorCodes.InstallFailed, "boom"));
+        await UntilAsync(() => _vm.HasUnseenFailure);
+
+        _vm.ClearFinishedCommand.Execute(null);
+
+        Assert.False(_vm.HasUnseenFailure);
+    }
 }

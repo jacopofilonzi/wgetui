@@ -84,4 +84,19 @@
   <data name="Error_no_applicable_upgrade" xml:space="preserve"><value>Nessun aggiornamento più disponibile.</value></data>
   <data name="Error_agreements_not_accepted" xml:space="preserve"><value>I contratti del pacchetto non sono stati accettati.</value></data>
   <data name="Error_internal_error" xml:space="preserve"><value>Il gestore di pacchetti ha segnalato un errore interno.</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>Apri wgetui</value></data>
+  <data name="Tray_UpgradeAll" xml:space="preserve"><value>Aggiorna tutto ({0})</value></data>
+  <data name="Tray_CheckUpdates" xml:space="preserve"><value>Cerca aggiornamenti</value></data>
+  <data name="Tray_Quit" xml:space="preserve"><value>Esci</value></data>
+  <data name="Tray_Updates_One" xml:space="preserve"><value>1 aggiornamento</value></data>
+  <data name="Tray_Updates_Many" xml:space="preserve"><value>{0} aggiornamenti</value></data>
+  <data name="Tray_Queued" xml:space="preserve"><value>{0} in coda</value></data>
+  <data name="Quit_Title" xml:space="preserve"><value>Uscire da wgetui?</value></data>
+  <data name="Quit_Message" xml:space="preserve"><value>Operazioni ancora in coda o in corso: {0}. Uscendo verranno annullate.</value></data>
+  <data name="Quit_Confirm" xml:space="preserve"><value>Esci</value></data>
+  <data name="Toast_TrayHint_Title" xml:space="preserve"><value>wgetui resta attivo nell'area di notifica</value></data>
+  <data name="Toast_TrayHint_Body" xml:space="preserve"><value>Riaprilo dalla sua icona. Puoi cambiare questo comportamento nelle Impostazioni.</value></data>
+  <data name="Settings_Background" xml:space="preserve"><value>In background</value></data>
+  <data name="Settings_CloseToTray" xml:space="preserve"><value>Resta attivo nell'area di notifica quando la finestra viene chiusa</value></data>
+  <data name="Settings_StartWithWindows" xml:space="preserve"><value>Avvia con Windows (nell'area di notifica)</value></data>
 </root>
