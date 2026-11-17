@@ -6,12 +6,12 @@
              x:Class="WgetUi.App.Views.QueuePanel"
              x:DataType="vm:OperationsViewModel"
              IsVisible="{Binding IsPanelVisible}">
-  <Border Background="{DynamicResource LayerFillColorDefaultBrush}"
-          BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
+  <!-- Transparent pane on the window (Mica) background, like the left navigation pane. -->
+  <Border Background="Transparent">
     <Panel>
       <!-- Collapsed: a narrow strip with the number of pending operations. -->
       <Button IsVisible="{Binding IsCollapsed}" Command="{Binding ToggleExpandedCommand}"
-              Width="44" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Top"
+              Width="48" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Top"
               Background="Transparent" BorderThickness="0" Padding="0,12"
               ToolTip.Tip="{l:Tr Queue_Expand}">
         <StackPanel Spacing="8" HorizontalAlignment="Center">
@@ -21,7 +21,7 @@
       </Button>
 
       <!-- Expanded: compact list of operations. -->
-      <Grid IsVisible="{Binding IsExpanded}" Width="320" RowDefinitions="Auto,*">
+      <Grid IsVisible="{Binding IsExpanded}" Width="300" RowDefinitions="Auto,*">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="12,10,6,6" ColumnSpacing="4">
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
             <TextBlock Classes="RowTitle" Text="{l:Tr Queue_Title}" />
@@ -37,7 +37,7 @@
           <ItemsControl ItemsSource="{Binding Items}" Margin="8,0,8,8">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:OperationItemViewModel">
-                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                <Border Background="Transparent" CornerRadius="4" Padding="10,6" Margin="0,0,0,2">
                   <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Id}" />
                     <Button Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}"

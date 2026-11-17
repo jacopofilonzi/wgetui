@@ -8,18 +8,22 @@
         x:DataType="vm:MainWindowViewModel"
         Title="wgetui" Width="1100" Height="720" MinWidth="720" MinHeight="480"
         TransparencyLevelHint="Mica">
+  <Window.Resources>
+    <!-- The content card sits between two panes, so round both top corners (FluentAvalonia
+         reads these through DynamicResource; defaults are 8,0,0,0 and 1,1,0,0). -->
+    <CornerRadius x:Key="NavigationViewContentGridCornerRadius">8,8,0,0</CornerRadius>
+    <Thickness x:Key="NavigationViewContentGridBorderThickness">1,1,1,0</Thickness>
+  </Window.Resources>
   <Grid RowDefinitions="Auto,*">
     <ui:FAInfoBar Grid.Row="0" Margin="12,8,12,0" Severity="Error" IsClosable="True"
                   IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
                   Title="{l:Tr Banner_ManagerUnavailable}"
                   Message="{Binding BannerMessage}" />
-    <ui:FANavigationView Grid.Row="1" x:Name="Nav" PaneDisplayMode="Auto" IsSettingsVisible="False"
+    <!-- Queue panel outside the content card, on the window background like the left pane. -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+    <ui:FANavigationView Grid.Column="0" x:Name="Nav" PaneDisplayMode="Auto" IsSettingsVisible="False"
                          IsBackButtonVisible="False" OpenPaneLength="220">
-      <!-- nav | page | queue panel -->
-      <Grid ColumnDefinitions="*,Auto">
-        <ContentControl Grid.Column="0" Content="{Binding CurrentPage}" />
-        <v:QueuePanel Grid.Column="1" DataContext="{Binding Operations}" />
-      </Grid>
+      <ContentControl Content="{Binding CurrentPage}" />
       <ui:FANavigationView.MenuItems>
         <ui:FANavigationViewItem Content="{l:Tr Nav_Search}" Tag="search">
           <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Find" /></ui:FANavigationViewItem.IconSource>
@@ -37,5 +41,7 @@
         </ui:FANavigationViewItem>
       </ui:FANavigationView.FooterMenuItems>
     </ui:FANavigationView>
+    <v:QueuePanel Grid.Column="1" DataContext="{Binding Operations}" />
+    </Grid>
   </Grid>
 </Window>

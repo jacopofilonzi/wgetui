@@ -86,7 +86,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): visibility, collapse, pending count, cancel, clear |
 | `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements |
 | `ViewModels/PackageActions.cs` | Install/Upgrade clicks → `OperationRequester` with the auto-accept setting |
-| `Views/*.axaml` | `MainWindow` (nav \| page \| `QueuePanel`), `SearchView`, `UpdatesView`, `SettingsView`, `QueuePanel` |
+| `Views/*.axaml` | `MainWindow` (nav pane \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners), `SearchView`, `UpdatesView`, `SettingsView`, `QueuePanel` |
 
 ### Data and state
 
