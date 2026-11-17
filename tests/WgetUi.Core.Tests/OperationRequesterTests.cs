@@ -89,42 +89,49 @@ public sealed class OperationRequesterTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task UpgradeAllShowsOneModalWithTheAgreementsOfEveryPackageInvolved()
+    public async Task InstallOfSeveralPackagesShowsOneModalWithTheAgreementsOfEveryPackageInvolved()
     {
         WithStoreAgreements("store-a");
         _manager.Agreements["store-b"] = p => new PackageAgreements(p, [StoreTerms], []);
         _confirmer.Answer = true;
 
-        var result = await RequestAndWaitAsync(OperationKind.Upgrade, autoAccept: false, "plain", "store-a", "store-b");
+        var result = await RequestAndWaitAsync(OperationKind.Install, autoAccept: false, "plain", "store-a", "store-b");
 
         Assert.Equal(1, _confirmer.Calls);
         Assert.Equal(["store-a", "store-b"], _confirmer.Shown.Select(a => a.Package.Id));
         Assert.Equal(["plain", "store-a", "store-b"], result.Queued.Select(o => o.Package.Id));
-        Assert.All(result.Queued, o => Assert.Equal(OperationKind.Upgrade, o.Kind));
         Assert.Equal(OperationOptions.None, _manager.ReceivedOptions["plain"]);
         Assert.Equal(OperationOptions.AcceptAll, _manager.ReceivedOptions["store-a"]);
         Assert.Equal(new OperationOptions(true, false), _manager.ReceivedOptions["store-b"]);
     }
 
-    [Fact]
-    public async Task CancellingUpgradeAllQueuesNoneOfThePackages()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UpgradeNeverPromptsNorReadsAgreementsAndAcceptsThem(bool autoAccept)
     {
         WithStoreAgreements("store-a");
-        _confirmer.Answer = false;
+        _manager.Agreements["plain"] = _ => throw new InvalidOperationException("upgrades must not read agreements");
 
-        var result = await RequestAndWaitAsync(OperationKind.Upgrade, autoAccept: false, "plain", "store-a");
+        var result = await RequestAndWaitAsync(OperationKind.Upgrade, autoAccept, "store-a");
 
-        Assert.True(result.Declined);
-        Assert.Empty(_queue.Operations);
+        Assert.Equal(0, _confirmer.Calls);
+        Assert.Equal(OperationKind.Upgrade, result.Queued.Single().Kind);
+        Assert.Equal(OperationOptions.AcceptAll, _manager.ReceivedOptions["store-a"]);
     }
 
     [Fact]
-    public async Task UpgradeAllWithoutAgreementsShowsNoModal()
+    public async Task UpgradeAllNeverPromptsAndAcceptsForEveryPackage()
     {
-        var result = await RequestAndWaitAsync(OperationKind.Upgrade, autoAccept: false, "a", "b");
+        WithStoreAgreements("store-a");
+        _manager.Agreements["plain"] = _ => throw new InvalidOperationException("upgrades must not read agreements");
+
+        var result = await RequestAndWaitAsync(OperationKind.Upgrade, autoAccept: false, "plain", "store-a", "other");
 
         Assert.Equal(0, _confirmer.Calls);
-        Assert.Equal(2, result.Queued.Count);
+        Assert.Empty(result.AgreementErrors);
+        Assert.Equal(["plain", "store-a", "other"], result.Queued.Select(o => o.Package.Id));
+        Assert.All(result.Queued, o => Assert.Equal(OperationOptions.AcceptAll, o.Options));
     }
 
     [Fact]

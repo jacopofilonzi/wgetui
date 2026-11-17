@@ -137,6 +137,17 @@ internal static class WinGetMapping
         return new Agreement(cleanLabel ?? cleanUrl ?? string.Empty, cleanText, cleanUrl);
     }
 
+    /// <summary>
+    /// License text for display, or null. msstore puts a store deep link (ms-windows-store://…) there, which is
+    /// not a license name; a non-http link is dropped as well.
+    /// </summary>
+    public static (string? License, string? Url) ToLicense(string? license, string? url)
+    {
+        var cleanLicense = string.IsNullOrWhiteSpace(license) || license.StartsWith("ms-windows-store:", StringComparison.OrdinalIgnoreCase) ? null : license.Trim();
+        var cleanUrl = Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) ? url : null;
+        return (cleanLicense, cleanLicense is null ? null : cleanUrl);
+    }
+
     private static double Percent(double fraction) => Math.Clamp(fraction, 0, 1) * 100;
 
     private static string NameOrId(WinGetPackageData data) => string.IsNullOrWhiteSpace(data.Name) ? data.Id : data.Name;

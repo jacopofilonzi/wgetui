@@ -356,15 +356,14 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
                 }
             }
 
-            return new PackageAgreements(package, packageTerms, sourceTerms, NullIfEmpty(metadata?.License), NullIfEmpty(metadata?.LicenseUrl));
+            var (license, licenseUrl) = WinGetMapping.ToLicense(metadata?.License, metadata?.LicenseUrl);
+            return new PackageAgreements(package, packageTerms, sourceTerms, license, licenseUrl);
         }
         catch (COMException ex)
         {
             throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading agreements of {package.Id} failed: {Describe(ex)}", ex);
         }
     }
-
-    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private IReadOnlyList<Package> ListUpgrades(bool includeUnknown)
     {

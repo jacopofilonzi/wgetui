@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- UI strings. Every key must exist in Strings.resx (English) and Strings.it.resx (Italian):
+       the App tests fail otherwise. -->
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Nav_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Nav_Updates" xml:space="preserve"><value>Updates</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Banner_ManagerUnavailable" xml:space="preserve"><value>A package manager is unavailable</value></data>
+  <data name="Errors_SomeFailed" xml:space="preserve"><value>Some sources did not answer</value></data>
+  <data name="Errors_ManagerLine" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Search_Title" xml:space="preserve"><value>Search</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Search packages by name, id or keyword</value></data>
+  <data name="Search_Button" xml:space="preserve"><value>Search</value></data>
+  <data name="Search_SourceAll" xml:space="preserve"><value>All sources</value></data>
+  <data name="Search_Hint" xml:space="preserve"><value>Type a name and press Enter to search every source.</value></data>
+  <data name="Search_NoResults" xml:space="preserve"><value>No packages found.</value></data>
+  <data name="Search_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Updates_Title" xml:space="preserve"><value>Updates</value></data>
+  <data name="Updates_Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Updates_UpgradeAll" xml:space="preserve"><value>Upgrade all</value></data>
+  <data name="Updates_Upgrade" xml:space="preserve"><value>Upgrade</value></data>
+  <data name="Updates_ShowUnknown" xml:space="preserve"><value>Show packages with unknown version</value></data>
+  <data name="Updates_None" xml:space="preserve"><value>Everything is up to date.</value></data>
+  <data name="Version_Unknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="Queue_Title" xml:space="preserve"><value>Queue</value></data>
+  <data name="Queue_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Queue_Expand" xml:space="preserve"><value>Show the queue</value></data>
+  <data name="Queue_Collapse" xml:space="preserve"><value>Collapse the queue</value></data>
+  <data name="Ops_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Ops_RebootRequired" xml:space="preserve"><value>Restart required to complete</value></data>
+  <data name="Ops_Kind_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Ops_Kind_Upgrade" xml:space="preserve"><value>Upgrade</value></data>
+  <data name="Ops_State_Queued" xml:space="preserve"><value>Queued</value></data>
+  <data name="Ops_State_Running" xml:space="preserve"><value>Running</value></data>
+  <data name="Ops_State_Succeeded" xml:space="preserve"><value>Completed</value></data>
+  <data name="Ops_State_Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Ops_State_Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Ops_Stage_Preparing" xml:space="preserve"><value>preparing</value></data>
+  <data name="Ops_Stage_Downloading" xml:space="preserve"><value>downloading</value></data>
+  <data name="Ops_Stage_Installing" xml:space="preserve"><value>installing</value></data>
+  <data name="Ops_Stage_Finalizing" xml:space="preserve"><value>finishing</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings_Lang_System" xml:space="preserve"><value>System default</value></data>
+  <data name="Settings_Lang_En" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_Lang_It" xml:space="preserve"><value>Italiano</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>System default</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Settings_Agreements" xml:space="preserve"><value>Agreements</value></data>
+  <data name="Settings_AutoAccept" xml:space="preserve"><value>Automatically accept package and source agreements</value></data>
+  <data name="Settings_AutoAcceptHint" xml:space="preserve"><value>When off, installing a package that has agreements (for example from the Microsoft Store) first shows them for you to accept. Upgrades never ask.</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>About</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>Settings could not be saved. Details are in the log file.</value></data>
+  <data name="Agreements_Title" xml:space="preserve"><value>Agreements to accept ({0} package(s))</value></data>
+  <data name="Agreements_Message" xml:space="preserve"><value>Installing requires accepting the following agreements. Open the links to read them.</value></data>
+  <data name="Agreements_SourceTerms" xml:space="preserve"><value>Source agreements ({0})</value></data>
+  <data name="Agreements_License" xml:space="preserve"><value>License: {0}</value></data>
+  <data name="Agreements_SettingHint" xml:space="preserve"><value>You can accept agreements automatically in Settings.</value></data>
+  <data name="Agreements_Accept" xml:space="preserve"><value>Accept and install</value></data>
+  <data name="Agreements_ReadFailed" xml:space="preserve"><value>The agreements of some packages could not be read: they were queued without accepting them and may fail.</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Error_cancelled" xml:space="preserve"><value>Cancelled.</value></data>
+  <data name="Error_unexpected" xml:space="preserve"><value>Unexpected error. Details are in the log file.</value></data>
+  <data name="Error_timeout" xml:space="preserve"><value>The package manager is busy or not responding. Try again in a moment.</value></data>
+  <data name="Error_manager_not_found" xml:space="preserve"><value>The package manager for this package is not available.</value></data>
+  <data name="Error_manager_unavailable" xml:space="preserve"><value>The package manager is not available.</value></data>
+  <data name="Error_not_supported" xml:space="preserve"><value>This package manager does not support this action.</value></data>
+  <data name="Error_com_activation_failed" xml:space="preserve"><value>Could not connect to winget. Make sure App Installer is installed and up to date from the Microsoft Store.</value></data>
+  <data name="Error_com_activation_elevated" xml:space="preserve"><value>winget cannot be used from an app run as administrator. Restart wgetui without "Run as administrator": installers ask for permission when they need it.</value></data>
+  <data name="Error_catalog_error" xml:space="preserve"><value>The package source could not be reached. Check your connection and try again.</value></data>
+  <data name="Error_package_not_found" xml:space="preserve"><value>The package was not found in its source any more.</value></data>
+  <data name="Error_blocked_by_policy" xml:space="preserve"><value>Blocked by a policy on this computer.</value></data>
+  <data name="Error_invalid_options" xml:space="preserve"><value>The package manager rejected the request.</value></data>
+  <data name="Error_download_failed" xml:space="preserve"><value>The download failed.</value></data>
+  <data name="Error_install_failed" xml:space="preserve"><value>The installer reported an error.</value></data>
+  <data name="Error_manifest_error" xml:space="preserve"><value>The package information is invalid.</value></data>
+  <data name="Error_no_applicable_installer" xml:space="preserve"><value>No installer fits this computer.</value></data>
+  <data name="Error_no_applicable_upgrade" xml:space="preserve"><value>No upgrade is available any more.</value></data>
+  <data name="Error_agreements_not_accepted" xml:space="preserve"><value>The package agreements were not accepted.</value></data>
+  <data name="Error_internal_error" xml:space="preserve"><value>The package manager reported an internal error.</value></data>
+</root>

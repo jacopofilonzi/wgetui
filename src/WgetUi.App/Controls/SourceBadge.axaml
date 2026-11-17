@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="WgetUi.App.Controls.SourceBadge"
+             VerticalAlignment="Center">
+  <Border x:Name="Pill" CornerRadius="10" Padding="8,2">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+      <ui:FASymbolIcon x:Name="Icon" FontSize="12" VerticalAlignment="Center" />
+      <TextBlock x:Name="Label" FontSize="12" VerticalAlignment="Center" />
+    </StackPanel>
+  </Border>
+</UserControl>

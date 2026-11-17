@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- UI strings. Every key must exist in Strings.resx (English) and Strings.it.resx (Italian):
+       the App tests fail otherwise. -->
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Nav_Search" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Nav_Updates" xml:space="preserve"><value>Aggiornamenti</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Impostazioni</value></data>
+  <data name="Banner_ManagerUnavailable" xml:space="preserve"><value>Un gestore di pacchetti non è disponibile</value></data>
+  <data name="Errors_SomeFailed" xml:space="preserve"><value>Alcune origini non hanno risposto</value></data>
+  <data name="Errors_ManagerLine" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Search_Title" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Cerca pacchetti per nome, id o parola chiave</value></data>
+  <data name="Search_Button" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Search_SourceAll" xml:space="preserve"><value>Tutte le origini</value></data>
+  <data name="Search_Hint" xml:space="preserve"><value>Scrivi un nome e premi Invio per cercare in tutte le origini.</value></data>
+  <data name="Search_NoResults" xml:space="preserve"><value>Nessun pacchetto trovato.</value></data>
+  <data name="Search_Install" xml:space="preserve"><value>Installa</value></data>
+  <data name="Updates_Title" xml:space="preserve"><value>Aggiornamenti</value></data>
+  <data name="Updates_Refresh" xml:space="preserve"><value>Aggiorna elenco</value></data>
+  <data name="Updates_UpgradeAll" xml:space="preserve"><value>Aggiorna tutto</value></data>
+  <data name="Updates_Upgrade" xml:space="preserve"><value>Aggiorna</value></data>
+  <data name="Updates_ShowUnknown" xml:space="preserve"><value>Mostra pacchetti con versione sconosciuta</value></data>
+  <data name="Updates_None" xml:space="preserve"><value>È tutto aggiornato.</value></data>
+  <data name="Version_Unknown" xml:space="preserve"><value>sconosciuta</value></data>
+  <data name="Queue_Title" xml:space="preserve"><value>Coda</value></data>
+  <data name="Queue_Clear" xml:space="preserve"><value>Pulisci</value></data>
+  <data name="Queue_Expand" xml:space="preserve"><value>Mostra la coda</value></data>
+  <data name="Queue_Collapse" xml:space="preserve"><value>Comprimi la coda</value></data>
+  <data name="Ops_Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Ops_RebootRequired" xml:space="preserve"><value>Riavvio necessario per completare</value></data>
+  <data name="Ops_Kind_Install" xml:space="preserve"><value>Installazione</value></data>
+  <data name="Ops_Kind_Upgrade" xml:space="preserve"><value>Aggiornamento</value></data>
+  <data name="Ops_State_Queued" xml:space="preserve"><value>In coda</value></data>
+  <data name="Ops_State_Running" xml:space="preserve"><value>In corso</value></data>
+  <data name="Ops_State_Succeeded" xml:space="preserve"><value>Completata</value></data>
+  <data name="Ops_State_Failed" xml:space="preserve"><value>Non riuscita</value></data>
+  <data name="Ops_State_Cancelled" xml:space="preserve"><value>Annullata</value></data>
+  <data name="Ops_Stage_Preparing" xml:space="preserve"><value>preparazione</value></data>
+  <data name="Ops_Stage_Downloading" xml:space="preserve"><value>download</value></data>
+  <data name="Ops_Stage_Installing" xml:space="preserve"><value>installazione</value></data>
+  <data name="Ops_Stage_Finalizing" xml:space="preserve"><value>completamento</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>Impostazioni</value></data>
+  <data name="Settings_Language" xml:space="preserve"><value>Lingua</value></data>
+  <data name="Settings_Lang_System" xml:space="preserve"><value>Predefinita di sistema</value></data>
+  <data name="Settings_Lang_En" xml:space="preserve"><value>English</value></data>
+  <data name="Settings_Lang_It" xml:space="preserve"><value>Italiano</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>Tema</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>Predefinito di sistema</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>Chiaro</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>Scuro</value></data>
+  <data name="Settings_Agreements" xml:space="preserve"><value>Contratti</value></data>
+  <data name="Settings_AutoAccept" xml:space="preserve"><value>Accetta automaticamente i contratti di pacchetti e origini</value></data>
+  <data name="Settings_AutoAcceptHint" xml:space="preserve"><value>Se disattivato, installare un pacchetto con contratti (ad esempio dal Microsoft Store) li mostra prima per l'accettazione. Gli aggiornamenti non lo chiedono mai.</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>Informazioni</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>Impossibile salvare le impostazioni. I dettagli sono nel file di log.</value></data>
+  <data name="Agreements_Title" xml:space="preserve"><value>Contratti da accettare ({0} pacchetti)</value></data>
+  <data name="Agreements_Message" xml:space="preserve"><value>L'installazione richiede di accettare i seguenti contratti. Apri i link per leggerli.</value></data>
+  <data name="Agreements_SourceTerms" xml:space="preserve"><value>Contratti dell'origine ({0})</value></data>
+  <data name="Agreements_License" xml:space="preserve"><value>Licenza: {0}</value></data>
+  <data name="Agreements_SettingHint" xml:space="preserve"><value>Puoi accettare i contratti automaticamente nelle Impostazioni.</value></data>
+  <data name="Agreements_Accept" xml:space="preserve"><value>Accetta e installa</value></data>
+  <data name="Agreements_ReadFailed" xml:space="preserve"><value>Non è stato possibile leggere i contratti di alcuni pacchetti: sono stati messi in coda senza accettarli e potrebbero non riuscire.</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Error_cancelled" xml:space="preserve"><value>Annullata.</value></data>
+  <data name="Error_unexpected" xml:space="preserve"><value>Errore imprevisto. I dettagli sono nel file di log.</value></data>
+  <data name="Error_timeout" xml:space="preserve"><value>Il gestore di pacchetti è occupato o non risponde. Riprova tra poco.</value></data>
+  <data name="Error_manager_not_found" xml:space="preserve"><value>Il gestore di pacchetti di questo pacchetto non è disponibile.</value></data>
+  <data name="Error_manager_unavailable" xml:space="preserve"><value>Il gestore di pacchetti non è disponibile.</value></data>
+  <data name="Error_not_supported" xml:space="preserve"><value>Questo gestore di pacchetti non supporta questa azione.</value></data>
+  <data name="Error_com_activation_failed" xml:space="preserve"><value>Impossibile collegarsi a winget. Verifica che Programma di installazione app sia installato e aggiornato dal Microsoft Store.</value></data>
+  <data name="Error_com_activation_elevated" xml:space="preserve"><value>winget non può essere usato da un'app eseguita come amministratore. Riavvia wgetui senza "Esegui come amministratore": i programmi di installazione chiedono i permessi quando servono.</value></data>
+  <data name="Error_catalog_error" xml:space="preserve"><value>Impossibile raggiungere l'origine dei pacchetti. Controlla la connessione e riprova.</value></data>
+  <data name="Error_package_not_found" xml:space="preserve"><value>Il pacchetto non è più presente nella sua origine.</value></data>
+  <data name="Error_blocked_by_policy" xml:space="preserve"><value>Bloccato da un criterio di questo computer.</value></data>
+  <data name="Error_invalid_options" xml:space="preserve"><value>Il gestore di pacchetti ha rifiutato la richiesta.</value></data>
+  <data name="Error_download_failed" xml:space="preserve"><value>Il download non è riuscito.</value></data>
+  <data name="Error_install_failed" xml:space="preserve"><value>Il programma di installazione ha segnalato un errore.</value></data>
+  <data name="Error_manifest_error" xml:space="preserve"><value>Le informazioni del pacchetto non sono valide.</value></data>
+  <data name="Error_no_applicable_installer" xml:space="preserve"><value>Nessun programma di installazione adatto a questo computer.</value></data>
+  <data name="Error_no_applicable_upgrade" xml:space="preserve"><value>Nessun aggiornamento più disponibile.</value></data>
+  <data name="Error_agreements_not_accepted" xml:space="preserve"><value>I contratti del pacchetto non sono stati accettati.</value></data>
+  <data name="Error_internal_error" xml:space="preserve"><value>Il gestore di pacchetti ha segnalato un errore interno.</value></data>
+</root>

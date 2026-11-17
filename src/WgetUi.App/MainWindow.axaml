@@ -1,6 +1,0 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="WgetUi.App.MainWindow"
-        Title="wgetui" Width="1000" Height="680">
-  <TextBlock Text="wgetui" HorizontalAlignment="Center" VerticalAlignment="Center" />
-</Window>

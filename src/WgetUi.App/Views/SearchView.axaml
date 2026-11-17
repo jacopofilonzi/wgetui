@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:WgetUi.App.ViewModels"
+             xmlns:c="using:WgetUi.App.Controls"
+             xmlns:l="using:WgetUi.App.Localization"
+             x:Class="WgetUi.App.Views.SearchView"
+             x:DataType="vm:SearchViewModel">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="24,16,24,16" RowSpacing="12">
+    <TextBlock Grid.Row="0" Classes="PageTitle" Text="{l:Tr Search_Title}" />
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+      <TextBox Grid.Column="0" Text="{Binding Query}" PlaceholderText="{l:Tr Search_Placeholder}">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+      <ComboBox Grid.Column="1" MinWidth="170" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SourceOption"><TextBlock Text="{Binding Label}" /></DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Grid.Column="2" Classes="accent" Content="{l:Tr Search_Button}" Command="{Binding SearchCommand}" />
+    </Grid>
+    <ProgressBar Grid.Row="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+    <StackPanel Grid.Row="3" Spacing="8">
+      <ui:FAInfoBar Severity="Warning" IsClosable="False" IsOpen="{Binding HasError}" Title="{l:Tr Errors_SomeFailed}" Message="{Binding ErrorMessage}" />
+      <ui:FAInfoBar Severity="Warning" IsClosable="False" IsOpen="{Binding HasNotice}" Message="{Binding Notice}" />
+    </StackPanel>
+    <Panel Grid.Row="4">
+      <TextBlock Classes="Secondary" Text="{l:Tr Search_Hint}" IsVisible="{Binding ShowHint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Classes="Secondary" Text="{l:Tr Search_NoResults}" IsVisible="{Binding ShowNoResults}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <ListBox ItemsSource="{Binding Results}" Background="Transparent">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PackageRowViewModel">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="16" Margin="0,4">
+              <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <Panel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
+                <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" />
+              </Panel>
+              <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
+              <Button Grid.Column="3" Content="{l:Tr Search_Install}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </Grid>
+</UserControl>

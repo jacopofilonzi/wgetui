@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        xmlns:vm="using:WgetUi.App.ViewModels"
+        xmlns:l="using:WgetUi.App.Localization"
+        xmlns:v="using:WgetUi.App.Views"
+        x:Class="WgetUi.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="wgetui" Width="1100" Height="720" MinWidth="720" MinHeight="480"
+        TransparencyLevelHint="Mica">
+  <Grid RowDefinitions="Auto,*">
+    <ui:FAInfoBar Grid.Row="0" Margin="12,8,12,0" Severity="Error" IsClosable="True"
+                  IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
+                  Title="{l:Tr Banner_ManagerUnavailable}"
+                  Message="{Binding BannerMessage}" />
+    <ui:FANavigationView Grid.Row="1" x:Name="Nav" PaneDisplayMode="Left" IsSettingsVisible="False"
+                         IsBackButtonVisible="False" OpenPaneLength="220">
+      <!-- nav | page | queue panel -->
+      <Grid ColumnDefinitions="*,Auto">
+        <ContentControl Grid.Column="0" Content="{Binding CurrentPage}" />
+        <v:QueuePanel Grid.Column="1" DataContext="{Binding Operations}" />
+      </Grid>
+      <ui:FANavigationView.MenuItems>
+        <ui:FANavigationViewItem Content="{l:Tr Nav_Search}" Tag="search">
+          <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Find" /></ui:FANavigationViewItem.IconSource>
+        </ui:FANavigationViewItem>
+        <ui:FANavigationViewItem x:Name="UpdatesItem" Content="{l:Tr Nav_Updates}" Tag="updates">
+          <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Sync" /></ui:FANavigationViewItem.IconSource>
+          <ui:FANavigationViewItem.InfoBadge>
+            <ui:FAInfoBadge Value="{Binding Updates.Count}" IsVisible="{Binding Updates.Count}" />
+          </ui:FANavigationViewItem.InfoBadge>
+        </ui:FANavigationViewItem>
+      </ui:FANavigationView.MenuItems>
+      <ui:FANavigationView.FooterMenuItems>
+        <ui:FANavigationViewItem Content="{l:Tr Nav_Settings}" Tag="settings">
+          <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Settings" /></ui:FANavigationViewItem.IconSource>
+        </ui:FANavigationViewItem>
+      </ui:FANavigationView.FooterMenuItems>
+    </ui:FANavigationView>
+  </Grid>
+</Window>

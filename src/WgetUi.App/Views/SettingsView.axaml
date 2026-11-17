@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:WgetUi.App.ViewModels"
+             xmlns:l="using:WgetUi.App.Localization"
+             x:Class="WgetUi.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="24,16,24,16" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+      <TextBlock Classes="PageTitle" Text="{l:Tr Settings_Title}" />
+      <ui:FAInfoBar Severity="Error" IsClosable="False" IsOpen="{Binding SaveFailed}" Message="{l:Tr Settings_SaveFailed}" />
+      <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_Language}" />
+        <ComboBox MinWidth="240" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChoiceOption"><TextBlock Text="{Binding Label}" /></DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_Theme}" />
+        <ComboBox MinWidth="240" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChoiceOption"><TextBlock Text="{Binding Label}" /></DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_Agreements}" />
+        <CheckBox IsChecked="{Binding AutoAcceptAgreements}" Content="{l:Tr Settings_AutoAccept}" />
+        <TextBlock Classes="Secondary" Text="{l:Tr Settings_AutoAcceptHint}" TextWrapping="Wrap" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="RowTitle" Text="{l:Tr Settings_About}" />
+        <TextBlock Classes="Secondary" Text="{Binding Version, StringFormat='wgetui {0}'}" />
+        <SelectableTextBlock Classes="Secondary" Text="{Binding SettingsFile}" />
+        <SelectableTextBlock Classes="Secondary" Text="{Binding LogFile}" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

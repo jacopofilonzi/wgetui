@@ -1,0 +1,72 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using WgetUi.Core;
+
+namespace WgetUi.App.ViewModels;
+
+/// <summary>Shell: navigation between pages, the queue panel and the "manager unavailable" banner.</summary>
+public sealed partial class MainWindowViewModel : ViewModelBase
+{
+    public const string SearchPage = "search";
+    public const string UpdatesPage = "updates";
+    public const string SettingsPage = "settings";
+
+    private readonly ManagerRegistry _registry;
+    private IReadOnlyList<ManagerError> _initErrors = [];
+
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, OperationsViewModel operations, SettingsViewModel settings)
+    {
+        _registry = registry;
+        Search = search;
+        Updates = updates;
+        Operations = operations;
+        Settings = settings;
+        CurrentPage = updates;
+        Loc.CultureChanged += (_, _) =>
+        {
+            foreach (var page in new ViewModelBase[] { this, Search, Updates, Operations, Settings })
+            {
+                page.OnLanguageChanged();
+            }
+        };
+    }
+
+    public SearchViewModel Search { get; }
+
+    public UpdatesViewModel Updates { get; }
+
+    public OperationsViewModel Operations { get; }
+
+    public SettingsViewModel Settings { get; }
+
+    [ObservableProperty]
+    public partial ViewModelBase CurrentPage { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsBannerOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string? BannerMessage { get; set; }
+
+    public void Navigate(string page) => CurrentPage = page switch
+    {
+        SearchPage => Search,
+        SettingsPage => Settings,
+        _ => Updates,
+    };
+
+    /// <summary>Connects every manager, reports the unavailable ones, then loads the updates.</summary>
+    public async Task InitializeAsync()
+    {
+        _initErrors = await _registry.InitializeAsync(CancellationToken.None);
+        ShowBanner();
+        await Updates.RefreshCommand.ExecuteAsync(null);
+    }
+
+    public override void OnLanguageChanged() => ShowBanner();
+
+    private void ShowBanner()
+    {
+        BannerMessage = DescribeErrors(_registry, _initErrors);
+        IsBannerOpen = BannerMessage is not null;
+    }
+}

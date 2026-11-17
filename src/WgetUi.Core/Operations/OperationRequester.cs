@@ -16,12 +16,15 @@ public sealed record OperationRequestResult(IReadOnlyList<QueuedOperation> Queue
 /// <remarks>
 /// Rules (the user's decision, manager-independent):
 /// - no generic confirmation: clicking queues directly;
-/// - with automatic acceptance on, everything is queued accepting package and source agreements;
-/// - otherwise agreements are fetched (read-only); if any package or source has some, one modal lists all
-///   of them for the whole request. Accept → queue everything, accepting only for the packages whose
-///   agreements were shown. Cancel → nothing is queued and nothing is accepted;
+/// - upgrades (single and "upgrade all") never prompt and never read agreements: they are queued accepting
+///   package and source agreements, on the assumption that the user accepted them at first install;
+/// - installs with automatic acceptance on are queued accepting everything;
+/// - otherwise installs read the agreements (read-only); if any package or source has some, one modal
+///   lists all of them for the whole request. Accept → queue everything, accepting only for the packages
+///   whose agreements were shown. Cancel → nothing is queued and nothing is accepted;
 /// - a package whose agreements cannot be read is queued without accepting: the manager then fails it
 ///   with <see cref="ErrorCodes.AgreementsNotAccepted"/> if acceptance was actually needed.
+/// Nothing is persisted: each install request decides again.
 /// </remarks>
 public sealed partial class OperationRequester
 {
@@ -46,7 +49,7 @@ public sealed partial class OperationRequester
             return new OperationRequestResult([], false, []);
         }
 
-        if (autoAcceptAgreements)
+        if (kind == OperationKind.Upgrade || autoAcceptAgreements)
         {
             return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.AcceptAll), false, []);
         }

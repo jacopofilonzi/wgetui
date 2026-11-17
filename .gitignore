@@ -10,3 +10,4 @@ publish/
 TestResults/
 *.log
 .env
+.vscode/

@@ -124,4 +124,12 @@ public class WinGetMappingTests
 
     [Fact]
     public void EmptyAgreementIsDropped() => Assert.Null(WinGetMapping.ToAgreement(" ", null, ""));
+
+    [Theory]
+    [InlineData("LGPL-2.1", "https://7-zip.org/license.txt", "LGPL-2.1", "https://7-zip.org/license.txt")]
+    [InlineData("ms-windows-store://pdp/?ProductId=9NKSQGP7F2NH", null, null, null)]
+    [InlineData("MIT", "file:///c:/x", "MIT", null)]
+    [InlineData(" ", "https://example.test", null, null)]
+    public void LicenseIsCleanedUp(string? license, string? url, string? expectedLicense, string? expectedUrl) =>
+        Assert.Equal((expectedLicense, expectedUrl), WinGetMapping.ToLicense(license, url));
 }
