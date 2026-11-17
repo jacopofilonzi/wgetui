@@ -1,22 +1,26 @@
 # Project structure
 
-wgetui is a Windows desktop app that puts a GUI on winget: search packages, install, list and apply upgrades
-("upgrade all" included). Everything above the managers is manager-agnostic: the app talks to an
+wgetui is a Windows desktop app that puts a GUI on winget: search packages, install (a specific version too), list
+and apply upgrades ("upgrade all" included), ignore one update version, list installed packages, uninstall, and
+show package details. Everything above the managers is manager-agnostic: the app talks to an
 `IPackageManager` interface, and winget is its first implementation (through the Windows Package Manager COM
 API). Other managers (Chocolatey, npm…) plug in as new projects.
 
 ```text
 repo/
 ├── src/
-│   ├── WgetUi.Core/              net10.0 — abstractions, models, registry, operation queue, agreements policy
+│   ├── WgetUi.Core/              net10.0 — abstractions, models, registry, operation queue, agreements policy, ignore rules
 │   ├── WgetUi.Managers.WinGet/   net10.0-windows10.0.26100.0, win-x64 — winget over COM
 │   └── WgetUi.App/               net10.0-windows10.0.26100.0, win-x64 — Avalonia 12 + FluentAvalonia 3 UI (wgetui.exe)
 ├── tests/
-│   ├── WgetUi.Core.Tests/            queue (and its hooks), registry, agreements policy (fake manager)
-│   ├── WgetUi.Managers.WinGet.Tests/ pure mapping + serial executor (no COM activation)
-│   └── WgetUi.App.Tests/             string tables (EN/IT), view models, tray/shell, notifications, admin
-│                                     prompt, relaunch, single instance, ICO writer (all with fakes)
-├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls, prints results
+│   ├── WgetUi.Core.Tests/            queue (and its hooks), registry, agreements policy, uninstall/target version,
+│   │                                 ignored-update rules (fake manager)
+│   ├── WgetUi.Managers.WinGet.Tests/ pure mapping (packages, installed, details, uninstall) + serial executor (no COM)
+│   └── WgetUi.App.Tests/             string tables (EN/IT), view models (Updates, ignore, details, Installed),
+│                                     tray/shell, notifications, admin prompt, relaunch, single instance, ICO writer
+│                                     (all with fakes)
+├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
+│                                 upgrades, install locations, installed count, details), prints results
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
 ├── WgetUi.slnx                   solution
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>
@@ -33,39 +37,50 @@ Managers/
 ├── IPackageManager.cs        Id, DisplayName, Capabilities, Sources, Availability, InitializeAsync, SearchAsync,
 │                             GetUpgradesAsync(includeUnknown), GetAgreementsAsync, InstallAsync/UpgradeAsync
 │                             (package, OperationOptions, IProgress<OperationProgress>, ct);
-│                             optional GetInstallLocationAsync (default null)
+│                             optional (defaults: null / not_supported): GetInstallLocationAsync, GetInstalledAsync,
+│                             GetDetailsAsync, UninstallAsync
 ├── ManagerCapabilities.cs    [Flags] Search, Install, ListUpgrades, Upgrade, Progress, Cancel,
-│                             IncludeUnknownVersions, Agreements, InstallLocation — the UI shows actions from these
+│                             IncludeUnknownVersions, Agreements, InstallLocation, ListInstalled, Uninstall,
+│                             Details, InstallVersion — the UI shows actions from these
 ├── ManagerAvailability.cs    result of InitializeAsync (available / error code + message)
 └── PackageManagerException.cs  query failure with a stable ErrorCode
 Models/
 ├── Package.cs                ManagerId, SourceId, Id, Name, Version (null = unknown), AvailableVersion; Key
-├── PackageSource.cs          ManagerId, Id, DisplayName
-├── OperationProgress.cs      Stage (Preparing/Downloading/Installing/Finalizing) + Percent (null = indeterminate)
+├── PackageSource.cs          ManagerId, Id, DisplayName; LocalId = "local" (installed, offered by no source)
+├── PackageDetails.cs         description, publisher, homepage, license (+link), release notes, installed/available
+│                             version, Versions (newest first); WebLink keeps http(s) links only
+├── IgnoredUpdate.cs          ManagerId, SourceId, PackageId, Version, Name (display only); Matches(package)
+├── OperationProgress.cs      Stage (Preparing/Downloading/Installing/Finalizing/Uninstalling) + Percent (null = indeterminate)
 ├── OperationResult.cs        Succeeded, ErrorCode, Message (English, logs only), RebootRequired
-├── OperationOptions.cs       AcceptPackageAgreements, AcceptSourceAgreements (decided by the user, not managers)
+├── OperationOptions.cs       AcceptPackageAgreements, AcceptSourceAgreements (decided by the user, not managers),
+│                             TargetVersion (installs only: this exact version)
 ├── Agreement.cs / PackageAgreements.cs   agreements of a package and of its source (+ license, informational)
 └── ErrorCodes.cs             stable codes; the UI maps each to Error_<code> strings
 Operations/
-├── OperationQueue.cs         single sequential queue (Channel + one worker): Enqueue/EnqueueMany (dedupes active
+├── OperationQueue.cs         single sequential queue (Channel + one worker) of Install/Upgrade/Uninstall (each needs
+│                             its capability; a TargetVersion also InstallVersion): Enqueue/EnqueueMany (dedupes active
 │                             duplicates), Cancel (queued → skipped; running → token, if the manager supports it),
 │                             ClearFinished, OperationAdded/OperationChanged events (raised off the UI thread)
 ├── QueuedOperation.cs        state machine Queued → Running → Succeeded/Failed/Cancelled, progress, Completion task
 ├── IOperationHook.cs         BeforeAsync / After around each operation (App: relaunch); failures are logged only
-├── OperationRequester.cs     click → queued operations; the agreements policy (see AGENTS.md invariants)
+├── OperationRequester.cs     click → queued operations; the agreements policy (see AGENTS.md invariants); uninstalls
+│                             never touch agreements; optional target version for installs
 └── IAgreementsConfirmer.cs   shows agreements to the user (implemented by the App's modal)
-ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync, GetUpgradesAsync fan out in parallel;
-                              one manager failing is reported as a ManagerError next to the others' results
+Updates/
+└── IgnoredUpdateFilter.cs    pure "ignore this version" rules: hide the ignored version, drop a record when another
+                              version is offered or (after a complete check) the package left the list
+ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync, GetUpgradesAsync, GetInstalledAsync fan
+                              out in parallel; one manager failing is reported as a ManagerError next to the others' results
 ```
 
 ## WinGet manager (`src/WgetUi.Managers.WinGet`)
 
 | File | Responsibility |
 | --- | --- |
-| `WinGetManager.cs` | `IPackageManager` over `Microsoft.Management.Deployment`: activation (`new PackageManager()` through the reg-free factory DLL), sources `winget` + `msstore` (predefined catalogs; `winget-font` and user sources are not exposed), search (`CatalogDefault` contains, 50 per source), upgrades (composite catalog, `LocalCatalogs`), agreements (catalog metadata + source agreements), install location (installed version metadata, read-only), install/upgrade (silent, any scope, progress, cancellation) |
+| `WinGetManager.cs` | `IPackageManager` over `Microsoft.Management.Deployment`: activation (`new PackageManager()` through the reg-free factory DLL), sources `winget` + `msstore` (predefined catalogs; `winget-font` and user sources are not exposed), search (`CatalogDefault` contains, 50 per source), upgrades and installed list (composite catalog, `LocalCatalogs`; packages without an exposed source are `local`), agreements (catalog metadata + source agreements), details (catalog metadata of the default install version, `AvailableVersions`, installed state; local packages: ARP publisher), install location (installed version metadata, read-only), install/upgrade (silent, any scope, progress, cancellation; a target version through `InstallOptions.PackageVersionId`), uninstall (installed catalog, `UninstallPackageAsync`, silent, any scope). `FindInstalled` falls back to scanning when the `Id` filter misses local ids |
 | `WinGetSerialExecutor.cs` | one-at-a-time lock for every COM call; 2 min acquire timeout and 2 min query timeout (caller fails with `timeout`, the lock is released only when the COM call returns) |
-| `WinGetMapping.cs` | pure mapping: unknown-version detection, `WinGetPackageData` → `Package`, progress, `InstallResultStatus` → error code, agreements, license cleanup |
-| `WinGetPackageData.cs` | plain snapshot of a COM `CatalogPackage` |
+| `WinGetMapping.cs` | pure mapping: unknown-version detection, `WinGetPackageData` → `Package` (search, upgrade, installed), `WinGetDetailsData` → `PackageDetails`, install/uninstall progress, `InstallResultStatus`/`UninstallResultStatus` → error code, agreements, license cleanup, version lookup |
+| `WinGetPackageData.cs`, `WinGetDetailsData.cs` | plain snapshots of a COM `CatalogPackage` and of its metadata/versions |
 | `WgetUi.Managers.WinGet.csproj` | re-exports the activation DLL and `.winmd` as content (they must sit next to the exe) |
 
 ## App (`src/WgetUi.App`)
@@ -84,6 +99,8 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Localization/Loc.cs`, `TrExtension.cs` | resx lookup, live language switch, `{l:Tr Key}` markup extension, error-code → text |
 | `Resources/Strings.resx`, `Strings.it.resx` | all UI strings, English (neutral) and Italian |
 | `Services/AgreementsDialog.cs` | `IAgreementsConfirmer`: one modal with every agreement as a link (text in an expander when there is no link) |
+| `Services/UninstallConfirmDialog.cs` | `IUninstallConfirmer`: the "Uninstall X?" modal |
+| `Services/IgnoredUpdatesService.cs` | ignored-update records in settings.json (`ignoredUpdates`): Ignore, Restore, Apply (Core rules + pruning), `Changed` |
 | `Services/ThemeService.cs`, `IUiDispatcher.cs`, `AvaloniaUiDispatcher.cs` | theme variant, UI-thread marshalling |
 | `Services/ShellHost.cs` | window show/hide, close-to-tray, Quit, activation; explicit shutdown mode. Applies `ShellCoordinator` decisions |
 | `Services/TrayIconHost.cs` | Avalonia `TrayIcon` + `NativeMenu` (Open, Upgrade all (N), Check for updates, Quit); icons rendered per (taskbar theme, state) and cached |
@@ -92,20 +109,26 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Services/RelaunchPlanner.cs`, `RelaunchAfterUpgrade.cs` | `IOperationHook`: before an upgrade, record the user-session processes running from the install folder; after success + 5 s grace, restart the missing ones non-elevated with their arguments. Pure selection rules in the planner |
 | `Platform/*.cs` | OS abstractions: `IToastNotifier`, `IRunKey`, `ITaskbarTheme`, `IProcessSource` (+ `ProcessSnapshot`, `IProcessLauncher`), `IWindowFlasher` |
 | `Platform/Windows/*.cs` | Windows implementations: toasts + AUMID registration, HKCU Run key, `SystemUsesLightTheme`, process list (QueryFullProcessImageName, NtQueryInformationProcess, token elevation), `Process.Start`, `FlashWindowEx` |
-| `Themes/SourceBadges.axaml` | badge colours (Light/Dark) and icons per source id, with a `default` fallback |
+| `Themes/SourceBadges.axaml` | badge colours (Light/Dark) and icons per source id (`winget`, `msstore`, `local`), with a `default` fallback |
+| `Themes/AppColors.axaml` | other app colours (Light/Dark): (i) button, details overlay/card/footer, version tags, package tile |
 | `Controls/SourceBadge.axaml(.cs)` | the source pill used on every package row |
-| `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Settings), "manager unavailable" banner, startup |
-| `ViewModels/SearchViewModel.cs` | query, source filter, results, Install |
-| `ViewModels/UpdatesViewModel.cs` | upgrades list, unknown-version toggle, Refresh, Upgrade, Upgrade all |
+| `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Installed / Settings; Installed loads on first visit), the details overlay, "manager unavailable" banner, startup |
+| `ViewModels/SearchViewModel.cs` | query, source filter, results, Install, details |
+| `ViewModels/UpdatesViewModel.cs` | upgrades list, unknown-version toggle, "Show ignored" toggle, Refresh, Upgrade, Upgrade all, ignore/don't ignore, details; ignored updates stay out of `Count` (badge, tray), Upgrade all and `Loaded` (notifications); drops rows of uninstalled packages |
+| `ViewModels/InstalledViewModel.cs` | every installed package (`GetInstalledAsync`), name/id filter, Refresh, details, Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row |
+| `ViewModels/PackageRowViewModel.cs` | one list row: main action, optional details / ignore / don't-ignore handlers, `IsQueued`, `IsIgnored` |
+| `ViewModels/PackageDetailsViewModel.cs` | details popup: loads `PackageDetails`, info-card `Fields`, versions (Latest / Installed / "Install this version"), primary action per page (`DetailsContext`), Ignore; the chosen action runs after closing |
+| `ViewModels/PackageDetailsLauncher.cs`, `DetailsOverlay.cs` | builds the details view model for a row; `IPackageDetailsPresenter` implemented as an in-window modal overlay |
+| `ViewModels/IgnoredUpdateItemViewModel.cs` | one ignored update in Settings, with Restore |
 | `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): visibility, collapse, pending count, cancel, clear, running flag, unseen failure (red tray dot until the panel is seen or cleared) |
-| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps |
-| `ViewModels/PackageActions.cs` | Install/Upgrade clicks → `OperationRequester` with the auto-accept setting |
+| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, ignored updates (Restore) |
+| `ViewModels/PackageActions.cs` | Install/Upgrade/Uninstall clicks → `OperationRequester` with the auto-accept setting (and an optional target version) |
 | `ViewModels/TrayViewModel.cs` | tray state (dot priority admin > failure > running > updates > none), tooltip, menu texts |
 | `ViewModels/ShellCoordinator.cs` | close → hide to tray (one-time hint toast) or quit; quit confirmation and cancellation of pending operations |
 | `ViewModels/UpdateCheckScheduler.cs` | hourly refresh of the Updates list (`IUpdateCheckTicker`); skipped while busy or operations are pending |
 | `ViewModels/UpdateNotifier.cs` | "N new updates" toast for updates not notified or seen before (key@version set in settings) |
 | `ViewModels/AdminPromptWatcher.cs` | from the Installing stage, polls for consent.exe every 500 ms for 20 s: toast, taskbar flash, orange tray dot until it closes |
-| `Views/*.axaml` | `MainWindow` (nav pane \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners), `SearchView`, `UpdatesView`, `SettingsView`, `QueuePanel` |
+| `Views/*.axaml` | `MainWindow` (nav pane \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners; the details overlay on top), `SearchView`, `UpdatesView`, `InstalledView`, `SettingsView`, `QueuePanel`, `PackageDetailsView` (header, scrolling body, footer) |
 
 ### Data and state
 
@@ -117,13 +140,16 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
   {
     "language": "system", "theme": "system", "autoAcceptAgreements": false,
     "closeToTray": true, "trayHintShown": false, "notifyNewUpdates": null,
-    "notifiedUpdates": ["winget/winget/7zip.7zip@26.06"], "relaunchClosedApps": true
+    "notifiedUpdates": ["winget/winget/7zip.7zip@26.06"], "relaunchClosedApps": true,
+    "ignoredUpdates": [{ "managerId": "winget", "sourceId": "winget", "packageId": "7zip.7zip", "version": "26.06", "name": "7-Zip" }]
   }
   ```
 
   `language`: `system` | `en` | `it`; `theme`: `system` | `light` | `dark`. Unknown values fall back to `system`.
   `notifyNewUpdates`: `null` until the first-run question is answered. `notifiedUpdates`: updates already
   notified or seen (`<package key>@<available version>`), replaced by the current list after each complete check.
+  `ignoredUpdates`: update versions the user ignored; a record is deleted when another version is offered or, after
+  a complete check, when the package is no longer in the upgrade list (`IgnoredUpdateFilter`).
   "Start with Windows" is not in the file: it is the HKCU Run value `wgetui`.
 - Outside the data dir: `HKCU\Software\Classes\AppUserModelId\wgetui` (notification name + icon) and
   `%LOCALAPPDATA%\wgetui\notification-icon.png`, rewritten at every start.

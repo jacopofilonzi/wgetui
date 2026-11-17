@@ -5,11 +5,6 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
 ## Planned
 
 - **More package managers**: Chocolatey, npm, others (see "Adding a package manager" in AGENTS.md).
-- **Uninstall.**
-- **Ignore a specific version.** "Ignore this update" hides that exact available version of a package
-  (record: manager, source, package id, version). When a newer version than the ignored one comes out, the
-  update is shown again and the record is deleted, so the ignore file never grows without bound.
-- **Package details page**: description, publisher, homepage, license, available versions.
 
 ## Later
 

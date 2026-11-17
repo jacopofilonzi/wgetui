@@ -9,7 +9,8 @@ See "Updating these guidelines" below to align them with the latest version.
 
 ## What it is
 
-wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all") built so other package managers
+wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all", installed list, uninstall, package
+details, ignore an update) built so other package managers
 (Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
 CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
 (Microsoft.WindowsPackageManager.ComInterop). Targets: Windows 10 1809+ / Windows 11, x64 only.
@@ -57,10 +58,13 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
   In this project these act for real on the machine and must never run in tests or checks:
-  `IPackageManager.InstallAsync` / `UpgradeAsync` (and `WinGetManager`'s implementations), anything that
-  queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all buttons), and the
-  winget CLI `install`/`upgrade` commands. Read-only calls are fine live: activation, search, listing upgrades,
-  reading agreements and install locations (`make smoke`). Also real, on the user's machine:
+  `IPackageManager.InstallAsync` / `UpgradeAsync` / `UninstallAsync` (and `WinGetManager`'s implementations),
+  anything that queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all /
+  Uninstall buttons, "Install this version" and the primary button of the details popup), and the winget CLI
+  `install`/`upgrade`/`uninstall` commands. **Uninstall removes software from the user's machine**: never confirm
+  the "Uninstall X?" dialog in a check. Read-only calls are fine live: activation, search, listing upgrades and
+  installed packages, reading agreements, details and install locations (`make smoke`). Also real, on the user's
+  machine:
   - `IToastNotifier` / `WindowsToastNotifier`: desktop notifications (a few test toasts are fine), and its
     registration under `HKCU\Software\Classes\AppUserModelId\wgetui` (written at every start, plus
     `%LOCALAPPDATA%\wgetui\notification-icon.png`);
@@ -70,7 +74,7 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
     `FakeLauncher`; it only runs after a real upgrade anyway;
   - `IWindowFlasher`: flashes the taskbar button.
   When launching the app for a check use `--data-dir` with an empty scratch folder, don't click
-  Install/Upgrade, and stop it afterwards (if `make dev` is running, build and launch the Release output: the
+  Install/Upgrade/Uninstall (or confirm them), and stop it afterwards (if `make dev` is running, build and launch the Release output: the
   dev instance locks the Debug one).
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
   keys and a separate database.
@@ -162,8 +166,8 @@ and align this project's copies with it:
   properties: `[ObservableProperty] public partial T X { get; set; }`), Microsoft.Extensions.* 10.0.15,
   Microsoft.WindowsPackageManager.ComInterop 1.29.380 (ships its own C#/WinRT projection: no CsWinRT package),
   xunit.v3 4.0.3 on Microsoft.Testing.Platform (`dotnet test --solution`, opted in via global.json).
-- Deleting user data means moving it to the trash / soft delete, unless agreed otherwise. (Uninstalling packages is
-  out of scope for now.)
+- Deleting user data means moving it to the trash / soft delete, unless agreed otherwise. Uninstalling a package is
+  the exception the user asks for explicitly: it always goes through the "Uninstall X?" confirmation.
 - Analyzers run at `AnalysisLevel latest`, `Recommended`, warnings as errors (Directory.Build.props). Fix the code;
   suppress only with a `[SuppressMessage]` that carries a justification.
 
@@ -179,7 +183,11 @@ and align this project's copies with it:
 - Colours come from theme resources (FluentAvalonia brushes via `DynamicResource`, or our own in
   `Themes/*.axaml` with Light/Dark theme dictionaries), never raw colours in view markup.
 - Views never reference a manager type; actions are shown from `ManagerCapabilities`.
-$1
+- Modals: confirmations use `FAContentDialog` (one open at a time). The package details popup is an in-window
+  overlay (`DetailsOverlay`), and its actions run only after it closed so an install can show the agreements modal.
+- Icon-only buttons get `AutomationProperties.Name` (also used to drive the UI through UI Automation in checks).
+
+## Testing
 
 - Unit tests live next to the code. Test parsing against fixtures copied from real responses, never live
   requests; live checks, if any, are a separate opt-in command (e.g. `make smoke`).
@@ -206,6 +214,10 @@ $1
    - honest `Capabilities`: the UI hides what is not declared (`Install`, `Upgrade`, `Cancel`, `Agreements`…);
    - optional: `InstallLocation` plus an override of `GetInstallLocationAsync` (read-only) enables "reopen apps
      closed by an upgrade" for its packages; without it the default returns null and nothing is relaunched;
+   - optional: `ListInstalled` + `GetInstalledAsync` (Installed page; packages no source offers use
+     `PackageSource.LocalId`), `Details` + `GetDetailsAsync` (details popup), `Uninstall` + `UninstallAsync`,
+     `InstallVersion` (honour `OperationOptions.TargetVersion` in `InstallAsync`). The interface defaults report
+     `not_supported`, and the UI hides what is not declared;
    - queries throw `PackageManagerException(ErrorCodes.X, englishMessage)`; install/upgrade return `OperationResult`;
    - accept agreements only when the `OperationOptions` passed in say so;
    - serialize calls yourself if the tool can't run them concurrently.
@@ -250,3 +262,11 @@ $1
   from `fixed` blocks. Interface members named `Get`/`Set` trip CA1716.
 - **`QueuedOperation.Completion` completes just before the queue runs the `After` hooks**: tests that check hook
   effects must wait for them, not only for the completion.
+- **The winget COM `Id` filter does not match local entries** (`ARP\Machine\X64\…`, `MSIX\…`): `WinGetManager.FindInstalled`
+  falls back to scanning the installed list. Store apps come back from the installed catalog as local (MSIX), not msstore.
+- **FluentAvalonia 3 has no `Info`/`Hide` symbols**: those icons are Segoe Fluent Icons / MDL2 glyphs through
+  `FAFontIcon` (`FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"`).
+- **`FAContentDialog` keeps an empty command band without buttons** and caps its width (548): custom-layout modals
+  use an overlay instead (see `DetailsOverlay`).
+- **The app started from a hidden-window shell (e.g. PowerShell `Start-Process` in a tool) opens with no visible
+  window**: launch it from Git Bash, or launch it a second time with the same `--data-dir` to activate it.

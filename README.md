@@ -2,11 +2,18 @@
 
 A desktop GUI for [winget](https://learn.microsoft.com/windows/package-manager/) on Windows: search packages in
 the winget and Microsoft Store sources, install them, see which installed packages have updates, and upgrade
-them one by one or all at once. Operations run one at a time in a queue panel with progress and cancel.
+them one by one or all at once. The Installed page lists everything installed (also apps winget doesn't know,
+marked "Local") and can uninstall them, after a confirmation. Operations run one at a time in a queue panel
+with progress and cancel.
 
 It talks to winget through its COM API (no console parsing) and is built so other package managers
 (Chocolatey, npm…) can be added later.
 
+- The (i) button on every row opens the package details: description, license, homepage, release notes and the
+  available versions, each of which can be installed.
+- An update you don't want can be ignored (from the details or the row's right-click menu): that version is no
+  longer counted, offered by "Upgrade all" or notified, until a newer one comes out. "Show ignored" on the
+  Updates page and the "Ignored updates" section in Settings bring it back.
 - English and Italian UI (follows the system language by default), light/dark theme, Mica on Windows 11.
 - Runs as a normal user: installers that need administrator rights ask for permission themselves.
   Don't run wgetui as administrator: winget refuses that connection.
@@ -40,7 +47,7 @@ Run from the repository root (`make help` lists them):
 | `make format` | apply code formatting |
 | `make check` | formatting check + Release build with warnings as errors + tests (must be clean before committing) |
 | `make publish` | self-contained single-file `publish/wgetui.exe` (keep the two `Microsoft.Management.Deployment.*` files next to it) |
-| `make smoke` | opt-in live check: read-only winget search, agreements, upgrade listing and install locations; never installs |
+| `make smoke` | opt-in live check: read-only winget search, agreements, upgrade listing, install locations, installed packages and details; never installs, upgrades or uninstalls |
 | `make icons` | regenerate `src/WgetUi.App/Assets/wgetui.ico` from the artwork in `src/WgetUi.App/Icons/IconArt.cs` |
 | `make clean` | `dotnet clean` |
 
