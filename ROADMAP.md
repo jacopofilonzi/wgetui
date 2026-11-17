@@ -23,4 +23,8 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
 ## Later
 
 - App installer (today: self-contained single-file exe).
+- **Single-exe distribution.** Today `publish/` holds `wgetui.exe` plus `Microsoft.Management.Deployment.dll`
+  and `.winmd`, which must sit next to the exe (WinRT activation looks in the app folder, not in the
+  single-file extraction folder). Try `IncludeAllContentForSelfExtract` first; fallback: embed both files
+  and write them to `%LOCALAPPDATA%\wgetui` at startup. Moot if the installer comes first.
 - CI running `make check` on push and pull request.
