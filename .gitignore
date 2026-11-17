@@ -10,4 +10,5 @@ publish/
 TestResults/
 *.log
 .env
-.vscode/
+.vscode/*
+!.vscode/settings.json

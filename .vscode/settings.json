@@ -1,0 +1,16 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.axaml": "${capture}.axaml.cs",
+    "*.xaml": "${capture}.xaml.cs",
+    "*.resx": "${capture}.*.resx, ${capture}.Designer.cs",
+    "*.cs": "${capture}.*.cs",
+    "*.csproj": "${capture}.csproj.user, packages.lock.json, *.props, *.targets",
+    "*.slnx": "Directory.Build.props, Directory.Build.targets, Directory.Packages.props, global.json, nuget.config, NuGet.Config, .editorconfig",
+    "*.sln": "Directory.Build.props, Directory.Build.targets, Directory.Packages.props, global.json, nuget.config, NuGet.Config, .editorconfig",
+    "appsettings.json": "appsettings.*.json",
+    "README.md": "AGENTS.md, CLAUDE.md, STRUCTURE.md, CHANGELOG.md, LICENSE*",
+    ".gitignore": ".gitattributes"
+  }
+}
