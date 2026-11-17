@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WgetUi.Core/WgetUi.Core.csproj" />
+    <Project Path="src/WgetUi.Managers.WinGet/WgetUi.Managers.WinGet.csproj" />
+    <Project Path="src/WgetUi.App/WgetUi.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WgetUi.Core.Tests/WgetUi.Core.Tests.csproj" />
+  </Folder>
+</Solution>
