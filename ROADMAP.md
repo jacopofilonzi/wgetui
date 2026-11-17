@@ -24,4 +24,3 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
 
 - App installer (today: self-contained single-file exe).
 - CI running `make check` on push and pull request.
-- Leave the native `.pdb` files (SkiaSharp, HarfBuzz) out of the publish folder.
