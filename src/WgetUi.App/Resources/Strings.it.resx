@@ -99,4 +99,12 @@
   <data name="Settings_Background" xml:space="preserve"><value>In background</value></data>
   <data name="Settings_CloseToTray" xml:space="preserve"><value>Resta attivo nell'area di notifica quando la finestra viene chiusa</value></data>
   <data name="Settings_StartWithWindows" xml:space="preserve"><value>Avvia con Windows (nell'area di notifica)</value></data>
+  <data name="Toast_NewUpdates_One" xml:space="preserve"><value>Nuovo aggiornamento disponibile</value></data>
+  <data name="Toast_NewUpdates_Many" xml:space="preserve"><value>{0} nuovi aggiornamenti disponibili</value></data>
+  <data name="Toast_NewUpdates_More" xml:space="preserve"><value>{0} e altri {1}</value></data>
+  <data name="Consent_Notify_Title" xml:space="preserve"><value>Notifiche degli aggiornamenti</value></data>
+  <data name="Consent_Notify_Message" xml:space="preserve"><value>Vuoi una notifica quando sono disponibili nuovi aggiornamenti? wgetui controlla all'avvio e ogni ora. Puoi cambiare questa scelta nelle Impostazioni.</value></data>
+  <data name="Common_Yes" xml:space="preserve"><value>Sì</value></data>
+  <data name="Common_No" xml:space="preserve"><value>No</value></data>
+  <data name="Settings_NotifyNewUpdates" xml:space="preserve"><value>Avvisami quando sono disponibili nuovi aggiornamenti (controllo all'avvio e ogni ora)</value></data>
 </root>

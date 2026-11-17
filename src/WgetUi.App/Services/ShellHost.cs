@@ -35,9 +35,12 @@ public sealed partial class ShellHost : IDisposable
         _desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         _window = new MainWindow { DataContext = vm };
         _window.Closing += OnWindowClosing;
-        _window.Activated += (_, _) => _vm.Operations.SetWindowActive(true);
-        _window.Deactivated += (_, _) => _vm.Operations.SetWindowActive(false);
+        _window.Activated += (_, _) => SetActive(true);
+        _window.Deactivated += (_, _) => SetActive(false);
     }
+
+    /// <summary>Raised on the UI thread when the window becomes active (true) or stops being active (false).</summary>
+    public event EventHandler<bool>? WindowActiveChanged;
 
     /// <summary>Raised on the UI thread the first time the window becomes visible.</summary>
     public event EventHandler? WindowFirstShown;
@@ -105,6 +108,12 @@ public sealed partial class ShellHost : IDisposable
 
     public void Dispose() => _tray?.Dispose();
 
+    private void SetActive(bool active)
+    {
+        _vm.Operations.SetWindowActive(active);
+        WindowActiveChanged?.Invoke(this, active);
+    }
+
     private void FirstShown(object? sender, EventArgs e)
     {
         _window.Opened -= FirstShown;
@@ -135,6 +144,7 @@ public sealed partial class ShellHost : IDisposable
             {
                 case CloseOutcome.Hide:
                     _window.Hide();
+                    SetActive(false);
                     LogHidden();
                     break;
                 case CloseOutcome.Quit:

@@ -25,6 +25,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         SelectedTheme = Themes.FirstOrDefault(o => o.Value == settings.Current.Theme) ?? Themes[0];
         AutoAcceptAgreements = settings.Current.AutoAcceptAgreements;
         CloseToTray = settings.Current.CloseToTray;
+        NotifyNewUpdates = settings.Current.NotifyNewUpdates == true;
         StartWithWindows = startWithWindows.IsEnabled;
         _loading = false;
     }
@@ -54,6 +55,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool CloseToTray { get; set; }
+
+    [ObservableProperty]
+    public partial bool NotifyNewUpdates { get; set; }
 
     /// <summary>Read from and written to the Run key, not settings.json.</summary>
     [ObservableProperty]
@@ -112,6 +116,21 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!_loading)
         {
             Save(s => s.CloseToTray = value);
+        }
+    }
+
+    /// <summary>Stores the answer to the first-run question (also when it matches the current toggle).</summary>
+    public void AnswerNotifyQuestion(bool notify)
+    {
+        Save(s => s.NotifyNewUpdates = notify);
+        NotifyNewUpdates = notify;
+    }
+
+    partial void OnNotifyNewUpdatesChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.NotifyNewUpdates = value);
         }
     }
 

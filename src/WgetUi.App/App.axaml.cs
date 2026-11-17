@@ -36,6 +36,10 @@ public sealed partial class App : Application
             var paths = _services.GetRequiredService<AppPaths>();
             var vm = _services.GetRequiredService<MainWindowViewModel>();
             var shell = new ShellHost(desktop, vm, _services.GetRequiredService<ShellCoordinator>(), _services.GetRequiredService<ILogger<ShellHost>>());
+            var notifier = _services.GetRequiredService<UpdateNotifier>();
+            shell.WindowActiveChanged += (_, active) => notifier.IsWindowActive = active;
+            shell.WindowFirstShown += (_, _) => _ = AskNotificationConsentAsync(notifier, vm.Settings);
+            var scheduler = _services.GetRequiredService<UpdateCheckScheduler>();
             shell.Start(paths.StartInTray, _services.GetRequiredService<TrayViewModel>(), _services.GetRequiredService<ITaskbarTheme>());
             desktop.Exit += (_, _) => shell.Dispose();
 
@@ -51,7 +55,7 @@ public sealed partial class App : Application
             _services.GetRequiredService<IToastNotifier>().Activated += (_, _) => shell.ShowWindow();
 
             LogWindowCreated(logger);
-            _ = InitializeAsync(vm);
+            _ = InitializeAsync(vm, scheduler);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -78,16 +82,27 @@ public sealed partial class App : Application
         _services.GetRequiredService<WindowsToastNotifier>().Register(iconPath);
     }
 
-    private async Task InitializeAsync(MainWindowViewModel vm)
+    private async Task InitializeAsync(MainWindowViewModel vm, UpdateCheckScheduler scheduler)
     {
         try
         {
+            // The first refresh is the startup update check; the scheduler takes over hourly.
             await vm.InitializeAsync();
+            scheduler.Start();
         }
         catch (Exception ex)
         {
             // Managers report their own failures; anything reaching here is a bug, keep the app usable.
             LogStartupFailed(_services.GetRequiredService<ILogger<App>>(), ex);
+        }
+    }
+
+    // First run only: asked once the window is visible (a --tray start waits until the user opens it).
+    private static async Task AskNotificationConsentAsync(UpdateNotifier notifier, SettingsViewModel settings)
+    {
+        if (notifier.NeedsConsent)
+        {
+            settings.AnswerNotifyQuestion(await NotificationsConsentDialog.AskAsync());
         }
     }
 

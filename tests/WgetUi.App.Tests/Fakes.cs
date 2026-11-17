@@ -47,7 +47,14 @@ internal sealed class ScriptedManager : IPackageManager
 
     public Task<IReadOnlyList<Package>> SearchAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
 
-    public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([.. Upgrades]);
+    /// <summary>How many times the upgrades were listed.</summary>
+    public int UpgradeQueries { get; private set; }
+
+    public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken)
+    {
+        UpgradeQueries++;
+        return Task.FromResult<IReadOnlyList<Package>>([.. Upgrades]);
+    }
 
     public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) => Task.FromResult(PackageAgreements.None(package));
 
@@ -113,4 +120,15 @@ internal static class TestSettings
 internal sealed class NoAgreements : WgetUi.Core.Operations.IAgreementsConfirmer
 {
     public Task<bool> ConfirmAsync(IReadOnlyList<PackageAgreements> agreements, CancellationToken cancellationToken) => Task.FromResult(false);
+}
+
+/// <summary>Ticker driven by the test: each <see cref="Tick"/> releases one wait.</summary>
+internal sealed class ManualTicker : WgetUi.App.ViewModels.IUpdateCheckTicker
+{
+    private readonly System.Threading.Channels.Channel<bool> _ticks = System.Threading.Channels.Channel.CreateUnbounded<bool>();
+
+    public void Tick() => _ticks.Writer.TryWrite(true);
+
+    public async ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken) =>
+        await _ticks.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 }

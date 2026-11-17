@@ -34,6 +34,7 @@
         <TextBlock Classes="RowTitle" Text="{l:Tr Settings_Background}" />
         <CheckBox IsChecked="{Binding CloseToTray}" Content="{l:Tr Settings_CloseToTray}" />
         <CheckBox IsChecked="{Binding StartWithWindows}" Content="{l:Tr Settings_StartWithWindows}" />
+        <CheckBox IsChecked="{Binding NotifyNewUpdates}" Content="{l:Tr Settings_NotifyNewUpdates}" />
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Classes="RowTitle" Text="{l:Tr Settings_About}" />

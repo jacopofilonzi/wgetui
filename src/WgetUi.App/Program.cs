@@ -80,6 +80,10 @@ internal static class Program
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<TrayViewModel>();
         services.AddSingleton<ShellCoordinator>();
+        services.AddSingleton<UpdateNotifier>();
+        services.AddSingleton<HourlyTicker>();
+        services.AddSingleton<IUpdateCheckTicker>(sp => sp.GetRequiredService<HourlyTicker>());
+        services.AddSingleton<UpdateCheckScheduler>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

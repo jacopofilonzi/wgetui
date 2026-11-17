@@ -21,6 +21,15 @@ public sealed class AppSettings
 
     /// <summary>The one-time "wgetui keeps running in the tray" notification was shown.</summary>
     public bool TrayHintShown { get; set; }
+
+    /// <summary>Toast when new updates are found. Null until the user answered the first-run question.</summary>
+    public bool? NotifyNewUpdates { get; set; }
+
+    /// <summary>
+    /// Updates already notified or seen, as "&lt;package key&gt;@&lt;available version&gt;". Replaced by the current list after
+    /// each complete check, so it never grows past the number of pending updates.
+    /// </summary>
+    public IReadOnlyList<string> NotifiedUpdates { get; set; } = [];
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

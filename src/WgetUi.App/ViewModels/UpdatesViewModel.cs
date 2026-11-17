@@ -36,6 +36,9 @@ public sealed partial class UpdatesViewModel : ViewModelBase
         queue.OperationChanged += OnOperationChanged;
     }
 
+    /// <summary>Raised on the UI thread after each refresh, with the packages the managers returned.</summary>
+    public event EventHandler<UpgradesLoadedEventArgs>? Loaded;
+
     public ObservableCollection<PackageRowViewModel> Upgrades { get; } = [];
 
     public int Count => Upgrades.Count;
@@ -97,6 +100,7 @@ public sealed partial class UpdatesViewModel : ViewModelBase
             _lastErrors = result.Errors;
             ErrorMessage = DescribeErrors(_registry, _lastErrors);
             HasLoaded = true;
+            Loaded?.Invoke(this, new UpgradesLoadedEventArgs(result.Packages, result.Errors.Count == 0));
         }
         finally
         {
@@ -171,4 +175,14 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Upgrade of {PackageKey} finished as {State} but no row matches it in the Updates list")]
     private partial void LogRowNotFound(string packageKey, OperationState state);
+}
+
+/// <summary>Result of one Updates refresh.</summary>
+/// <param name="Packages">Packages with an update, from every manager that answered.</param>
+/// <param name="IsComplete">True when no manager failed (the list is the whole truth).</param>
+public sealed class UpgradesLoadedEventArgs(IReadOnlyList<Package> packages, bool isComplete) : EventArgs
+{
+    public IReadOnlyList<Package> Packages { get; } = packages;
+
+    public bool IsComplete { get; } = isComplete;
 }
