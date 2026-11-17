@@ -122,4 +122,23 @@
   <data name="Settings_IgnoredUpdatesHint" xml:space="preserve"><value>These versions are not offered, counted or notified. A newer version of the same package is shown again.</value></data>
   <data name="Settings_IgnoredUpdatesNone" xml:space="preserve"><value>No ignored updates.</value></data>
   <data name="Settings_IgnoredRestore" xml:space="preserve"><value>Restore</value></data>
+  <data name="Details_Button" xml:space="preserve"><value>Details</value></data>
+  <data name="Details_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Details_Ignore" xml:space="preserve"><value>Ignore {0}</value></data>
+  <data name="Details_UpgradeTo" xml:space="preserve"><value>Upgrade to {0}</value></data>
+  <data name="Details_InstalledVersion" xml:space="preserve"><value>Installed version</value></data>
+  <data name="Details_AvailableVersion" xml:space="preserve"><value>Available</value></data>
+  <data name="Details_License" xml:space="preserve"><value>License</value></data>
+  <data name="Details_Homepage" xml:space="preserve"><value>Homepage</value></data>
+  <data name="Details_ReleaseNotes" xml:space="preserve"><value>Release notes</value></data>
+  <data name="Details_ReleaseNotesOpen" xml:space="preserve"><value>Open the notes</value></data>
+  <data name="Details_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Details_Versions" xml:space="preserve"><value>Available versions</value></data>
+  <data name="Details_Latest" xml:space="preserve"><value>Latest</value></data>
+  <data name="Details_Installed" xml:space="preserve"><value>Installed</value></data>
+  <data name="Details_InstallVersion" xml:space="preserve"><value>Install this version</value></data>
+  <data name="Details_Loading" xml:space="preserve"><value>Loading details…</value></data>
+  <data name="Details_LoadFailed" xml:space="preserve"><value>Some details could not be read: {0}</value></data>
+  <data name="Details_NotInstalled" xml:space="preserve"><value>Not installed</value></data>
+  <data name="Installed_Uninstall" xml:space="preserve"><value>Uninstall</value></data>
 </root>

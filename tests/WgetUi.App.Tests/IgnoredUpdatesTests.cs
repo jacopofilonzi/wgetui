@@ -30,7 +30,7 @@ public sealed class IgnoredUpdatesTests : IAsyncDisposable
         _ignored = new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance);
         var requester = new OperationRequester(registry, _queue, new NoAgreements(), NullLogger<OperationRequester>.Instance);
         var actions = new PackageActions(requester, _settings, NullLogger<PackageActions>.Instance);
-        _updates = new UpdatesViewModel(registry, actions, _ignored, _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
+        _updates = new UpdatesViewModel(registry, actions, _ignored, RecordingPresenter.Launcher(registry), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _notifier = new UpdateNotifier(_updates, _settings, _toasts, NullLogger<UpdateNotifier>.Instance);
         Loc.Instance.SetLanguage("en");
     }

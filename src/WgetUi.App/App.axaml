@@ -9,6 +9,7 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://wgetui/Themes/SourceBadges.axaml" />
+        <ResourceInclude Source="avares://wgetui/Themes/AppColors.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>
@@ -31,6 +32,14 @@
       <Setter Property="MaxWidth" Value="260" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
       <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- The (i) details button left of each row's action. -->
+    <Style Selector="Button.Info">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource InfoButtonForeground}" />
     </Style>
   </Application.Styles>
 

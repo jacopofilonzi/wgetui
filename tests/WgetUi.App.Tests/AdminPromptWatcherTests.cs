@@ -29,7 +29,7 @@ public sealed class AdminPromptWatcherTests : IAsyncDisposable
         _dataDir = dataDir;
         var requester = new OperationRequester(registry, _queue, new NoAgreements(), NullLogger<OperationRequester>.Instance);
         var actions = new PackageActions(requester, settings, NullLogger<PackageActions>.Instance);
-        var updates = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(settings, NullLogger<IgnoredUpdatesService>.Instance), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
+        var updates = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(settings, NullLogger<IgnoredUpdatesService>.Instance), RecordingPresenter.Launcher(registry), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _tray = new TrayViewModel(updates, new OperationsViewModel(_queue, registry, _dispatcher));
         _watcher = new AdminPromptWatcher(_queue, _tray, _processes, _toasts, _flasher, _dispatcher, _time, NullLogger<AdminPromptWatcher>.Instance);
         Loc.Instance.SetLanguage("en");

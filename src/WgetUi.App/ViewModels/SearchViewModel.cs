@@ -14,15 +14,17 @@ public sealed partial class SearchViewModel : ViewModelBase
 {
     private readonly ManagerRegistry _registry;
     private readonly PackageActions _actions;
+    private readonly PackageDetailsLauncher _details;
     private List<PackageRowViewModel> _allResults = [];
     private IReadOnlyList<ManagerError> _lastErrors = [];
 
-    public SearchViewModel(ManagerRegistry registry, PackageActions actions, OperationQueue queue, IUiDispatcher dispatcher)
+    public SearchViewModel(ManagerRegistry registry, PackageActions actions, PackageDetailsLauncher details, OperationQueue queue, IUiDispatcher dispatcher)
     {
         ArgumentNullException.ThrowIfNull(queue);
         ArgumentNullException.ThrowIfNull(dispatcher);
         _registry = registry;
         _actions = actions;
+        _details = details;
         Sources = [new SourceOption(null, null), .. registry.Sources.Select(s => new SourceOption(SourceKey(s.ManagerId, s.Id), s.DisplayName))];
         SelectedSource = Sources[0];
 
@@ -107,7 +109,10 @@ public sealed partial class SearchViewModel : ViewModelBase
                 p,
                 sourceNames.GetValueOrDefault(SourceKey(p.ManagerId, p.SourceId), p.SourceId),
                 _registry.Find(p.ManagerId)?.Capabilities.HasFlag(ManagerCapabilities.Install) ?? false,
-                InstallAsync))];
+                InstallAsync)
+            {
+                DetailsHandler = _registry.Find(p.ManagerId)?.Capabilities.HasFlag(ManagerCapabilities.Details) == true ? ShowDetailsAsync : null,
+            })];
             _lastErrors = result.Errors;
             ErrorMessage = DescribeErrors(_registry, _lastErrors);
             HasSearched = true;
@@ -123,13 +128,22 @@ public sealed partial class SearchViewModel : ViewModelBase
         }
     }
 
-    private async Task InstallAsync(PackageRowViewModel row)
+    private Task InstallAsync(PackageRowViewModel row) => InstallAsync(row, null);
+
+    private async Task InstallAsync(PackageRowViewModel row, string? version)
     {
         row.IsQueued = true;
-        var result = await _actions.RequestAsync([row.Package], OperationKind.Install);
+        var result = await _actions.RequestAsync([row.Package], OperationKind.Install, version);
         row.IsQueued = result.Queued.Count > 0;
         Notice = result.AgreementErrors.Count > 0 ? Loc["Agreements_ReadFailed"] : null;
     }
+
+    private Task ShowDetailsAsync(PackageRowViewModel row) => _details.ShowAsync(
+        row,
+        DetailsContext.Search,
+        new PackageDetailsActions(
+            Primary: row.IsQueued ? null : _ => InstallAsync(row, null),
+            InstallVersion: (_, version) => InstallAsync(row, version)));
 
     private void ApplyFilter()
     {

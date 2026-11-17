@@ -55,6 +55,9 @@
               </Grid>
               <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" Opacity="{Binding RowOpacity}" />
               <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                <Button Classes="Info" Command="{Binding ShowDetailsCommand}" IsVisible="{Binding CanShowDetails}" ToolTip.Tip="{l:Tr Details_Button}">
+                  <ui:FAFontIcon Glyph="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" />
+                </Button>
                 <Button Content="{l:Tr Updates_Upgrade}" Command="{Binding ActCommand}" IsVisible="{Binding ShowAction}" MinWidth="96" />
                 <Button Content="{l:Tr Updates_Unignore}" Command="{Binding UnignoreCommand}" IsVisible="{Binding IsIgnored}" MinWidth="96" />
               </StackPanel>

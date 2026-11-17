@@ -122,4 +122,23 @@
   <data name="Settings_IgnoredUpdatesHint" xml:space="preserve"><value>Queste versioni non vengono proposte, contate né notificate. Una versione più recente dello stesso pacchetto viene mostrata di nuovo.</value></data>
   <data name="Settings_IgnoredUpdatesNone" xml:space="preserve"><value>Nessun aggiornamento ignorato.</value></data>
   <data name="Settings_IgnoredRestore" xml:space="preserve"><value>Ripristina</value></data>
+  <data name="Details_Button" xml:space="preserve"><value>Dettagli</value></data>
+  <data name="Details_Close" xml:space="preserve"><value>Chiudi</value></data>
+  <data name="Details_Ignore" xml:space="preserve"><value>Ignora {0}</value></data>
+  <data name="Details_UpgradeTo" xml:space="preserve"><value>Aggiorna a {0}</value></data>
+  <data name="Details_InstalledVersion" xml:space="preserve"><value>Versione installata</value></data>
+  <data name="Details_AvailableVersion" xml:space="preserve"><value>Disponibile</value></data>
+  <data name="Details_License" xml:space="preserve"><value>Licenza</value></data>
+  <data name="Details_Homepage" xml:space="preserve"><value>Sito</value></data>
+  <data name="Details_ReleaseNotes" xml:space="preserve"><value>Note di rilascio</value></data>
+  <data name="Details_ReleaseNotesOpen" xml:space="preserve"><value>Apri le note</value></data>
+  <data name="Details_Source" xml:space="preserve"><value>Sorgente</value></data>
+  <data name="Details_Versions" xml:space="preserve"><value>Versioni disponibili</value></data>
+  <data name="Details_Latest" xml:space="preserve"><value>Più recente</value></data>
+  <data name="Details_Installed" xml:space="preserve"><value>Installata</value></data>
+  <data name="Details_InstallVersion" xml:space="preserve"><value>Installa questa versione</value></data>
+  <data name="Details_Loading" xml:space="preserve"><value>Caricamento dettagli…</value></data>
+  <data name="Details_LoadFailed" xml:space="preserve"><value>Alcuni dettagli non sono stati letti: {0}</value></data>
+  <data name="Details_NotInstalled" xml:space="preserve"><value>Non installato</value></data>
+  <data name="Installed_Uninstall" xml:space="preserve"><value>Disinstalla</value></data>
 </root>

@@ -54,7 +54,32 @@ internal sealed class ScriptedManager : IPackageManager
 
     public Task<ManagerAvailability> InitializeAsync(CancellationToken cancellationToken) => Task.FromResult(ManagerAvailability.Available);
 
-    public Task<IReadOnlyList<Package>> SearchAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
+    /// <summary>What <see cref="SearchAsync"/> returns.</summary>
+    public List<Package> SearchResults { get; } = [];
+
+    /// <summary>What <see cref="GetInstalledAsync"/> returns.</summary>
+    public List<Package> Installed { get; } = [];
+
+    /// <summary>What <see cref="GetDetailsAsync"/> returns per package id (missing: package_not_found).</summary>
+    public Dictionary<string, PackageDetails> Details { get; } = [];
+
+    /// <summary>Options of each operation by "kind:id" ("install:a", "uninstall:b").</summary>
+    public ConcurrentDictionary<string, OperationOptions> Received { get; } = new();
+
+    public Task<IReadOnlyList<Package>> SearchAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([.. SearchResults]);
+
+    public Task<IReadOnlyList<Package>> GetInstalledAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([.. Installed]);
+
+    public Task<PackageDetails> GetDetailsAsync(Package package, CancellationToken cancellationToken) =>
+        Details.TryGetValue(package.Id, out var details)
+            ? Task.FromResult(details)
+            : Task.FromException<PackageDetails>(new PackageManagerException(ErrorCodes.PackageNotFound, "not scripted"));
+
+    public Task<OperationResult> UninstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        Received["uninstall:" + package.Id] = options;
+        return Pending(package.Id).Task.WaitAsync(cancellationToken);
+    }
 
     /// <summary>How many times the upgrades were listed.</summary>
     public int UpgradeQueries { get; private set; }
@@ -67,8 +92,11 @@ internal sealed class ScriptedManager : IPackageManager
 
     public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) => Task.FromResult(PackageAgreements.None(package));
 
-    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        Pending(package.Id).Task.WaitAsync(cancellationToken);
+    public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        Received["install:" + package.Id] = options;
+        return Pending(package.Id).Task.WaitAsync(cancellationToken);
+    }
 
     public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {
@@ -215,4 +243,27 @@ internal sealed class ManualTime : TimeProvider
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
+}
+
+/// <summary>Records the details popups instead of showing them; <see cref="OnShow"/> plays the user's part.</summary>
+internal sealed class RecordingPresenter : WgetUi.App.ViewModels.IPackageDetailsPresenter
+{
+    public List<WgetUi.App.ViewModels.PackageDetailsViewModel> Shown { get; } = [];
+
+    public Func<WgetUi.App.ViewModels.PackageDetailsViewModel, Task>? OnShow { get; set; }
+
+    public async Task ShowAsync(WgetUi.App.ViewModels.PackageDetailsViewModel details)
+    {
+        Shown.Add(details);
+        await details.LoadAsync(CancellationToken.None);
+        if (OnShow is not null)
+        {
+            await OnShow(details);
+        }
+
+        await details.RunChosenActionAsync();
+    }
+
+    public static WgetUi.App.ViewModels.PackageDetailsLauncher Launcher(WgetUi.Core.ManagerRegistry registry, RecordingPresenter? presenter = null) =>
+        new(registry, presenter ?? new RecordingPresenter(), Microsoft.Extensions.Logging.Abstractions.NullLogger<WgetUi.App.ViewModels.PackageDetailsViewModel>.Instance);
 }

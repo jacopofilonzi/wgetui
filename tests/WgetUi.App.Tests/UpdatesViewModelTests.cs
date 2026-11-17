@@ -24,7 +24,7 @@ public sealed class UpdatesViewModelTests : IAsyncDisposable
         var requester = new OperationRequester(registry, _queue, new NeverConfirm(), NullLogger<OperationRequester>.Instance);
         var settings = new SettingsService(new SettingsStore(AppPaths.FromArgs(["--data-dir", _dataDir]), NullLogger<SettingsStore>.Instance));
         var actions = new PackageActions(requester, settings, NullLogger<PackageActions>.Instance);
-        _vm = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(settings, NullLogger<IgnoredUpdatesService>.Instance), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
+        _vm = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(settings, NullLogger<IgnoredUpdatesService>.Instance), RecordingPresenter.Launcher(registry), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
     }
 
     public async ValueTask DisposeAsync()

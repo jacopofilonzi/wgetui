@@ -23,12 +23,15 @@ public sealed partial class PackageActions
     }
 
     /// <summary>Returns the request outcome; never throws for a manager failure.</summary>
-    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind)
+    /// <param name="packages">Packages to act on.</param>
+    /// <param name="kind">Install, upgrade or uninstall.</param>
+    /// <param name="targetVersion">Installs only: this exact version (from the details popup).</param>
+    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind, string? targetVersion = null)
     {
         ArgumentNullException.ThrowIfNull(packages);
         try
         {
-            return await _requester.RequestAsync(packages, kind, _settings.Current.AutoAcceptAgreements, CancellationToken.None);
+            return await _requester.RequestAsync(packages, kind, _settings.Current.AutoAcceptAgreements, CancellationToken.None, targetVersion);
         }
         catch (InvalidOperationException ex)
         {

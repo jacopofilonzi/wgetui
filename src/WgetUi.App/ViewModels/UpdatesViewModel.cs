@@ -21,18 +21,20 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private readonly PackageActions _actions;
     private readonly IgnoredUpdatesService _ignored;
+    private readonly PackageDetailsLauncher _details;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger<UpdatesViewModel> _logger;
     private readonly List<PackageRowViewModel> _rows = [];
     private IReadOnlyList<ManagerError> _lastErrors = [];
 
-    public UpdatesViewModel(ManagerRegistry registry, PackageActions actions, IgnoredUpdatesService ignored, OperationQueue queue, IUiDispatcher dispatcher, ILogger<UpdatesViewModel> logger)
+    public UpdatesViewModel(ManagerRegistry registry, PackageActions actions, IgnoredUpdatesService ignored, PackageDetailsLauncher details, OperationQueue queue, IUiDispatcher dispatcher, ILogger<UpdatesViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(queue);
         ArgumentNullException.ThrowIfNull(ignored);
         _registry = registry;
         _actions = actions;
         _ignored = ignored;
+        _details = details;
         _dispatcher = dispatcher;
         _logger = logger;
         ShowIncludeUnknownToggle = registry.Managers.Any(m => m.Capabilities.HasFlag(ManagerCapabilities.IncludeUnknownVersions));
@@ -89,8 +91,6 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
     public bool ShowNone => HasLoaded && !IsBusy && Upgrades.Count == 0;
 
-    /// <summary>Set by the shell: opens the details popup of a row (null = no popup, e.g. in tests).</summary>
-    public Func<PackageRowViewModel, Task>? DetailsHandler { get; set; }
 
     public override void OnLanguageChanged()
     {
@@ -154,7 +154,13 @@ public sealed partial class UpdatesViewModel : ViewModelBase
         return row is null ? Task.CompletedTask : RequestAsync([row]);
     }
 
-    private Task ShowDetailsAsync(PackageRowViewModel row) => DetailsHandler?.Invoke(row) ?? Task.CompletedTask;
+    private Task ShowDetailsAsync(PackageRowViewModel row) => _details.ShowAsync(
+        row,
+        DetailsContext.Updates,
+        new PackageDetailsActions(
+            Primary: UpgradeAsync,
+            Ignore: row.IsIgnored ? null : p => _ignored.Ignore(p),
+            InstallVersion: async (p, version) => Notice = (await _actions.RequestAsync([p], OperationKind.Install, version)).AgreementErrors.Count > 0 ? Loc["Agreements_ReadFailed"] : null));
 
     private void Unignore(PackageRowViewModel row)
     {

@@ -48,7 +48,12 @@
                 <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" />
               </Panel>
               <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
-              <Button Grid.Column="3" Content="{l:Tr Search_Install}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
+              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                <Button Classes="Info" Command="{Binding ShowDetailsCommand}" IsVisible="{Binding CanShowDetails}" ToolTip.Tip="{l:Tr Details_Button}">
+                  <ui:FAFontIcon Glyph="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" />
+                </Button>
+                <Button Content="{l:Tr Search_Install}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
+              </StackPanel>
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>
