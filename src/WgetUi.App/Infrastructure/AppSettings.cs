@@ -30,6 +30,9 @@ public sealed class AppSettings
     /// each complete check, so it never grows past the number of pending updates.
     /// </summary>
     public IReadOnlyList<string> NotifiedUpdates { get; set; } = [];
+
+    /// <summary>Restart the apps an upgrade closed (processes running from the package folder). On by default.</summary>
+    public bool RelaunchClosedApps { get; set; } = true;
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

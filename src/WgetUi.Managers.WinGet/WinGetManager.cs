@@ -47,7 +47,7 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
     public ManagerCapabilities Capabilities =>
         ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade
         | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.IncludeUnknownVersions
-        | ManagerCapabilities.Agreements;
+        | ManagerCapabilities.Agreements | ManagerCapabilities.InstallLocation;
 
     public IReadOnlyList<PackageSource> Sources => WinGetMapping.Sources;
 
@@ -104,6 +104,13 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         ArgumentNullException.ThrowIfNull(package);
         await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
         return await _executor.RunQueryAsync($"agreements of {package.Id}", () => ReadAgreements(package), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<string?> GetInstallLocationAsync(Package package, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
+        return await _executor.RunQueryAsync($"install location of {package.Id}", () => ReadInstallLocation(package), cancellationToken).ConfigureAwait(false);
     }
 
     public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
@@ -362,6 +369,26 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         catch (COMException ex)
         {
             throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading agreements of {package.Id} failed: {Describe(ex)}", ex);
+        }
+    }
+
+    // Runs under the executor lock. Read-only. Empty metadata (MSI without a location, runtimes…) is null.
+    private string? ReadInstallLocation(Package package)
+    {
+        try
+        {
+            var found = ConnectInstalled().FindPackages(ExactIdOptions(package.Id));
+            if (found.Status != FindPackagesResultStatus.Ok || found.Matches.Count == 0)
+            {
+                return null;
+            }
+
+            var location = found.Matches[0].CatalogPackage.InstalledVersion?.GetMetadata(PackageVersionMetadataField.InstalledLocation);
+            return string.IsNullOrWhiteSpace(location) ? null : location;
+        }
+        catch (COMException ex)
+        {
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading the install location of {package.Id} failed: {Describe(ex)}", ex);
         }
     }
 

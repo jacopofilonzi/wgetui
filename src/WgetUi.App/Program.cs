@@ -62,11 +62,14 @@ internal static class Program
         services.AddSingleton<IRunKey, HkcuRunKey>();
         services.AddSingleton<ITaskbarTheme, RegistryTaskbarTheme>();
         services.AddSingleton<IProcessSource, WindowsProcessSource>();
+        services.AddSingleton<IProcessLauncher, WindowsProcessLauncher>();
         services.AddSingleton<WindowsTaskbarFlasher>();
         services.AddSingleton<IWindowFlasher>(sp => sp.GetRequiredService<WindowsTaskbarFlasher>());
         services.AddSingleton(TimeProvider.System);
 
         services.AddSingleton<ManagerRegistry>();
+        services.AddSingleton(RelaunchOptions.ForCurrentProcess());
+        services.AddSingleton<IOperationHook, RelaunchAfterUpgrade>();
         services.AddSingleton<OperationQueue>();
         services.AddSingleton<IAgreementsConfirmer, AgreementsDialog>();
         services.AddSingleton<IQuitConfirmer, QuitConfirmDialog>();

@@ -1,4 +1,5 @@
-// Opt-in live check: activates winget over COM, searches and lists upgrades. Read-only: never installs.
+// Opt-in live check: activates winget over COM, searches, lists upgrades and their install locations.
+// Read-only: never installs.
 // Console output is the purpose of this tool; the app itself logs through ILogger.
 using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -44,6 +45,12 @@ foreach (var includeUnknown in new[] { false, true })
     {
         Console.WriteLine($"  [{p.SourceId}] {p.Id} | {p.Version ?? "unknown"} -> {p.AvailableVersion}");
     }
+}
+
+var upgradable = await manager.GetUpgradesAsync(false, CancellationToken.None);
+foreach (var p in upgradable.Take(8))
+{
+    Console.WriteLine($"Install location of {p.Id}: {await manager.GetInstallLocationAsync(p, CancellationToken.None) ?? "(unknown)"}");
 }
 
 return 0;

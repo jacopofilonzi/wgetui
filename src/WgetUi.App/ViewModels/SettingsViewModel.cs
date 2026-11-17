@@ -26,6 +26,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         AutoAcceptAgreements = settings.Current.AutoAcceptAgreements;
         CloseToTray = settings.Current.CloseToTray;
         NotifyNewUpdates = settings.Current.NotifyNewUpdates == true;
+        RelaunchClosedApps = settings.Current.RelaunchClosedApps;
         StartWithWindows = startWithWindows.IsEnabled;
         _loading = false;
     }
@@ -58,6 +59,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool NotifyNewUpdates { get; set; }
+
+    [ObservableProperty]
+    public partial bool RelaunchClosedApps { get; set; }
 
     /// <summary>Read from and written to the Run key, not settings.json.</summary>
     [ObservableProperty]
@@ -131,6 +135,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!_loading)
         {
             Save(s => s.NotifyNewUpdates = value);
+        }
+    }
+
+    partial void OnRelaunchClosedAppsChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.RelaunchClosedApps = value);
         }
     }
 

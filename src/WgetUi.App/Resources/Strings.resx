@@ -109,4 +109,6 @@
   <data name="Settings_NotifyNewUpdates" xml:space="preserve"><value>Notify me when new updates are available (checked at startup and every hour)</value></data>
   <data name="Toast_AdminPrompt_Title" xml:space="preserve"><value>{0} needs administrator permission</value></data>
   <data name="Toast_AdminPrompt_Body" xml:space="preserve"><value>Approve the Windows prompt to continue the installation.</value></data>
+  <data name="Settings_RelaunchClosedApps" xml:space="preserve"><value>Reopen apps closed by an upgrade</value></data>
+  <data name="Settings_RelaunchClosedAppsHint" xml:space="preserve"><value>Some installers close the app they upgrade without starting it again. wgetui restarts it a few seconds after a successful upgrade, without administrator rights.</value></data>
 </root>

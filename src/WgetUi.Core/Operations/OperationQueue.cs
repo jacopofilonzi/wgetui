@@ -24,13 +24,21 @@ public sealed partial class OperationQueue : IAsyncDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private readonly Lock _gate = new();
     private readonly List<QueuedOperation> _operations = [];
+    private readonly IReadOnlyList<IOperationHook> _hooks;
     private readonly Task _worker;
     private long _nextSequence;
 
     public OperationQueue(ManagerRegistry registry, ILogger<OperationQueue> logger)
+        : this(registry, [], logger)
     {
+    }
+
+    public OperationQueue(ManagerRegistry registry, IEnumerable<IOperationHook> hooks, ILogger<OperationQueue> logger)
+    {
+        ArgumentNullException.ThrowIfNull(hooks);
         _registry = registry;
         _logger = logger;
+        _hooks = [.. hooks];
         _worker = Task.Run(RunAsync);
     }
 
@@ -150,6 +158,7 @@ public sealed partial class OperationQueue : IAsyncDisposable
 
         OperationChanged?.Invoke(this, operation);
         LogStarted(operation.Sequence, operation.Kind, operation.Package.Key);
+        await RunHooksBeforeAsync(operation, runCancellation.Token).ConfigureAwait(false);
 
         var result = await RunManagerAsync(operation, runCancellation.Token).ConfigureAwait(false);
         operation.Finish(result);
@@ -163,6 +172,38 @@ public sealed partial class OperationQueue : IAsyncDisposable
         }
 
         OperationChanged?.Invoke(this, operation);
+        RunHooksAfter(operation, result);
+    }
+
+    private async Task RunHooksBeforeAsync(QueuedOperation operation, CancellationToken cancellationToken)
+    {
+        foreach (var hook in _hooks)
+        {
+            try
+            {
+                await hook.BeforeAsync(operation, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // A hook is an add-on: it never stops the operation.
+                LogHookFailed(ex, hook.GetType().Name, operation.Sequence);
+            }
+        }
+    }
+
+    private void RunHooksAfter(QueuedOperation operation, OperationResult result)
+    {
+        foreach (var hook in _hooks)
+        {
+            try
+            {
+                hook.After(operation, result);
+            }
+            catch (Exception ex)
+            {
+                LogHookFailed(ex, hook.GetType().Name, operation.Sequence);
+            }
+        }
     }
 
     private async Task<OperationResult> RunManagerAsync(QueuedOperation operation, CancellationToken cancellationToken)
@@ -228,6 +269,9 @@ public sealed partial class OperationQueue : IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cancel requested for {State} operation #{Sequence}")]
     private partial void LogCancelled(long sequence, string state);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Operation hook {Hook} failed for operation #{Sequence}")]
+    private partial void LogHookFailed(Exception ex, string hook, long sequence);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Operation #{Sequence} {PackageKey} threw unexpectedly")]
     private partial void LogUnexpected(Exception ex, long sequence, string packageKey);

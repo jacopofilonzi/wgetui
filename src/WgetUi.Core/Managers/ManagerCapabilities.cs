@@ -21,4 +21,7 @@ public enum ManagerCapabilities
 
     /// <summary>Can report package and source agreements before an install (see <see cref="IPackageManager.GetAgreementsAsync"/>).</summary>
     Agreements = 1 << 7,
+
+    /// <summary>Can tell where an installed package lives on disk (see <see cref="IPackageManager.GetInstallLocationAsync"/>).</summary>
+    InstallLocation = 1 << 8,
 }

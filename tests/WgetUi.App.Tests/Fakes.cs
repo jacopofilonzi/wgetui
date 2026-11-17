@@ -31,7 +31,15 @@ internal sealed class ScriptedManager : IPackageManager
 
     public string DisplayName => "Fake";
 
-    public ManagerCapabilities Capabilities => ManagerCapabilities.ListUpgrades | ManagerCapabilities.Install | ManagerCapabilities.Upgrade | ManagerCapabilities.Cancel;
+    public ManagerCapabilities Capabilities => ManagerCapabilities.ListUpgrades | ManagerCapabilities.Install | ManagerCapabilities.Upgrade | ManagerCapabilities.Cancel | ExtraCapabilities;
+
+    public ManagerCapabilities ExtraCapabilities { get; set; }
+
+    /// <summary>What <see cref="GetInstallLocationAsync"/> returns per package id.</summary>
+    public Dictionary<string, string> InstallLocations { get; } = [];
+
+    public Task<string?> GetInstallLocationAsync(Package package, CancellationToken cancellationToken) =>
+        Task.FromResult(InstallLocations.GetValueOrDefault(package.Id));
 
     public IReadOnlyList<PackageSource> Sources { get; } = [new PackageSource("fake", "main", "Main")];
 
@@ -154,7 +162,19 @@ internal sealed class FakeProcessSource : WgetUi.App.Platform.IProcessSource
 {
     public HashSet<string> Running { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    public List<WgetUi.App.Platform.ProcessSnapshot> Processes { get; } = [];
+
     public bool IsRunning(string processName) => Running.Contains(processName);
+
+    public IReadOnlyList<WgetUi.App.Platform.ProcessSnapshot> ListSessionProcesses() => [.. Processes];
+}
+
+/// <summary>Records what would have been started. Never starts anything.</summary>
+internal sealed class FakeLauncher : WgetUi.App.Platform.IProcessLauncher
+{
+    public List<(string Executable, string Arguments, string WorkingDirectory)> Started { get; } = [];
+
+    public void Start(string executablePath, string arguments, string workingDirectory) => Started.Add((executablePath, arguments, workingDirectory));
 }
 
 internal sealed class FakeFlasher : WgetUi.App.Platform.IWindowFlasher

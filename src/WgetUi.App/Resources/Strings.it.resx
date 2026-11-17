@@ -109,4 +109,6 @@
   <data name="Settings_NotifyNewUpdates" xml:space="preserve"><value>Avvisami quando sono disponibili nuovi aggiornamenti (controllo all'avvio e ogni ora)</value></data>
   <data name="Toast_AdminPrompt_Title" xml:space="preserve"><value>{0} richiede i permessi di amministratore</value></data>
   <data name="Toast_AdminPrompt_Body" xml:space="preserve"><value>Conferma la richiesta di Windows per continuare l'installazione.</value></data>
+  <data name="Settings_RelaunchClosedApps" xml:space="preserve"><value>Riapri le app chiuse da un aggiornamento</value></data>
+  <data name="Settings_RelaunchClosedAppsHint" xml:space="preserve"><value>Alcuni installer chiudono l'app che aggiornano senza riavviarla. wgetui la riapre pochi secondi dopo un aggiornamento riuscito, senza permessi di amministratore.</value></data>
 </root>

@@ -39,6 +39,12 @@ public interface IPackageManager
     /// <summary>Agreements the user must accept before installing or upgrading the package. Read-only.</summary>
     Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Folder an installed package lives in, or null when unknown. Read-only. Optional: managers that declare
+    /// <see cref="ManagerCapabilities.InstallLocation"/> override it; the default knows nothing.
+    /// </summary>
+    Task<string?> GetInstallLocationAsync(Package package, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+
     /// <summary>Installs a package. Acts for real on the machine.</summary>
     Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken);
 
