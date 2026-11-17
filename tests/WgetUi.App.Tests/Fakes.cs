@@ -25,6 +25,7 @@ internal sealed class ManualDispatcher : IUiDispatcher
 internal sealed class ScriptedManager : IPackageManager
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<OperationResult>> _pending = new();
+    private readonly ConcurrentDictionary<string, IProgress<OperationProgress>> _progress = new();
 
     public string Id => "fake";
 
@@ -61,8 +62,23 @@ internal sealed class ScriptedManager : IPackageManager
     public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
         Pending(package.Id).Task.WaitAsync(cancellationToken);
 
-    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
-        Pending(package.Id).Task.WaitAsync(cancellationToken);
+    public Task<OperationResult> UpgradeAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
+    {
+        _progress[package.Id] = progress;
+        return Pending(package.Id).Task.WaitAsync(cancellationToken);
+    }
+
+    /// <summary>Reports progress for a running upgrade (as winget would).</summary>
+    public bool Report(string id, OperationProgress progress)
+    {
+        if (!_progress.TryGetValue(id, out var sink))
+        {
+            return false;
+        }
+
+        sink.Report(progress);
+        return true;
+    }
 
     private TaskCompletionSource<OperationResult> Pending(string id) =>
         _pending.GetOrAdd(id, _ => new TaskCompletionSource<OperationResult>(TaskCreationOptions.RunContinuationsAsynchronously));
@@ -131,4 +147,46 @@ internal sealed class ManualTicker : WgetUi.App.ViewModels.IUpdateCheckTicker
 
     public async ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken) =>
         await _ticks.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+}
+
+/// <summary>Scripted process list.</summary>
+internal sealed class FakeProcessSource : WgetUi.App.Platform.IProcessSource
+{
+    public HashSet<string> Running { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool IsRunning(string processName) => Running.Contains(processName);
+}
+
+internal sealed class FakeFlasher : WgetUi.App.Platform.IWindowFlasher
+{
+    public int Flashes { get; private set; }
+
+    public void Flash() => Flashes++;
+}
+
+/// <summary>Time that only moves when the test says; timers never fire on their own.</summary>
+internal sealed class ManualTime : TimeProvider
+{
+    public DateTimeOffset Now { get; set; } = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+    public int TimersCreated { get; private set; }
+
+    public override DateTimeOffset GetUtcNow() => Now;
+
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        TimersCreated++;
+        return new InertTimer();
+    }
+
+    private sealed class InertTimer : ITimer
+    {
+        public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+        public void Dispose()
+        {
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 }

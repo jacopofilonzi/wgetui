@@ -61,6 +61,10 @@ internal static class Program
         services.AddSingleton<IToastNotifier>(sp => sp.GetRequiredService<WindowsToastNotifier>());
         services.AddSingleton<IRunKey, HkcuRunKey>();
         services.AddSingleton<ITaskbarTheme, RegistryTaskbarTheme>();
+        services.AddSingleton<IProcessSource, WindowsProcessSource>();
+        services.AddSingleton<WindowsTaskbarFlasher>();
+        services.AddSingleton<IWindowFlasher>(sp => sp.GetRequiredService<WindowsTaskbarFlasher>());
+        services.AddSingleton(TimeProvider.System);
 
         services.AddSingleton<ManagerRegistry>();
         services.AddSingleton<OperationQueue>();
@@ -84,6 +88,7 @@ internal static class Program
         services.AddSingleton<HourlyTicker>();
         services.AddSingleton<IUpdateCheckTicker>(sp => sp.GetRequiredService<HourlyTicker>());
         services.AddSingleton<UpdateCheckScheduler>();
+        services.AddSingleton<AdminPromptWatcher>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

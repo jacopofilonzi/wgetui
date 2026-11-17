@@ -107,4 +107,6 @@
   <data name="Common_Yes" xml:space="preserve"><value>Sì</value></data>
   <data name="Common_No" xml:space="preserve"><value>No</value></data>
   <data name="Settings_NotifyNewUpdates" xml:space="preserve"><value>Avvisami quando sono disponibili nuovi aggiornamenti (controllo all'avvio e ogni ora)</value></data>
+  <data name="Toast_AdminPrompt_Title" xml:space="preserve"><value>{0} richiede i permessi di amministratore</value></data>
+  <data name="Toast_AdminPrompt_Body" xml:space="preserve"><value>Conferma la richiesta di Windows per continuare l'installazione.</value></data>
 </root>

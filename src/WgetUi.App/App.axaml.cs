@@ -40,6 +40,9 @@ public sealed partial class App : Application
             shell.WindowActiveChanged += (_, active) => notifier.IsWindowActive = active;
             shell.WindowFirstShown += (_, _) => _ = AskNotificationConsentAsync(notifier, vm.Settings);
             var scheduler = _services.GetRequiredService<UpdateCheckScheduler>();
+            _ = _services.GetRequiredService<AdminPromptWatcher>();
+            var flasher = _services.GetRequiredService<WindowsTaskbarFlasher>();
+            shell.Window.Opened += (_, _) => flasher.Attach(shell.Window.TryGetPlatformHandle()?.Handle ?? 0);
             shell.Start(paths.StartInTray, _services.GetRequiredService<TrayViewModel>(), _services.GetRequiredService<ITaskbarTheme>());
             desktop.Exit += (_, _) => shell.Dispose();
 
