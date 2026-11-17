@@ -35,6 +35,10 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   onto the simple version. Don't migrate without my approval.
 - When something is genuinely my decision (UX, user-visible naming, data formats, breaking changes), ask
   instead of guessing. Otherwise pick the sensible default and say what you picked.
+- **Don't start work on a proposal until every open question has a precise answer.** When a plan or
+  proposal ends with questions and the reply answers some of them but asks for clarification on others
+  (or skips them), answer the clarification and wait: don't launch the agent or start editing until each
+  question has an explicit answer.
 - Run commands from the repo root through the Makefile (`make help` lists them). A new recurring command
   goes into the Makefile too.
 - **While developing, use the framework's dev tools** (`make dev`: `dotnet watch` with hot reload) instead of building and launching the app after every change. Build and run the real artifact
