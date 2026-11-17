@@ -4,9 +4,10 @@
 SLN := WgetUi.slnx
 APP := src/WgetUi.App/WgetUi.App.csproj
 SMOKE := tools/WgetUi.Smoke/WgetUi.Smoke.csproj
+ICONGEN := tools/WgetUi.IconGen/WgetUi.IconGen.csproj
 
 .DEFAULT_GOAL := help
-.PHONY: help dev run build test format check publish smoke clean
+.PHONY: help dev run build test format check publish smoke icons clean
 
 help:
 	@echo make dev      - run the app with dotnet watch (hot reload)
@@ -17,6 +18,7 @@ help:
 	@echo make check    - format check + Release build with warnings as errors + tests
 	@echo make publish  - self-contained single-file win-x64 exe in publish/
 	@echo make smoke    - opt-in live check: read-only winget search and upgrade listing
+	@echo make icons    - regenerate src/WgetUi.App/Assets/wgetui.ico from the artwork in Icons/IconArt.cs
 	@echo make clean    - dotnet clean
 
 dev:
@@ -44,6 +46,9 @@ publish:
 
 smoke:
 	dotnet run --project $(SMOKE) -c Release
+
+icons:
+	dotnet run --project $(ICONGEN) -c Release -- src/WgetUi.App/Assets/wgetui.ico
 
 clean:
 	dotnet clean $(SLN)

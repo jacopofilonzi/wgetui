@@ -10,6 +10,7 @@
     <Project Path="tests/WgetUi.Managers.WinGet.Tests/WgetUi.Managers.WinGet.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/WgetUi.IconGen/WgetUi.IconGen.csproj" />
     <Project Path="tools/WgetUi.Smoke/WgetUi.Smoke.csproj" />
   </Folder>
 </Solution>

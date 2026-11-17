@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- make icons: renders the app icon with Avalonia (offscreen) and writes the multi-size ICO.
+       The artwork is shared with the app by linking its source files, so the tray icon and the exe icon match. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\WgetUi.App\Icons\IconArt.cs" Link="Icons\IconArt.cs" />
+    <Compile Include="..\..\src\WgetUi.App\Icons\IconRenderer.cs" Link="Icons\IconRenderer.cs" />
+    <Compile Include="..\..\src\WgetUi.App\Icons\IcoFile.cs" Link="Icons\IcoFile.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.6" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+  </ItemGroup>
+</Project>

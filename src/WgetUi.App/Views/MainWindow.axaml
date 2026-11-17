@@ -6,7 +6,7 @@
         xmlns:v="using:WgetUi.App.Views"
         x:Class="WgetUi.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="wgetui" Width="1100" Height="720" MinWidth="720" MinHeight="480"
+        Title="wgetui" Icon="/Assets/wgetui.ico" Width="1100" Height="720" MinWidth="720" MinHeight="480"
         TransparencyLevelHint="Mica">
   <Window.Resources>
     <!-- The content card sits between two panes, so round both top corners (FluentAvalonia
