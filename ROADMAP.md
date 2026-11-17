@@ -18,6 +18,7 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
   tray/notifications). Unchecked apps keep the manual flow.
 - **MSI installer.** wgetui is distributed as an MSI that installs the contents of `publish/` (today
   `wgetui.exe` plus `Microsoft.Management.Deployment.dll` and `.winmd`, which must sit next to the exe),
-  with Start menu shortcut and uninstall entry. `make publish` keeps building the runnable exe directly,
+  with Start menu shortcut and uninstall entry. The installer lets the user choose the scope: system-wide
+  (Program Files, all users, needs UAC) or per-user (`%LOCALAPPDATA%`, no admin) — WiX dual-purpose package. `make publish` keeps building the runnable exe directly,
   with its required files in the same folder; the MSI is built on top of that output.
 - CI running `make check` on push and pull request.
