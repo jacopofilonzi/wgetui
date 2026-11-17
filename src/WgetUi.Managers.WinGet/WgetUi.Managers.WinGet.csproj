@@ -24,15 +24,18 @@
 
   <!-- The package copies its activation factory DLL and winmd only into projects that reference it directly
        (build/, not buildTransitive/). Without them next to the exe, activation fails with
-       REGDB_E_CLASSNOTREG (no DLL) or 0x80073D54 (no winmd). Carry it as content so every app referencing this project gets it. -->
+       REGDB_E_CLASSNOTREG (no DLL) or 0x80073D54 (no winmd). Carry them as content so every app referencing this project gets them; they stay next to the exe
+       in a single-file publish too (ExcludeFromSingleFile), where the activation looks for them. -->
   <ItemGroup>
     <None Include="$(PkgMicrosoft_WindowsPackageManager_ComInterop)/bin/$(RuntimeIdentifier)/native/static/Microsoft.Management.Deployment.dll"
           Link="Microsoft.Management.Deployment.dll"
           CopyToOutputDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true"
           Visible="false" />
     <None Include="$(PkgMicrosoft_WindowsPackageManager_ComInterop)/lib/uap10.0/Microsoft.Management.Deployment.winmd"
           Link="Microsoft.Management.Deployment.winmd"
           CopyToOutputDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true"
           Visible="false" />
   </ItemGroup>
 </Project>
