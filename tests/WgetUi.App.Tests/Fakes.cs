@@ -30,11 +30,14 @@ internal sealed class ScriptedManager : IPackageManager
 
     public string DisplayName => "Fake";
 
-    public ManagerCapabilities Capabilities => ManagerCapabilities.Install | ManagerCapabilities.Upgrade | ManagerCapabilities.Cancel;
+    public ManagerCapabilities Capabilities => ManagerCapabilities.ListUpgrades | ManagerCapabilities.Install | ManagerCapabilities.Upgrade | ManagerCapabilities.Cancel;
 
     public IReadOnlyList<PackageSource> Sources { get; } = [new PackageSource("fake", "main", "Main")];
 
     public ManagerAvailability? Availability => ManagerAvailability.Available;
+
+    /// <summary>What <see cref="GetUpgradesAsync"/> returns.</summary>
+    public List<Package> Upgrades { get; } = [];
 
     public static Package Package(string id) => new("fake", "main", id, id, "1.0", "2.0");
 
@@ -44,7 +47,7 @@ internal sealed class ScriptedManager : IPackageManager
 
     public Task<IReadOnlyList<Package>> SearchAsync(string query, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
 
-    public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([]);
+    public Task<IReadOnlyList<Package>> GetUpgradesAsync(bool includeUnknown, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>([.. Upgrades]);
 
     public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) => Task.FromResult(PackageAgreements.None(package));
 

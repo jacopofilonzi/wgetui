@@ -14,7 +14,7 @@ repo/
 ├── tests/
 │   ├── WgetUi.Core.Tests/            queue, registry, agreements policy (fake manager)
 │   ├── WgetUi.Managers.WinGet.Tests/ pure mapping + serial executor (no COM activation)
-│   └── WgetUi.App.Tests/             string tables (EN/IT) + queue panel view model
+│   └── WgetUi.App.Tests/             string tables (EN/IT) + queue panel and Updates view models
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls, prints results
 ├── WgetUi.slnx                   solution
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>

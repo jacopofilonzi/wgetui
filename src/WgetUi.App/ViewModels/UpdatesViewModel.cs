@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using WgetUi.App.Services;
 using WgetUi.Core;
 using WgetUi.Core.Managers;
@@ -15,14 +16,16 @@ public sealed partial class UpdatesViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private readonly PackageActions _actions;
     private readonly IUiDispatcher _dispatcher;
+    private readonly ILogger<UpdatesViewModel> _logger;
     private IReadOnlyList<ManagerError> _lastErrors = [];
 
-    public UpdatesViewModel(ManagerRegistry registry, PackageActions actions, OperationQueue queue, IUiDispatcher dispatcher)
+    public UpdatesViewModel(ManagerRegistry registry, PackageActions actions, OperationQueue queue, IUiDispatcher dispatcher, ILogger<UpdatesViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(queue);
         _registry = registry;
         _actions = actions;
         _dispatcher = dispatcher;
+        _logger = logger;
         ShowIncludeUnknownToggle = registry.Managers.Any(m => m.Capabilities.HasFlag(ManagerCapabilities.IncludeUnknownVersions));
         Upgrades.CollectionChanged += (_, _) =>
         {
@@ -146,12 +149,14 @@ public sealed partial class UpdatesViewModel : ViewModelBase
             var row = Upgrades.FirstOrDefault(r => r.Package.Key == operation.Package.Key);
             if (row is null)
             {
+                LogRowNotFound(operation.Package.Key, operation.State);
                 return;
             }
 
             if (operation.State == OperationState.Succeeded)
             {
                 Upgrades.Remove(row);
+                LogRowRemoved(operation.Package.Key, Upgrades.Count);
             }
             else
             {
@@ -160,4 +165,10 @@ public sealed partial class UpdatesViewModel : ViewModelBase
             }
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Upgrade of {PackageKey} succeeded: row removed, {Remaining} update(s) left")]
+    private partial void LogRowRemoved(string packageKey, int remaining);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Upgrade of {PackageKey} finished as {State} but no row matches it in the Updates list")]
+    private partial void LogRowNotFound(string packageKey, OperationState state);
 }
