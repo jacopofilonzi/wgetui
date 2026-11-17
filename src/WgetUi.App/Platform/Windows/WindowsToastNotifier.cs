@@ -27,7 +27,7 @@ public sealed partial class WindowsToastNotifier : IToastNotifier
 
     public WindowsToastNotifier(ILogger<WindowsToastNotifier> logger) => _logger = logger;
 
-    public event EventHandler? Activated;
+    public event EventHandler<ToastAction>? Activated;
 
     /// <summary>Gives the process the app's id (taskbar grouping and toasts). Call before any window exists.</summary>
     public static void SetProcessAppUserModelId()
@@ -54,14 +54,14 @@ public sealed partial class WindowsToastNotifier : IToastNotifier
         }
     }
 
-    public void Show(string title, string body)
+    public void Show(string title, string body, ToastAction action = ToastAction.OpenWindow)
     {
         try
         {
             var xml = new XmlDocument();
             xml.LoadXml($"<toast><visual><binding template=\"ToastGeneric\"><text>{SecurityElement.Escape(title)}</text><text>{SecurityElement.Escape(body)}</text></binding></visual></toast>");
             var toast = new ToastNotification(xml);
-            toast.Activated += (_, _) => Activated?.Invoke(this, EventArgs.Empty);
+            toast.Activated += (_, _) => Activated?.Invoke(this, action);
             toast.Failed += (_, e) => LogToastFailed(e.ErrorCode?.HResult ?? 0);
             Notifier().Show(toast);
         }

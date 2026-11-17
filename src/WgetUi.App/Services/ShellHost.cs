@@ -49,7 +49,7 @@ public sealed partial class ShellHost : IDisposable
 
     public void Start(bool startInTray, TrayViewModel tray, ITaskbarTheme taskbarTheme)
     {
-        _tray = new TrayIconHost(tray, taskbarTheme, ShowWindow, () => _ = QuitAsync());
+        _tray = new TrayIconHost(tray, taskbarTheme, () => ShowWindow(), () => _ = QuitAsync());
         if (!startInTray)
         {
             ShowWindow();
@@ -60,13 +60,21 @@ public sealed partial class ShellHost : IDisposable
         }
     }
 
-    /// <summary>Shows and activates the window (from the tray, a second launch or a notification). Any thread.</summary>
-    public void ShowWindow()
+    /// <summary>
+    /// Shows and activates the window (from the tray, a second launch or a notification), optionally on a
+    /// given page (<see cref="MainWindowViewModel"/> page constants). Any thread.
+    /// </summary>
+    public void ShowWindow(string? page = null)
     {
         if (!Dispatcher.UIThread.CheckAccess())
         {
-            Dispatcher.UIThread.Post(ShowWindow);
+            Dispatcher.UIThread.Post(() => ShowWindow(page));
             return;
+        }
+
+        if (page is not null)
+        {
+            _window.SelectPage(page);
         }
 
         if (_desktop.MainWindow is null)

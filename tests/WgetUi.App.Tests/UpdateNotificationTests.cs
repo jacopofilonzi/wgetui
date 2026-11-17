@@ -76,6 +76,7 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
         Assert.Equal("a, b", _toasts.Shown[0].Body);
         Assert.Equal("New update available", _toasts.Shown[1].Title);
         Assert.Equal("a", _toasts.Shown[1].Body);
+        Assert.All(_toasts.Actions, a => Assert.Equal(WgetUi.App.Platform.ToastAction.OpenUpdates, a));
     }
 
     [Fact]

@@ -107,13 +107,19 @@ internal sealed class FakeRunKey : WgetUi.App.Platform.IRunKey
 /// <summary>Records notifications instead of showing them.</summary>
 internal sealed class FakeNotifier : WgetUi.App.Platform.IToastNotifier
 {
-    public event EventHandler? Activated;
+    public event EventHandler<WgetUi.App.Platform.ToastAction>? Activated;
 
     public List<(string Title, string Body)> Shown { get; } = [];
 
-    public void Show(string title, string body) => Shown.Add((title, body));
+    public List<WgetUi.App.Platform.ToastAction> Actions { get; } = [];
 
-    public void Click() => Activated?.Invoke(this, EventArgs.Empty);
+    public void Show(string title, string body, WgetUi.App.Platform.ToastAction action = WgetUi.App.Platform.ToastAction.OpenWindow)
+    {
+        Shown.Add((title, body));
+        Actions.Add(action);
+    }
+
+    public void Click() => Activated?.Invoke(this, Actions.Count > 0 ? Actions[^1] : WgetUi.App.Platform.ToastAction.OpenWindow);
 }
 
 /// <summary>Answers the quit confirmation with a fixed value and counts the questions.</summary>

@@ -15,6 +15,16 @@ public partial class MainWindow : Window
         Opened += (_, _) => ApplyBackdrop();
     }
 
+    /// <summary>Selects a page through the navigation view, so the selected item and the page stay in sync.</summary>
+    public void SelectPage(string page)
+    {
+        var item = Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<FANavigationViewItem>().FirstOrDefault(i => i.Tag as string == page);
+        if (item is not null)
+        {
+            Nav.SelectedItem = item;
+        }
+    }
+
     private void OnNavigationChanged(object? sender, FANavigationViewSelectionChangedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm && e.SelectedItem is FANavigationViewItem { Tag: string page })

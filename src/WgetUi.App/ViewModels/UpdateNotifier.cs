@@ -67,7 +67,7 @@ public sealed partial class UpdateNotifier
         var title = fresh.Count == 1 ? loc["Toast_NewUpdates_One"] : loc.Format("Toast_NewUpdates_Many", fresh.Count);
         var names = string.Join(", ", fresh.Take(NamesInBody).Select(p => p.Name));
         var body = fresh.Count > NamesInBody ? loc.Format("Toast_NewUpdates_More", names, fresh.Count - NamesInBody) : names;
-        _notifier.Show(title, body);
+        _notifier.Show(title, body, ToastAction.OpenUpdates);
         LogNotified(fresh.Count);
     }
 

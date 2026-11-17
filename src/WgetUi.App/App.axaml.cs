@@ -55,7 +55,7 @@ public sealed partial class App : Application
                 }
             };
             instance.Listen(logger);
-            _services.GetRequiredService<IToastNotifier>().Activated += (_, _) => shell.ShowWindow();
+            _services.GetRequiredService<IToastNotifier>().Activated += (_, action) => shell.ShowWindow(action == ToastAction.OpenUpdates ? MainWindowViewModel.UpdatesPage : null);
 
             LogWindowCreated(logger);
             _ = InitializeAsync(vm, scheduler);
