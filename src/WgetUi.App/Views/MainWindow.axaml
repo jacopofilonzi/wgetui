@@ -6,7 +6,7 @@
         xmlns:v="using:WgetUi.App.Views"
         x:Class="WgetUi.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="wgetui" Icon="/Assets/wgetui.ico" Width="1100" Height="720" MinWidth="720" MinHeight="480"
+        Title="wgetui" Icon="/Assets/wgetui.ico" Width="1360" Height="760" MinWidth="720" MinHeight="480"
         TransparencyLevelHint="Mica">
   <Window.Resources>
     <!-- The content card sits between two panes, so round both top corners (FluentAvalonia
@@ -23,6 +23,7 @@
     <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
     <ui:FANavigationView Grid.Column="0" x:Name="Nav" PaneDisplayMode="Auto" IsSettingsVisible="False"
                          IsBackButtonVisible="False" OpenPaneLength="220">
+      <!-- Default window width (1360) leaves the nav ≥ ExpandedModeThresholdWidth (1008) even with the 300 px queue panel open, so queuing an operation doesn't collapse the menu. -->
       <ContentControl Content="{Binding CurrentPage}" />
       <ui:FANavigationView.MenuItems>
         <ui:FANavigationViewItem Content="{l:Tr Nav_Search}" Tag="search">
