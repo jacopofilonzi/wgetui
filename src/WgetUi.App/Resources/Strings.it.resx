@@ -141,4 +141,11 @@
   <data name="Details_LoadFailed" xml:space="preserve"><value>Alcuni dettagli non sono stati letti: {0}</value></data>
   <data name="Details_NotInstalled" xml:space="preserve"><value>Non installato</value></data>
   <data name="Installed_Uninstall" xml:space="preserve"><value>Disinstalla</value></data>
+  <data name="Nav_Installed" xml:space="preserve"><value>Installati</value></data>
+  <data name="Installed_Title" xml:space="preserve"><value>Installati</value></data>
+  <data name="Installed_Filter" xml:space="preserve"><value>Filtra per nome o id</value></data>
+  <data name="Installed_None" xml:space="preserve"><value>Nessun pacchetto installato trovato.</value></data>
+  <data name="Source_Local" xml:space="preserve"><value>Locale</value></data>
+  <data name="Uninstall_Title" xml:space="preserve"><value>Disinstallare {0}?</value></data>
+  <data name="Uninstall_Message" xml:space="preserve"><value>{0} ({1}) verrà rimosso da questo computer. Il programma di disinstallazione potrebbe chiedere i permessi di amministratore.</value></data>
 </root>

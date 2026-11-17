@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:WgetUi.App.ViewModels"
+             xmlns:c="using:WgetUi.App.Controls"
+             xmlns:l="using:WgetUi.App.Localization"
+             x:Class="WgetUi.App.Views.InstalledView"
+             x:DataType="vm:InstalledViewModel">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="24,16,24,16" RowSpacing="12">
+    <TextBlock Grid.Row="0" Classes="PageTitle" Text="{l:Tr Installed_Title}" />
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Grid.Column="0" Text="{Binding Filter}" PlaceholderText="{l:Tr Installed_Filter}" />
+      <Button Grid.Column="1" Content="{l:Tr Updates_Refresh}" Command="{Binding RefreshCommand}" />
+    </Grid>
+    <ProgressBar Grid.Row="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+    <ui:FAInfoBar Grid.Row="3" Severity="Warning" IsClosable="False" IsOpen="{Binding HasError}" Title="{l:Tr Errors_SomeFailed}" Message="{Binding ErrorMessage}" />
+    <Panel Grid.Row="4">
+      <TextBlock Classes="Secondary" Text="{l:Tr Installed_None}" IsVisible="{Binding ShowNone}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <ListBox ItemsSource="{Binding Packages}" Background="Transparent">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PackageRowViewModel">
+            <Grid ColumnSpacing="16" Margin="0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Id}" />
+              </StackPanel>
+              <Panel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" />
+                <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" />
+              </Panel>
+              <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
+              <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                <Button Classes="Info" Command="{Binding ShowDetailsCommand}" IsVisible="{Binding CanShowDetails}" ToolTip.Tip="{l:Tr Details_Button}">
+                  <ui:FAFontIcon Glyph="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" />
+                </Button>
+                <Button Content="{l:Tr Installed_Uninstall}" Command="{Binding ActCommand}" IsVisible="{Binding CanAct}" MinWidth="96" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </Grid>
+</UserControl>

@@ -47,6 +47,7 @@
   <Application.DataTemplates>
     <DataTemplate DataType="vm:SearchViewModel"><v:SearchView /></DataTemplate>
     <DataTemplate DataType="vm:UpdatesViewModel"><v:UpdatesView /></DataTemplate>
+    <DataTemplate DataType="vm:InstalledViewModel"><v:InstalledView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
   </Application.DataTemplates>
 </Application>

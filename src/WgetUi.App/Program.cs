@@ -85,6 +85,8 @@ internal static class Program
         services.AddSingleton<PackageDetailsLauncher>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<UpdatesViewModel>();
+        services.AddSingleton<IUninstallConfirmer, UninstallConfirmDialog>();
+        services.AddSingleton<InstalledViewModel>();
         services.AddSingleton<OperationsViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainWindowViewModel>();

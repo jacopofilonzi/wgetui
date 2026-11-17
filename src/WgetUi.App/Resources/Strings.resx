@@ -141,4 +141,11 @@
   <data name="Details_LoadFailed" xml:space="preserve"><value>Some details could not be read: {0}</value></data>
   <data name="Details_NotInstalled" xml:space="preserve"><value>Not installed</value></data>
   <data name="Installed_Uninstall" xml:space="preserve"><value>Uninstall</value></data>
+  <data name="Nav_Installed" xml:space="preserve"><value>Installed</value></data>
+  <data name="Installed_Title" xml:space="preserve"><value>Installed</value></data>
+  <data name="Installed_Filter" xml:space="preserve"><value>Filter by name or id</value></data>
+  <data name="Installed_None" xml:space="preserve"><value>No installed packages found.</value></data>
+  <data name="Source_Local" xml:space="preserve"><value>Local</value></data>
+  <data name="Uninstall_Title" xml:space="preserve"><value>Uninstall {0}?</value></data>
+  <data name="Uninstall_Message" xml:space="preserve"><value>{0} ({1}) will be removed from this computer. Its installer may ask for administrator permission.</value></data>
 </root>

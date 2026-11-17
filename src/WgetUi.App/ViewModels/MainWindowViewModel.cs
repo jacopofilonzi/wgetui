@@ -8,22 +8,24 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 {
     public const string SearchPage = "search";
     public const string UpdatesPage = "updates";
+    public const string InstalledPage = "installed";
     public const string SettingsPage = "settings";
 
     private readonly ManagerRegistry _registry;
     private IReadOnlyList<ManagerError> _initErrors = [];
 
-    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, OperationsViewModel operations, SettingsViewModel settings)
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings)
     {
         _registry = registry;
         Search = search;
         Updates = updates;
+        Installed = installed;
         Operations = operations;
         Settings = settings;
         CurrentPage = updates;
         Loc.CultureChanged += (_, _) =>
         {
-            foreach (var page in new ViewModelBase[] { this, Search, Updates, Operations, Settings })
+            foreach (var page in new ViewModelBase[] { this, Search, Updates, Installed, Operations, Settings })
             {
                 page.OnLanguageChanged();
             }
@@ -33,6 +35,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public SearchViewModel Search { get; }
 
     public UpdatesViewModel Updates { get; }
+
+    public InstalledViewModel Installed { get; }
 
     public OperationsViewModel Operations { get; }
 
@@ -47,12 +51,21 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     public partial string? BannerMessage { get; set; }
 
-    public void Navigate(string page) => CurrentPage = page switch
+    public void Navigate(string page)
     {
-        SearchPage => Search,
-        SettingsPage => Settings,
-        _ => Updates,
-    };
+        CurrentPage = page switch
+        {
+            SearchPage => Search,
+            InstalledPage => Installed,
+            SettingsPage => Settings,
+            _ => Updates,
+        };
+
+        if (CurrentPage == Installed)
+        {
+            Installed.EnsureLoaded();
+        }
+    }
 
     /// <summary>Connects every manager, reports the unavailable ones, then loads the updates.</summary>
     public async Task InitializeAsync()

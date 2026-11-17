@@ -34,6 +34,9 @@
             <ui:FAInfoBadge Value="{Binding Updates.Count}" IsVisible="{Binding Updates.Count}" />
           </ui:FANavigationViewItem.InfoBadge>
         </ui:FANavigationViewItem>
+        <ui:FANavigationViewItem Content="{l:Tr Nav_Installed}" Tag="installed">
+          <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="AllApps" /></ui:FANavigationViewItem.IconSource>
+        </ui:FANavigationViewItem>
       </ui:FANavigationView.MenuItems>
       <ui:FANavigationView.FooterMenuItems>
         <ui:FANavigationViewItem Content="{l:Tr Nav_Settings}" Tag="settings">
