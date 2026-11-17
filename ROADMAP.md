@@ -22,6 +22,9 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
 
 ## Later
 
+- **Automatic updates per app.** A page listing installed apps with a checkbox each: checked apps are
+  upgraded automatically when an update is found (background check on a schedule, results through the
+  tray/notifications). Unchecked apps keep the manual flow.
 - App installer (today: self-contained single-file exe).
 - **Single-exe distribution.** Today `publish/` holds `wgetui.exe` plus `Microsoft.Management.Deployment.dll`
   and `.winmd`, which must sit next to the exe (WinRT activation looks in the app folder, not in the
