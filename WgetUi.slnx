@@ -7,4 +7,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/WgetUi.Core.Tests/WgetUi.Core.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/WgetUi.Smoke/WgetUi.Smoke.csproj" />
+  </Folder>
 </Solution>
