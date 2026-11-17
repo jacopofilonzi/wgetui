@@ -7,14 +7,12 @@ instead of re-reading the whole repo.
 These guidelines come from a shared template: https://github.com/jacopofilonzi/agents-guideline.
 See "Updating these guidelines" below to align them with the latest version.
 
-<!--
-Template: "Workflow", "Code" and "Testing" are my default style; keep them unless the project needs
-something different. Fill in or delete every <PLACEHOLDER> section, then delete these comments.
--->
-
 ## What it is
 
-<PROJECT>: <one sentence>. Stack: <language + framework + versions>. Targets: <Linux server / Windows, macOS, Linux / …>.
+wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all") built so other package managers
+(Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
+CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
+(Microsoft.WindowsPackageManager.ComInterop). Targets: Windows 10 1809+ / Windows 11, x64 only.
 
 ## Workflow
 
@@ -39,8 +37,7 @@ something different. Fill in or delete every <PLACEHOLDER> section, then delete 
   instead of guessing. Otherwise pick the sensible default and say what you picked.
 - Run commands from the repo root through the Makefile (`make help` lists them). A new recurring command
   goes into the Makefile too.
-- **While developing, use the framework's dev tools** (`make dev`: dev server, hot reload, `wails3 dev`, watch
-  mode…) instead of building and launching the app after every change. Build and run the real artifact
+- **While developing, use the framework's dev tools** (`make dev`: `dotnet watch` with hot reload) instead of building and launching the app after every change. Build and run the real artifact
   (binary, installer, Docker image) only when I say the dev tools don't pick up a specific change, and only
   for that check; then go back to the dev server.
 - **Always run `make check` before declaring work done.** It must pass with zero errors and zero warnings.
@@ -48,12 +45,18 @@ something different. Fill in or delete every <PLACEHOLDER> section, then delete 
 - Makefile recipes must work in both `sh` and `cmd.exe` (GNU make on Windows falls back to `cmd.exe`): only
   `cd dir && command`, no inline `VAR=x cmd`, no `rm`/`cp`/`mkdir -p`; use `node -e` (or the project's own
   language) for file operations.
-- Every new env var goes in the config module **and** is documented in `.env.example` (and in
-  `docker-compose.yml` if relevant for deployment). Never commit `.env` or secrets.
+- The app has no env vars: user configuration is `settings.json` (see STRUCTURE.md). A new setting goes in
+  `AppSettings` with a default that keeps the old behaviour, plus a control in Settings (EN + IT strings).
+  The only command-line option is `--data-dir <path>` (settings and logs in one folder, for local checks).
 - **Never cause real side effects without asking**: payments, bookings, emails, messages to real users,
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
-  <List here the endpoints, commands and functions of this project that act for real.>
+  In this project these act for real on the machine and must never run in tests or checks:
+  `IPackageManager.InstallAsync` / `UpgradeAsync` (and `WinGetManager`'s implementations), anything that
+  queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all buttons), and the
+  winget CLI `install`/`upgrade` commands. Read-only calls are fine live: activation, search, listing upgrades,
+  reading agreements (`make smoke`). When launching the app for a check use `--data-dir` with an empty
+  scratch folder and don't click Install/Upgrade.
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
   keys and a separate database.
 
@@ -91,18 +94,23 @@ and align this project's copies with it:
 
 ## Invariants — don't break these
 
-<!-- Rules that aren't obvious from the code and would cause real damage if broken. Say WHY when it isn't obvious. Examples: -->
-- <Secrets/tokens are never logged or returned; they live in a redacted `Secret` type.>
-- <Optional services (cache, Redis…) never fail a request: errors degrade to a miss; the server starts without them.>
-- <Bump `<CACHE_KEY_VERSION>` whenever a cached payload shape changes.>
-- <When backend API models change, update the frontend types in the same change.>
-- **Upgrading production never loses data or stops the service** (keep if the project has durable data:
-  databases, user files). Durable data is not cache: IDs and formats stay backward compatible. Schema
-  changes are migrations appended to <the migrations file>, never edits to one already released (pushed to
-  `main`). A migration that touches existing rows gets a test that builds a database at the previous version
-  with realistic data and migrates it. The app backs up the database before migrating and refuses to start
-  if the backup fails. Anything the operator must do before deploying (env vars, manual steps) goes in the
-  README upgrade notes.
+- **Every winget COM call goes through `WinGetSerialExecutor`**, one at a time: reads that overlap an install
+  return partial or empty results. Installs hold the lock for their whole duration; the timeouts only free the
+  caller, never the lock.
+- **Agreements are accepted only when the user did** (decided in Core by `OperationRequester`, never inside a
+  manager): installs show one modal listing package/source agreements unless "Automatically accept agreements"
+  is on; cancel queues nothing. Upgrades never prompt and always accept (accepted at first install). Shared
+  winget catalog references never set `AcceptSourceAgreements`.
+- **The UI never references a specific manager**: it reads `ManagerCapabilities` to decide which actions to show,
+  and source badges come from theme resources by source id. Only `Program.cs` registers managers.
+- **The app runs non-elevated** (`asInvoker` manifest): winget refuses COM activation from an elevated process.
+  Installers raise their own UAC prompt.
+- **Error codes are stable**: `ErrorCodes` values are never renamed; each has an `Error_<code>` string in EN and IT
+  (enforced by tests). User-facing text never comes from exception messages.
+- **`settings.json` stays backward compatible**: add fields with defaults, never rename or repurpose one. A file that
+  fails to parse falls back to defaults instead of crashing.
+- The COM activation DLL and `.winmd` must sit next to the exe (also in the single-file publish): see the WinGet
+  csproj.
 
 ## Code
 
@@ -112,71 +120,93 @@ and align this project's copies with it:
   (upstream formats, invariants, data layout).
 - Never ignore errors: wrap them with context. No `unwrap()`/`expect()`/unchecked casts on external data
   (network, files, user input).
-- API errors carry a stable machine-readable `code` (and an English message for logs); the UI maps the
-  code to its own text. User-facing text never comes from the backend error.
-- Use the project's logger, never `println!`/`console.log`/`fmt.Println` in core logic.
-- OS-specific code is isolated in one place (`platform/`, `_windows`/`_linux`/`_darwin` files); no
-  branching on the OS elsewhere. Build paths with the language's path join, never by concatenating `/`.
-- Reuse shared clients and connections (HTTP client, DB pool) instead of creating them per request.
+- Errors carry a stable machine-readable code (`ErrorCodes`, plus an English message for logs); the UI maps the
+  code to its own text. User-facing text never comes from an exception message.
+- Use `ILogger<T>` with `[LoggerMessage]` source-generated methods (CA1848), never `Console.WriteLine` in app or
+  library code (only `tools/WgetUi.Smoke` prints to the console). Logs go to `%LOCALAPPDATA%\wgetui\logs\wgetui.log`.
+- Windows-only APIs (COM, `WindowsIdentity`) live in the manager projects; `WgetUi.Core` targets plain `net10.0` and
+  stays OS-neutral. Build paths with `Path.Combine` and `Environment.GetFolderPath`, never by concatenating.
+- Reuse shared clients and connections (the winget `PackageManager` and connected catalogs) instead of creating
+  them per call.
 - **Dependencies are recent majors whose APIs differ from most online examples:** check the docs for the
   installed version before using an API. Ask before adding a new dependency.
-  <List pinned or unusual versions here, e.g. "axum 0.8 (`{param}` path syntax)", "TypeScript pinned to 6.x: don't upgrade".>
-- Deleting user data means moving it to the trash / soft delete, unless agreed otherwise.
+  Installed: .NET SDK 10.0.403 (global.json), Avalonia 12.1.6, FluentAvaloniaUI 3.1.0 (types are `FA`-prefixed:
+  `FANavigationView`, `FAContentDialog`, `FAInfoBar`, `FASymbolIcon`…), CommunityToolkit.Mvvm 8.4.2 (partial
+  properties: `[ObservableProperty] public partial T X { get; set; }`), Microsoft.Extensions.* 10.0.15,
+  Microsoft.WindowsPackageManager.ComInterop 1.29.380 (ships its own C#/WinRT projection: no CsWinRT package),
+  xunit.v3 4.0.3 on Microsoft.Testing.Platform (`dotnet test --solution`, opted in via global.json).
+- Deleting user data means moving it to the trash / soft delete, unless agreed otherwise. (Uninstalling packages is
+  out of scope for now.)
+- Analyzers run at `AnalysisLevel latest`, `Recommended`, warnings as errors (Directory.Build.props). Fix the code;
+  suppress only with a `[SuppressMessage]` that carries a justification.
 
 ### UI
 
-<!-- Delete if the project has no UI. -->
-- Every UI string goes through i18n, with both the English and the Italian key (`<DEFAULT_LANG>` is the
-  default); the type check must catch a missing key.
-- Svelte 5 runes only (`$state`, `$derived`, `$effect`, `$props`): no legacy stores or `export let`.
-  Typed state is `$state<T>(…)` (an annotated `let x: T = $state(…)` narrows to the initial value).
-  Don't name a variable `state` (it clashes with the rune).
-- Tailwind 4: reusable classes are `@utility` in the global CSS. Colours are semantic tokens defined there
-  (`bg-surface`, `text-muted`…), never raw colours in the markup.
-- API models come from the backend contract (shared or generated types): never redeclare them in the UI.
-  Every call goes through one API module (base URL, auth headers, error codes).
-- No external scripts from CDNs unless the platform requires them; libraries are npm packages, and heavy
-  ones are loaded lazily.
-- Never hard-code base paths or the API prefix: build URLs from the shared base constant.
-
-## Testing
+- Every UI string is in `Resources/Strings.resx` (English, the fallback) **and** `Strings.it.resx`. XAML uses
+  `{l:Tr Key}` (live language switch), code uses `Loc.Instance["Key"]` / `Loc.Instance.Format("Key", …)`.
+  `tests/WgetUi.App.Tests` fails on a key missing in either language, a key used but not defined, or a
+  placeholder mismatch. Default language: "system" (Italian on an Italian Windows, otherwise English).
+- MVVM with CommunityToolkit.Mvvm: state and logic live in view models (testable with fakes); code-behind only wires
+  the view (navigation selection, window backdrop). Background events reach the UI through `IUiDispatcher`.
+- Compiled bindings everywhere (`x:DataType` on every view and data template).
+- Colours come from theme resources (FluentAvalonia brushes via `DynamicResource`, or our own in
+  `Themes/*.axaml` with Light/Dark theme dictionaries), never raw colours in view markup.
+- Views never reference a manager type; actions are shown from `ManagerCapabilities`.
+$1
 
 - Unit tests live next to the code. Test parsing against fixtures copied from real responses, never live
   requests; live checks, if any, are a separate opt-in command (e.g. `make smoke`).
 - Before committing a fixture taken from a real response, replace names, emails, phones and any token or ID
   that grants access to something on its own. Never commit real user files (documents, tickets, uploads).
-- End-to-end checks: drive the built app with a headless browser (Playwright with the system Chrome/Edge;
-  install `playwright-core` in a scratch dir, not in the repo), unless the project has its own e2e setup.
+- `tests/` holds one test project per source project. Managers are tested through pure mapping code
+  (`WinGetMapping`) and fakes; COM is only exercised by the opt-in `make smoke` (read-only).
+- No automated UI end-to-end tests yet: for a visual check launch the app with `--data-dir` pointing at an empty
+  scratch folder (`make run` / the exe), look, and stop it.
 
 ## Versions and releases
 
-<!-- Delete if the project isn't versioned. -->
 - Versions are `x.y.z`: `x` major (only when I decide), `y` feature, `z` fix. A feature bumps `y` and resets `z`.
-- The version lives in <FILES>: change it only with `<scripts/set-version.sh x.y.z>`, which updates them all.
+- The version lives in one place: `<Version>` in `Directory.Build.props`.
 - Tags and releases only when I ask.
-- CI runs the checks and tests on every push and pull request, but builds and publishes artifacts (Docker
-  images, binaries, installers) only on a `vX.Y.Z` tag or a manual run, never on a plain push.
+- There is no CI yet. When added, it runs `make check` on every push and pull request, and builds the
+  `make publish` artifact only on a `vX.Y.Z` tag or a manual run, never on a plain push.
 
-## Adding a field to an API model
+## Adding a package manager
 
-<!-- Delete if the project has no API shared between backend and frontend. -->
-1. Change the type in <the shared contract file>: the type check then points at every place to update.
-2. Backend: migration (append, never edit a released one), repository, validation schema and routes
-   (create **and** update).
-3. Frontend: every view that shows or edits the model.
-4. Tests for the routes (valid value, invalid value, field missing on old rows); update `STRUCTURE.md`.
-
-## <Recipe, e.g. "Adding a <thing>">
-
-<!-- Step-by-step for extension points that will be repeated (new provider, new step type, new integration…). -->
-1. <Create `<path>` implementing `<Trait>`.>
-2. <Register it in `<file>`.>
-3. <Add tests with fixtures.>
+1. Create `src/WgetUi.Managers.<Name>/` (target `net10.0`, or `net10.0-windows…` if it needs Windows APIs)
+   referencing `WgetUi.Core`, with a class implementing `IPackageManager`:
+   - a stable `Id` and its `Sources` (`PackageSource(managerId, sourceId, displayName)`);
+   - honest `Capabilities`: the UI hides what is not declared (`Install`, `Upgrade`, `Cancel`, `Agreements`…);
+   - queries throw `PackageManagerException(ErrorCodes.X, englishMessage)`; install/upgrade return `OperationResult`;
+   - accept agreements only when the `OperationOptions` passed in say so;
+   - serialize calls yourself if the tool can't run them concurrently.
+2. Register it with one line in `src/WgetUi.App/Program.cs`:
+   `services.AddSingleton<IPackageManager, <Name>Manager>();` and reference the project from `WgetUi.App.csproj`.
+3. Optional: give its sources a badge colour/icon in `src/WgetUi.App/Themes/SourceBadges.axaml`
+   (`SourceBadge.<sourceId>.Background/Foreground/Icon`, Light and Dark); otherwise the default badge is used.
+4. New failure kinds: add a constant to `ErrorCodes` plus `Error_<code>` in both .resx files.
+5. Add `tests/WgetUi.Managers.<Name>.Tests` for the mapping code (fixtures from real output, anonymised), add the
+   projects to `WgetUi.slnx`, update `STRUCTURE.md`.
 
 ## Known pitfalls
 
 - The main dev machine is Windows 11; shells are PowerShell and Git Bash. Commands and scripts must work there.
 - **Git Bash rewrites env values that look like paths** (`BASE_PATH=/x` becomes `C:/Program Files/Git/x`):
-  prefix the command with `MSYS2_ENV_CONV_EXCL='*'`, or set the value in `.env`.
+  prefix the command with `MSYS2_ENV_CONV_EXCL='*'` (also affects path arguments such as `--data-dir`).
 - A running `.exe` locks its binary on Windows: stop it before rebuilding.
-- <Project-specific gotchas: framework quirks, things that look like bugs but are intentional.>
+- **winget COM activation fails from an elevated process** (and when App Installer is missing/outdated): the
+  manager reports `com_activation_elevated` / `com_activation_failed` and the UI shows a banner. Don't "fix" it
+  by requesting elevation.
+- **Activation needs `Microsoft.Management.Deployment.dll` and `.winmd` next to the exe.** The ComInterop package
+  copies them only into projects that reference it directly; the WinGet csproj re-exports them as content.
+  Symptoms: `0x80040154 REGDB_E_CLASSNOTREG` (no DLL) or `0x80073D54` (no winmd).
+- **Don't `foreach` over winget COM collections**: the C#/WinRT enumerator fails with E_NOINTERFACE; use index loops.
+- **Concurrent winget calls corrupt results**: never call COM outside `WinGetSerialExecutor`.
+- **Avalonia 12 / FluentAvalonia 3 differ from most online examples**: FA types are `FA`-prefixed, `TextBox.Watermark`
+  is obsolete (`PlaceholderText`), `Binding` vs `ReflectionBinding`/`CompiledBinding` changed. Check the XML docs in
+  `~/.nuget/packages/<pkg>/<version>/lib/` before using an API.
+- **.NET 10 `dotnet test` + xunit v3 requires Microsoft.Testing.Platform** (global.json `test.runner`); VSTest mode
+  errors out. Use `dotnet test --solution WgetUi.slnx` / `--project …`.
+- The projects that touch COM are built for `win-x64` (RuntimeIdentifier set in the csproj): AnyCPU can't copy the
+  native activation DLL.
+- Stop `wgetui.exe` before rebuilding or publishing (exe lock, see above).
