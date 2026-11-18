@@ -57,10 +57,15 @@ It talks to winget through its COM API (no console parsing) and is built so othe
   Don't run wgetui as administrator: winget refuses that connection.
 - English and Italian UI (follows the system language by default), light/dark theme, Mica on Windows 11.
 - One window per data folder: launching it again brings the running one forward.
-- Updates itself: the installed copy checks GitHub for a newer wgetui at startup and every hour (Settings >
-  About can turn that off or check now). When there is one, "Update wgetui" appears in the menu above
-  Settings: click it to download (checksum verified), then "Restart to update" installs it silently and reopens
-  wgetui. Nothing is downloaded until you click. Copies not run from the setup's install folder never update.
+- Updates itself: the installed copy checks GitHub for a newer wgetui at startup and every hour and downloads it
+  in the background (checksum verified); a notification says when it is ready. "Restart to update" in the menu
+  above Settings installs it silently and reopens wgetui, otherwise it installs by itself the next time wgetui
+  starts (also at "Start with Windows", staying in the tray). Settings > About can turn this off ("Update wgetui
+  automatically"; then "Check for updates" finds a new version and nothing is downloaded until you click "Update
+  wgetui"). If an install fails, it is not retried by itself: "Retry update" in the menu tries again. Copies not run
+  from the setup's install folder never update.
+- What's new: after an update, a popup lists the changes of every version since the one you had (from
+  [CHANGELOG.md](CHANGELOG.md)); Settings > About shows it again.
 
 ## Install
 
@@ -68,7 +73,7 @@ Download `wgetui-setup-<version>-x64.exe` from the [Releases](https://github.com
 page and run it. It installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
 administrator rights (there is no "all users" option: each user installs their own copy), and starts wgetui at
 the end. Running the setup again (or a newer one) upgrades the existing install; close wgetui first, the setup
-asks you to. Later versions can also be installed from inside wgetui ("Update wgetui" in the menu).
+asks you to. Later versions install from inside wgetui (see "Updates itself" above).
 
 Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT`.
 
@@ -105,7 +110,7 @@ Settings are stored in `%APPDATA%\wgetui\settings.json`, logs in `%LOCALAPPDATA%
 downloaded update in `%LOCALAPPDATA%\wgetui\updates`. `wgetui.exe --data-dir <folder>` keeps all of them in one folder
 instead (and runs as a separate instance);
 `--tray` starts it hidden in the notification area; `--force-no-tray` (development) disables the tray, so closing the
-window quits. "Start with Windows" adds an entry under
+window quits; `--updated` is passed by the setup when it reopens wgetui after an update (it shows "What's new"). "Start with Windows" adds an entry under
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; notifications register the name `wgetui` under
 `HKCU\Software\Classes\AppUserModelId`.
 

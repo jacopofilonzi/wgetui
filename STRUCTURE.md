@@ -2,7 +2,8 @@
 
 wgetui is a Windows desktop app that puts a GUI on winget: search packages, install (a specific version too), list
 and apply upgrades ("upgrade all" included), ignore one update version, upgrade chosen apps automatically, list installed
-packages, uninstall, and show package details; the installed copy also updates itself from GitHub Releases.
+packages, uninstall, and show package details; the installed copy also updates itself from GitHub Releases
+(downloaded in the background, installed at the next start) and shows "What's new" from CHANGELOG.md.
 Everything above the managers is manager-agnostic: the app talks to an `IPackageManager` interface, and winget
 is its first implementation (through the Windows Package Manager COM API). Other managers (Chocolatey, npm…) plug in as new projects.
 
@@ -21,23 +22,29 @@ repo/
 │                                     (rules, open-app detection, scheduler), single instance, installer mutex
 │                                     (names match installer/wgetui.iss), ICO writer, self-update (GitHub
 │                                     releases parsing against Fixtures/github-releases.json, downloader on a
-│                                     scripted HTTP handler, view-model state machine; all with fakes)
+│                                     scripted HTTP handler, view-model state machine, install at startup),
+│                                     changelog parser + "What's new" selection (all with fakes)
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
 │                                 upgrades, install locations, installed count + non-removable ones, details), prints results
 ├── installer/wgetui.iss          Inno Setup 7 script (`make installer`): packages publish/ as
 │                                 artifacts/wgetui-setup-<version>-x64.exe (version read from the exe; per-user
 │                                 only, no UAC; AppMutex; uninstall cleanup of Run value + toast
 │                                 registration, settings and logs kept; `/UPDATE` (self-update): waits up
-│                                 to 30 s for wgetui to quit, then reopens it)
+│                                 to 30 s for wgetui to quit, then reopens it with `--updated`, plus
+│                                 `--tray` when `/TRAY` was given too)
 ├── docs/screenshots/             README screenshots (light/dark split diagonally; Updates list is demo data)
 ├── docs/social-preview.png       GitHub social preview (1280×640), uploaded by hand in the repo settings
 ├── tools/build-installer.ps1     `make installer`: finds ISCC.exe (ISCC=, per-user, Program Files, PATH) and compiles
+├── tools/changelog-section.ps1   one version's CHANGELOG.md section (fails if missing/empty), for the release notes
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
 ├── .github/workflows/ci.yml      CI: `make check` on every push and pull request (windows-latest)
-├── .github/workflows/release.yml vX.Y.Z tag (= v<Version>): `make check` + `make installer` (Inno Setup pinned by
-│                                 version + SHA256), GitHub pre-release with only the setup exe and "SHA256: `<hex>`"
-│                                 in the notes (the self-update reads both); manual run: artifact
+├── .github/workflows/release.yml vX.Y.Z tag (= v<Version>, CHANGELOG.md section required): `make check` +
+│                                 `make installer` (Inno Setup pinned by version + SHA256), normal GitHub release
+│                                 marked Latest with only the setup exe; notes = the CHANGELOG section, then
+│                                 "Installer:" and "SHA256: `<hex>`" (the self-update reads both); manual run: artifact
+├── CHANGELOG.md                  release notes (Keep a Changelog, English): GitHub release body and, embedded in the
+│                                 exe, the "What's new" popup; every version needs a section before tagging
 ├── WgetUi.slnx                   solution
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>
 ├── global.json                   SDK 10.0.403, test runner = Microsoft.Testing.Platform
@@ -108,12 +115,12 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 
 | File | Responsibility |
 | --- | --- |
-| `Program.cs` | entry point: installer mutex (held by every process), single-instance check (hand over and exit), process AppUserModelID, DI container, logging, **manager registration** (one line per manager), Platform wiring |
-| `App.axaml(.cs)` | FluentAvalonia theme, styles, view-model → view templates; applies language/theme, registers notifications, creates the shell (window + tray), wires second-launch and toast activation, first-run question, initializes managers then starts the hourly check |
+| `Program.cs` | entry point: installer mutex (held by every process), single-instance check (hand over and exit), process AppUserModelID, DI container, logging, **manager registration** (one line per manager), Platform wiring; then `StartupUpdateInstaller` (a pending update starts its setup and the process exits before any UI) |
+| `App.axaml(.cs)` | FluentAvalonia theme, styles, view-model → view templates; applies language/theme, registers notifications, records the run for "What's new" (shown when the window is first shown), creates the shell (window + tray), wires second-launch and toast activation, first-run question, initializes managers then starts the hourly check |
 | `Assets/wgetui.ico` | app icon (exe + window), generated by `make icons` |
 | `Icons/IconArt.cs`, `IconRenderer.cs`, `IcoFile.cs` | the artwork in a 64-unit design space (tile icon, tray glyph + state dot), PNG rendering, ICO packing (PNG entries); shared with `tools/WgetUi.IconGen` |
 | `app.manifest` | `asInvoker` (never elevated) |
-| `Infrastructure/AppPaths.cs` | settings, log and self-update download paths (`--data-dir` override), `--tray` and `--force-no-tray` flags |
+| `Infrastructure/AppPaths.cs` | settings, log and self-update download paths (`--data-dir` override), `--tray`, `--force-no-tray` and `--updated` flags |
 | `Infrastructure/AppVersion.cs` | running version as x.y.z (informational version, "+commit" dropped) |
 | `Infrastructure/SingleInstance.cs` | one instance per user + data dir: named mutex, named pipe for "activate" from a second launch |
 | `Infrastructure/InstallerMutex.cs` | fixed-name session-local mutex `wgetui-running` for the installer's `AppMutex` (setup/uninstall ask to close wgetui), any data dir; failures logged, never fatal. Never rename |
@@ -130,7 +137,11 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Services/ShellHost.cs` | window show/hide, close-to-tray, Quit (`QuitNow` without confirmation, for the self-update restart), activation; explicit shutdown mode. Applies `ShellCoordinator` decisions |
 | `Services/AppUpdates/IAppUpdateSource.cs`, `AppRelease.cs`, `AppUpdateException.cs` | where newer wgetui versions come from (swappable: one line in `Program.cs`), an installable release (version, tag, setup asset, https URL, SHA-256), failures with `app_update_*` codes |
 | `Services/AppUpdates/GitHubReleaseSource.cs`, `GitHubReleaseParser.cs` | `GET api.github.com/repos/jacopofilonzi/wgetui/releases?per_page=30` (User-Agent `wgetui/<version>`, no auth, 30 s; 403 without quota / 429 → `app_update_rate_limited`). Pure selection: not draft (pre-releases count), tag `vX.Y.Z`, uploaded asset `wgetui-setup-X.Y.Z-x64.exe`, SHA-256 from the asset `digest` or the notes' "SHA256: `<hex>`" line (none → skipped), highest version wins |
-| `Services/AppUpdates/AppUpdateDownloader.cs`, `AppUpdateHttp.cs`, `AppUpdateOptions.cs` | streams the setup to `<updates>\<asset>.partial` while hashing, renames it only when the SHA-256 matches; `Verify` before running; `DeleteOldSetups` at startup (`wgetui-setup-*` only). One shared HttpClient. Options: version, exe folder (`IsInstalledCopy`: equals the install location, normalized, case-insensitive), download folder |
+| `Services/AppUpdates/AppUpdateDownloader.cs`, `AppUpdateHttp.cs`, `AppUpdateOptions.cs` | streams the setup to `<updates>\<asset>.partial` while hashing, renames it only when the SHA-256 matches; `Verify` before running; `DeleteOldSetups` at startup (`wgetui-setup-*` only, the pending one kept). One shared HttpClient. Options: version, exe folder (`IsInstalledCopy`: equals the install location, normalized, case-insensitive), download folder |
+| `Services/AppUpdates/SetupCommand.cs` | setup arguments: `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE [/TRAY] /LOG="<updates>\setup.log"` |
+| `Services/AppUpdates/StartupUpdateInstaller.cs` | install at startup (from `Program.cs`, primary instance only): installed copy, `checkAppUpdates` on, `pendingAppUpdate` newer than the running version, file still matching its SHA-256, version not in `appUpdateAutoInstallAttempted` (recorded before the start: loop protection) → setup started (`/TRAY` for a `--tray` start), process exits. Running version ≥ pending → both records cleared. `ReadPending`/`ToRecord` convert the record |
+| `Services/Changelog/ChangelogParser.cs` | pure CHANGELOG.md reading: `## [x.y.z] - date` versions (others such as Unreleased skipped), `###` sections (any name), bullets with continuation lines, inline markdown to plain text; newest first |
+| `Services/Changelog/IChangelogSource.cs`, `WhatsNewSelection.cs` | the embedded CHANGELOG.md (`EmbeddedChangelogSource`, resource `wgetui.CHANGELOG.md`); pure choice of the notes: versions in (last run, current], none without a last run unless `--updated` (then the current one); Settings: all up to the current |
 | `Services/UpdateRestartDialog.cs` | `IUpdateRestartConfirmer`: "Restart to update?" when operations are pending |
 | `Services/TrayIconHost.cs` | Avalonia `TrayIcon` + `NativeMenu` (Open, Upgrade all (N), Check for updates, Quit); icons rendered per (taskbar theme, state) and cached |
 | `Services/QuitConfirmDialog.cs`, `NotificationsConsentDialog.cs` | quit-with-pending-operations modal; first-run "notify me?" Yes/No |
@@ -142,8 +153,9 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Themes/AppColors.axaml` | other app colours (Light/Dark): (i) button, automatic-update toggle (off/on/forced dot), details overlay/card/footer, version tags, package tile |
 | `Themes/AppUpdateItem.axaml` | Light/Dark `NavigationViewItem*` brushes merged only into the "Update wgetui" sidebar item (highlight) |
 | `Controls/SourceBadge.axaml(.cs)` | the source pill used on every package row |
-| `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Installed / Settings; Installed loads on first visit), the details overlay, "manager unavailable" banner, startup, `AppUpdate` |
-| `ViewModels/AppUpdateViewModel.cs` | self-update (installed copy only): checks (startup after clearing old setups, hourly via `IAppUpdateChecker` when `checkAppUpdates`, manual `CheckCommand` always), state None → Available → Downloading (click cancels) → Ready → setup started with `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /LOG=…` then `QuitRequested`; Failed (error, click retries download or launch). Pending operations: `IUpdateRestartConfirmer`, then cancelled. One toast per version (`appUpdateNotifiedVersion`, only with update notifications on) |
+| `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Installed / Settings; Installed loads on first visit), the details and What's new overlays, "manager unavailable" banner, startup, `AppUpdate` |
+| `ViewModels/AppUpdateViewModel.cs` | self-update (installed copy only): at startup restores `pendingAppUpdate` (Ready, or Failed `app_update_install_failed` when already attempted) and clears other setups; checks (startup, hourly via `IAppUpdateChecker` when `checkAppUpdates`, manual `CheckCommand` always). Automatic checks download right away in the background (failure → Available quietly, retried next check); the manual one only offers. State None → Available → Downloading (click cancels) → Ready (record saved) → setup started with `SetupCommand` (attempt recorded) then `QuitRequested`; Failed (error, click retries download or launch). Pending operations: `IUpdateRestartConfirmer`, then cancelled. "wgetui X is ready" toast once per version after a background download (`appUpdateNotifiedVersion`, only with update notifications on) |
+| `ViewModels/WhatsNewLauncher.cs`, `WhatsNewOverlay.cs`, `WhatsNewViewModel.cs` | "What's new": `RecordStartup` picks the notes and saves `lastRunVersion` before any window, `ShowPending` on the first window show, `ShowAll` from Settings > About; the overlay (like the details one) and its content (title, versions, link to the GitHub release of the current version) |
 | `ViewModels/SearchViewModel.cs` | query, source filter, results, Install, details |
 | `ViewModels/UpdatesViewModel.cs` | upgrades list, unknown-version toggle, "Show ignored" toggle, Refresh, Upgrade, Upgrade all, ignore/don't ignore, details; ignored updates stay out of `Count` (badge, tray), Upgrade all and `Loaded` (notifications); drops rows of uninstalled packages |
 | `ViewModels/InstalledViewModel.cs` | every installed, removable package (`GetInstalledAsync`, `IsRemovable`: like Settings > Installed apps, no toggle), name/id filter, "Only automatic updates" filter, Refresh (prunes automatic-update rules), details, automatic-update toggle per row (packages `AutoUpdateService.CanAutoUpdate` accepts), Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row and its rule |
@@ -152,7 +164,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `ViewModels/PackageDetailsLauncher.cs`, `DetailsOverlay.cs` | builds the details view model for a row; `IPackageDetailsPresenter` implemented as an in-window modal overlay |
 | `ViewModels/IgnoredUpdateItemViewModel.cs` | one ignored update in Settings, with Restore |
 | `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): always present, collapsed by default, expands by itself only when an operation is queued on an empty history; collapse, pending count, cancel, clear, running flag, unseen failure (red tray dot until the panel is seen or cleared) |
-| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, automatic updates (global switch, update open apps too), ignored updates (Restore), About (version, "Check for updates" + result, automatic wgetui update checks) |
+| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, automatic updates (global switch, update open apps too), ignored updates (Restore), About (version, "Check for updates" + result, "What's new", "Update wgetui automatically") |
 | `ViewModels/PackageActions.cs` | Install/Upgrade/Uninstall clicks → `OperationRequester` with the auto-accept setting (and an optional target version) |
 | `ViewModels/TrayViewModel.cs` | tray state (dot priority admin > failure > running > updates > none), tooltip, menu texts |
 | `ViewModels/ShellCoordinator.cs` | close → hide to tray (one-time hint toast) or quit; quit confirmation and cancellation of pending operations |
@@ -160,7 +172,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `ViewModels/AutoUpdater.cs` | automatic updates after a scheduled check: for pending, not ignored, not already queued updates with a rule (global switch on), postpone when the app is open and nothing forces it, otherwise queue like an Upgrade click (`UpdatesViewModel.UpgradeAutomaticallyAsync`); toasts: postponed (once per key@version, `postponedUpdates`), then a summary of succeeded / failed |
 | `ViewModels/UpdateNotifier.cs` | "N new updates" toast for updates not notified or seen before (key@version set in settings); skips packages `AutoUpdater` handles |
 | `ViewModels/AdminPromptWatcher.cs` | from the Installing stage, polls for consent.exe every 500 ms for 20 s: toast, taskbar flash, orange tray dot until it closes |
-| `Views/*.axaml` | `MainWindow` (nav pane with the "Update wgetui" footer item, `SelectsOnInvoked=False`, handled in `ItemInvoked` \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners; the details overlay on top), `SearchView`, `UpdatesView`, `InstalledView`, `SettingsView`, `QueuePanel`, `PackageDetailsView` (header, scrolling body, footer) |
+| `Views/*.axaml` | `MainWindow` (nav pane with the "Update wgetui" footer item, `SelectsOnInvoked=False`, handled in `ItemInvoked` \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners; the details and What's new overlays on top), `SearchView`, `UpdatesView`, `InstalledView`, `SettingsView`, `QueuePanel`, `PackageDetailsView` (header, scrolling body, footer), `WhatsNewView` (same layout: notes per version, "View on GitHub", Close) |
 
 ### Data and state
 
@@ -177,7 +189,9 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
     "autoUpdates": [{ "managerId": "winget", "sourceId": "winget", "packageId": "Git.Git", "force": false, "name": "Git" }],
     "autoUpdatesEnabled": true, "autoUpdateOpenApps": false,
     "postponedUpdates": ["winget/winget/Docker.DockerDesktop@4.99.0"],
-    "checkAppUpdates": true, "appUpdateNotifiedVersion": "0.3.0"
+    "checkAppUpdates": true, "appUpdateNotifiedVersion": "0.3.1", "lastRunVersion": "0.3.0",
+    "pendingAppUpdate": { "version": "0.3.1", "fileName": "wgetui-setup-0.3.1-x64.exe", "sha256": "<64 hex>" },
+    "appUpdateAutoInstallAttempted": null
   }
   ```
 
@@ -189,20 +203,26 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
   `autoUpdates`: packages upgraded automatically (`force`: even while the app is open); a rule is deleted on uninstall
   and when its manager lists the installed packages without it. `autoUpdatesEnabled` pauses them all;
   `autoUpdateOpenApps` forces every rule. `postponedUpdates`: automatic updates already notified as postponed
-  (`<package key>@<available version>`), kept only while that update is pending. `checkAppUpdates`: look for a newer
-  wgetui at startup and every hour (installed copy only; the manual check in Settings ignores it).
-  `appUpdateNotifiedVersion`: the wgetui version already notified (or seen through the manual check), `null` before.
+  (`<package key>@<available version>`), kept only while that update is pending. `checkAppUpdates` ("Update wgetui
+  automatically"): check at startup and every hour, download a newer wgetui in the background, install it at the next
+  start (installed copy only; the manual check in Settings ignores it and never downloads by itself).
+  `appUpdateNotifiedVersion`: the wgetui version already notified as ready, `null` before. `lastRunVersion`: the
+  version that ran last ("What's new" shows the notes after it once), `null` until 0.3.0 first runs.
+  `pendingAppUpdate`: a verified download not installed yet (file in the updates folder), cleared once the running
+  version reaches it or the file no longer matches. `appUpdateAutoInstallAttempted`: the version whose setup was
+  started last; still older at the next start → not started again by itself (Retry update), cleared with the pending record.
   "Start with Windows" is not in the file: it is the HKCU Run value `wgetui`.
 - Outside the data dir: `HKCU\Software\Classes\AppUserModelId\wgetui` (notification name + icon) and
   `%LOCALAPPDATA%\wgetui\notification-icon.png`, rewritten at every start.
 - Log: `%LOCALAPPDATA%\wgetui\logs\wgetui.log` (or `<data-dir>\logs\wgetui.log`).
 - Self-update downloads: `%LOCALAPPDATA%\wgetui\updates\` (or `<data-dir>\updates\`): the verified
-  `wgetui-setup-X.Y.Z-x64.exe` (deleted at the next start of the installed copy) and the setup's `setup.log` (kept,
-  overwritten by the next update).
+  `wgetui-setup-X.Y.Z-x64.exe` (kept while it is `pendingAppUpdate`, otherwise deleted at the next start of the
+  installed copy) and the setup's `setup.log` (kept, overwritten by the next update).
 
 ### Configuration
 
-No environment variables. Command line: `wgetui.exe [--data-dir <path>] [--tray] [--force-no-tray]`. `--force-no-tray` (development,
+No environment variables. Command line: `wgetui.exe [--data-dir <path>] [--tray] [--force-no-tray] [--updated]`. `--force-no-tray` (development,
 agent checks) disables the tray icon and close-to-tray, and overrides `--tray`. `--tray` starts hidden in the
-notification area (used by the Run value). A second launch with the same data dir activates the running instance
+notification area (used by the Run value). `--updated` is passed by the setup when it reopens wgetui after a
+self-update (shows "What's new" even without `lastRunVersion`); it changes nothing else. Unknown arguments are ignored. A second launch with the same data dir activates the running instance
 (a `--tray` one does nothing) and exits.

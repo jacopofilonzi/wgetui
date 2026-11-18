@@ -10,7 +10,8 @@ See "Updating these guidelines" below to align them with the latest version.
 ## What it is
 
 wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all", installed list, uninstall, package
-details, ignore an update, automatic updates per app, self-update of wgetui from GitHub Releases) built so other
+details, ignore an update, automatic updates per app, self-update of wgetui from GitHub Releases with a "What's new"
+popup) built so other
 package managers (Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
 CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
 (Microsoft.WindowsPackageManager.ComInterop). Targets: Windows 10 1809+ / Windows 11, x64 only.
@@ -56,8 +57,9 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
 - The app has no env vars: user configuration is `settings.json` (see STRUCTURE.md). A new setting goes in
   `AppSettings` with a default that keeps the old behaviour, plus a control in Settings (EN + IT strings).
   Command-line options: `--data-dir <path>` (settings and logs in one folder, for local checks; also a separate
-  single instance), `--tray` (start hidden in the notification area, used by "Start with Windows") and
-  `--force-no-tray` (no tray icon, closing the window quits, `--tray` ignored: for development and agent checks).
+  single instance), `--tray` (start hidden in the notification area, used by "Start with Windows"),
+  `--force-no-tray` (no tray icon, closing the window quits, `--tray` ignored: for development and agent checks)
+  and `--updated` (passed by the setup when it reopens wgetui after a self-update: "What's new"; nothing else).
 - **Never cause real side effects without asking**: payments, bookings, emails, messages to real users,
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
@@ -88,6 +90,11 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
     GitHub releases query and downloading a setup are read-only and fine live; `IAppInstallInfo` only reads HKCU.
     A dev or Release build never shows the item (it is not the installed copy): to look at it, use a temporary,
     uncommitted fake `IAppInstallInfo`/`IAppUpdateSource`/`IAppUpdateDownloader` in `Program.cs` and revert it.
+    **On the installed copy an automatic check downloads a newer setup by itself, and the next start installs it
+    by itself** (`StartupUpdateInstaller.TryStart` in `Program.cs`, before any UI: a real install that also exits
+    the app). Tests use fakes; a dev or Release build is never the installed copy, so it never downloads or
+    installs anything. Never leave a `pendingAppUpdate` in a data dir (scratch or real) and never fake
+    `IAppInstallInfo` while a real setup file sits in the updates folder.
   When launching the app for a check use `--data-dir` with an empty scratch folder **and `--force-no-tray`** (so
   closing it never leaves an instance hidden in the tray), don't click
   Install/Upgrade/Uninstall (or confirm them), and stop it afterwards (if `make dev` is running, build and launch the Release output: the
@@ -162,11 +169,15 @@ and align this project's copies with it:
   `UpdatesViewModel.UpgradeAutomaticallyAsync` → `PackageActions` → `OperationRequester` like an Upgrade click.
   An open app (`OpenAppDetector`, same rules as the relaunch) is postponed unless the rule or "Update open apps too"
   forces it. Rules are keyed by package identity and gated by the `Upgrade` capability, never by manager types.
-- **Self-update is the installed copy's, on the user's click, verified**: only a process whose exe folder is the
-  setup's `InstallLocation` checks, downloads or offers updates; nothing is downloaded until the user clicks; the
-  setup runs only if its SHA-256 matches the release (checked after the download and again before starting it),
-  with `/UPDATE` (installer/wgetui.iss waits for the `wgetui-running` mutex to go, then reopens the app). Restarting
-  with pending operations asks first. The `vX.Y.Z` tag, the asset name `wgetui-setup-X.Y.Z-x64.exe` and the
+- **Self-update is the installed copy's, opt-out, verified, never looping**: only a process whose exe folder is the
+  setup's `InstallLocation` checks, downloads or offers updates. With "Update wgetui automatically"
+  (`checkAppUpdates`) on, an automatic check downloads a newer version in the background and the next start installs
+  it (`StartupUpdateInstaller`, primary instance only, before any UI); off, nothing is downloaded until the user
+  clicks. The setup runs only if its SHA-256 matches the release (checked after the download and again before
+  starting it), with `/UPDATE` (installer/wgetui.iss waits for the `wgetui-running` mutex to go, then reopens the
+  app with `--updated`, and `--tray` after `/TRAY`). A version whose setup was started once
+  (`appUpdateAutoInstallAttempted`) is never started again by itself while wgetui is still older: the user retries.
+  Restarting with pending operations asks first. The `vX.Y.Z` tag, the asset name `wgetui-setup-X.Y.Z-x64.exe` and the
   "SHA256: `<hex>`" line of the release notes are a format the app reads: keep the release workflow in step.
 - **Relaunch is conservative**: only non-elevated processes of the user's session running from the package's
   install folder, never installers/updaters, child processes or broad folders (see `RelaunchPlanner`), and
@@ -207,7 +218,8 @@ and align this project's copies with it:
 - Every UI string is in `Resources/Strings.resx` (English, the fallback) **and** `Strings.it.resx`. XAML uses
   `{l:Tr Key}` (live language switch), code uses `Loc.Instance["Key"]` / `Loc.Instance.Format("Key", …)`.
   `tests/WgetUi.App.Tests` fails on a key missing in either language, a key used but not defined, or a
-  placeholder mismatch. Default language: "system" (Italian on an Italian Windows, otherwise English).
+  placeholder mismatch. Default language: "system" (Italian on an Italian Windows, otherwise English). Exception, by
+  decision: the release notes in "What's new" come from `CHANGELOG.md` and stay English; only the popup chrome is translated.
 - MVVM with CommunityToolkit.Mvvm: state and logic live in view models (testable with fakes); code-behind only wires
   the view (navigation selection, window backdrop). Background events reach the UI through `IUiDispatcher`.
 - Compiled bindings everywhere (`x:DataType` on every view and data template).
@@ -216,6 +228,7 @@ and align this project's copies with it:
 - Views never reference a manager type; actions are shown from `ManagerCapabilities`.
 - Modals: confirmations use `FAContentDialog` (one open at a time). The package details popup is an in-window
   overlay (`DetailsOverlay`), and its actions run only after it closed so an install can show the agreements modal.
+  "What's new" is an overlay of the same style (`WhatsNewOverlay`).
 - Icon-only buttons get `AutomationProperties.Name` (also used to drive the UI through UI Automation in checks).
 
 ## Testing
@@ -237,10 +250,15 @@ and align this project's copies with it:
 - CI (GitHub Actions, `.github/workflows/ci.yml`, Windows runner) runs `make check` on every push and pull request.
 - Distribution is the Inno Setup installer `wgetui-setup-<version>-x64.exe` (`make installer`); its version is read
   from the published exe, so `<Version>` stays the only place to change.
+- **Every version needs its `CHANGELOG.md` section before it is tagged** (`## [x.y.z] - YYYY-MM-DD` with `### Added /
+  Changed / Fixed` bullets, English, user-facing wording): a test fails without one for `<Version>`, the release
+  workflow fails too, and the app embeds the file for its "What's new" popup. Bump `<Version>` and add the section in
+  the same change.
 - Releases (`.github/workflows/release.yml`) build only on a `vX.Y.Z` tag or a manual run, never on a plain push. A tag
-  must equal `v<Version>` and creates a GitHub **pre-release** (while 0.x) with only the setup exe attached and its
-  SHA256 in the notes; a manual run only uploads the setup exe as a run artifact. Inno Setup is pinned there by
-  version and SHA256 (`INNO_VERSION`, `INNO_SHA256`): bump both together.
+  must equal `v<Version>` and creates a normal GitHub release marked **Latest** (no pre-releases) with only the setup
+  exe attached; its notes are the version's CHANGELOG section (`tools/changelog-section.ps1`) followed by the
+  "Installer:" and "SHA256: `<hex>`" lines. A manual run only uploads the setup exe as a run artifact. Inno Setup is
+  pinned there by version and SHA256 (`INNO_VERSION`, `INNO_SHA256`): bump both together.
 
 ## Adding a package manager
 
