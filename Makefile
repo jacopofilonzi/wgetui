@@ -17,10 +17,10 @@ endif
 .PHONY: help stop dev run build test format check publish installer smoke icons clean
 
 help:
-	@echo make dev      - run the app with dotnet watch (hot reload); stops a leftover dev instance first
-	@echo make stop     - stop wgetui instances started from this repo (Debug), e.g. one left in the tray
-	@echo make run      - run the app once (Debug)
-	@echo make build    - build the solution (Debug)
+	@echo make dev      - run the app with dotnet watch and hot reload, stops a leftover dev instance first
+	@echo make stop     - stop Debug wgetui instances started from this repo, e.g. one left in the tray
+	@echo make run      - run the app once in Debug
+	@echo make build    - build the solution in Debug
 	@echo make test     - run the unit tests
 	@echo make format   - apply dotnet format to the solution
 	@echo make check    - format check + Release build with warnings as errors + tests
