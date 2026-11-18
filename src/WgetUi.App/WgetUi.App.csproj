@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Release notes for the "What's new" popup (Services/Changelog): the repository's CHANGELOG.md, one copy. -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="wgetui.CHANGELOG.md" Link="CHANGELOG.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WgetUi.Core\WgetUi.Core.csproj" />
     <ProjectReference Include="..\WgetUi.Managers.WinGet\WgetUi.Managers.WinGet.csproj" />
   </ItemGroup>
