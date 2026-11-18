@@ -5,6 +5,12 @@ All notable changes to wgetui are listed here, newest first. The format follows
 Every release needs its section here before it is tagged: the release notes on GitHub and the "What's new" popup
 in the app are taken from it.
 
+## [0.3.1] - 2026-11-18
+
+### Changed
+
+- No changes to the app: this release exercises the automatic download and install of wgetui updates.
+
 ## [0.3.0] - 2026-11-18
 
 ### Added
