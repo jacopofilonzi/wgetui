@@ -10,8 +10,8 @@ See "Updating these guidelines" below to align them with the latest version.
 ## What it is
 
 wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all", installed list, uninstall, package
-details, ignore an update, automatic updates per app) built so other package managers
-(Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
+details, ignore an update, automatic updates per app, self-update of wgetui from GitHub Releases) built so other
+package managers (Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
 CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
 (Microsoft.WindowsPackageManager.ComInterop). Targets: Windows 10 1809+ / Windows 11, x64 only.
 
@@ -80,7 +80,14 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
     with Windows" in a check; test it with `FakeRunKey`;
   - `IProcessLauncher` / `WindowsProcessLauncher` (`RelaunchAfterUpgrade`): starts programs. Tests use
     `FakeLauncher`; it only runs after a real upgrade or install anyway;
-  - `IWindowFlasher`: flashes the taskbar button.
+  - `IWindowFlasher`: flashes the taskbar button;
+  - **the self-update's "Restart to update"** (`AppUpdateViewModel.ActivateAsync` in the Ready state, i.e. the sidebar
+    item "Update wgetui" once downloaded) starts the downloaded setup through `IProcessLauncher`: a real install of
+    wgetui that also quits the app. Never in checks or tests, and never run a setup exe (built or downloaded) by hand.
+    Tests use fakes for `IAppUpdateSource`, `IAppUpdateDownloader`, `IAppInstallInfo` and `IProcessLauncher`. The
+    GitHub releases query and downloading a setup are read-only and fine live; `IAppInstallInfo` only reads HKCU.
+    A dev or Release build never shows the item (it is not the installed copy): to look at it, use a temporary,
+    uncommitted fake `IAppInstallInfo`/`IAppUpdateSource`/`IAppUpdateDownloader` in `Program.cs` and revert it.
   When launching the app for a check use `--data-dir` with an empty scratch folder **and `--force-no-tray`** (so
   closing it never leaves an instance hidden in the tray), don't click
   Install/Upgrade/Uninstall (or confirm them), and stop it afterwards (if `make dev` is running, build and launch the Release output: the
@@ -155,6 +162,12 @@ and align this project's copies with it:
   `UpdatesViewModel.UpgradeAutomaticallyAsync` → `PackageActions` → `OperationRequester` like an Upgrade click.
   An open app (`OpenAppDetector`, same rules as the relaunch) is postponed unless the rule or "Update open apps too"
   forces it. Rules are keyed by package identity and gated by the `Upgrade` capability, never by manager types.
+- **Self-update is the installed copy's, on the user's click, verified**: only a process whose exe folder is the
+  setup's `InstallLocation` checks, downloads or offers updates; nothing is downloaded until the user clicks; the
+  setup runs only if its SHA-256 matches the release (checked after the download and again before starting it),
+  with `/UPDATE` (installer/wgetui.iss waits for the `wgetui-running` mutex to go, then reopens the app). Restarting
+  with pending operations asks first. The `vX.Y.Z` tag, the asset name `wgetui-setup-X.Y.Z-x64.exe` and the
+  "SHA256: `<hex>`" line of the release notes are a format the app reads: keep the release workflow in step.
 - **Relaunch is conservative**: only non-elevated processes of the user's session running from the package's
   install folder, never installers/updaters, child processes or broad folders (see `RelaunchPlanner`), and
   always started with wgetui's own (non-elevated) token.

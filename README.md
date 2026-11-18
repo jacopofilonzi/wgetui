@@ -57,6 +57,10 @@ It talks to winget through its COM API (no console parsing) and is built so othe
   Don't run wgetui as administrator: winget refuses that connection.
 - English and Italian UI (follows the system language by default), light/dark theme, Mica on Windows 11.
 - One window per data folder: launching it again brings the running one forward.
+- Updates itself: the installed copy checks GitHub for a newer wgetui at startup and every hour (Settings >
+  About can turn that off or check now). When there is one, "Update wgetui" appears in the menu above
+  Settings: click it to download (checksum verified), then "Restart to update" installs it silently and reopens
+  wgetui. Nothing is downloaded until you click. Copies not run from the setup's install folder never update.
 
 ## Install
 
@@ -64,7 +68,7 @@ Download `wgetui-setup-<version>-x64.exe` from the [Releases](https://github.com
 page and run it. It installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
 administrator rights (there is no "all users" option: each user installs their own copy), and starts wgetui at
 the end. Running the setup again (or a newer one) upgrades the existing install; close wgetui first, the setup
-asks you to.
+asks you to. Later versions can also be installed from inside wgetui ("Update wgetui" in the menu).
 
 Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT`.
 
@@ -97,8 +101,9 @@ Run from the repository root (`make help` lists them):
 | `make icons` | regenerate `src/WgetUi.App/Assets/wgetui.ico` from the artwork in `src/WgetUi.App/Icons/IconArt.cs` |
 | `make clean` | `dotnet clean` |
 
-Settings are stored in `%APPDATA%\wgetui\settings.json`, logs in `%LOCALAPPDATA%\wgetui\logs\wgetui.log`.
-`wgetui.exe --data-dir <folder>` keeps both in one folder instead (and runs as a separate instance);
+Settings are stored in `%APPDATA%\wgetui\settings.json`, logs in `%LOCALAPPDATA%\wgetui\logs\wgetui.log`, a
+downloaded update in `%LOCALAPPDATA%\wgetui\updates`. `wgetui.exe --data-dir <folder>` keeps all of them in one folder
+instead (and runs as a separate instance);
 `--tray` starts it hidden in the notification area; `--force-no-tray` (development) disables the tray, so closing the
 window quits. "Start with Windows" adds an entry under
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; notifications register the name `wgetui` under
