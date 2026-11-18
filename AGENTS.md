@@ -10,7 +10,7 @@ See "Updating these guidelines" below to align them with the latest version.
 ## What it is
 
 wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all", installed list, uninstall, package
-details, ignore an update) built so other package managers
+details, ignore an update, automatic updates per app) built so other package managers
 (Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
 CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
 (Microsoft.WindowsPackageManager.ComInterop). Targets: Windows 10 1809+ / Windows 11, x64 only.
@@ -62,7 +62,11 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   `IPackageManager.InstallAsync` / `UpgradeAsync` / `UninstallAsync` (and `WinGetManager`'s implementations),
   anything that queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all /
   Uninstall buttons, "Install this version" and the primary button of the details popup), and the winget CLI
-  `install`/`upgrade`/`uninstall` commands. **Uninstall removes software from the user's machine**: never confirm
+  `install`/`upgrade`/`uninstall` commands. **Automatic updates queue real upgrades on their own**:
+  `AutoUpdater.RunAsync`, `UpdateCheckScheduler` (each tick and `RunAutomaticUpdatesAsync` after the startup
+  check) and `UpdatesViewModel.UpgradeAutomaticallyAsync`. They act only on packages with an `autoUpdates` rule, so
+  live checks start from an empty data directory and never leave a rule on (the row toggle, the details popup's
+  "Update automatically"): test them with fakes. **Uninstall removes software from the user's machine**: never confirm
   the "Uninstall X?" dialog in a check. Read-only calls are fine live: activation, search, listing upgrades and
   installed packages, reading agreements, details and install locations (`make smoke`). Also real, on the user's
   machine:
@@ -139,6 +143,11 @@ and align this project's copies with it:
   operations are queued or running, which are then cancelled.
 - **Operation hooks (`IOperationHook`) never fail or hold up an operation**: the queue logs a hook that throws;
   long work in `After` runs in the background.
+- **Automatic updates go through the manual path**: they only act after a scheduled check (startup, hourly), never
+  on ignored versions, on packages already queued/running, or while the global switch is off; they queue through
+  `UpdatesViewModel.UpgradeAutomaticallyAsync` → `PackageActions` → `OperationRequester` like an Upgrade click.
+  An open app (`OpenAppDetector`, same rules as the relaunch) is postponed unless the rule or "Update open apps too"
+  forces it. Rules are keyed by package identity and gated by the `Upgrade` capability, never by manager types.
 - **Relaunch is conservative**: only non-elevated processes of the user's session running from the package's
   install folder, never installers/updaters, child processes or broad folders (see `RelaunchPlanner`), and
   always started with wgetui's own (non-elevated) token.

@@ -26,6 +26,11 @@ It talks to winget through its COM API (no console parsing) and is built so othe
 - Checks for updates at startup and every hour, and notifies you about new ones if you said yes on first run.
 - When an installer waits on the Windows permission prompt (UAC), wgetui tells you instead of looking stuck.
 - Reopens apps an upgrade closed and did not restart (on by default, in Settings).
+- Automatic updates per app: the round-arrows button left of (i) on the Installed page (or the details popup)
+  turns them on. At the startup and hourly checks wgetui queues those updates by itself; an app that is open is
+  postponed to the next check (you get one notification per version) unless you allowed updating it even while
+  open, per app or for all of them in Settings. A notification sums up what was updated or failed. Settings can
+  pause them all.
 - One window per data folder: launching it again brings the running one forward.
 
 ## Requirements

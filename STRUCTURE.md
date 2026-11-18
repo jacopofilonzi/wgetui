@@ -1,8 +1,8 @@
 # Project structure
 
 wgetui is a Windows desktop app that puts a GUI on winget: search packages, install (a specific version too), list
-and apply upgrades ("upgrade all" included), ignore one update version, list installed packages, uninstall, and
-show package details. Everything above the managers is manager-agnostic: the app talks to an
+and apply upgrades ("upgrade all" included), ignore one update version, upgrade chosen apps automatically, list installed
+packages, uninstall, and show package details. Everything above the managers is manager-agnostic: the app talks to an
 `IPackageManager` interface, and winget is its first implementation (through the Windows Package Manager COM
 API). Other managers (Chocolatey, npm…) plug in as new projects.
 
@@ -17,8 +17,8 @@ repo/
 │   │                                 ignored-update rules (fake manager)
 │   ├── WgetUi.Managers.WinGet.Tests/ pure mapping (packages, installed, details, uninstall) + serial executor (no COM)
 │   └── WgetUi.App.Tests/             string tables (EN/IT), view models (Updates, ignore, details, Installed),
-│                                     tray/shell, notifications, admin prompt, relaunch, single instance, ICO writer
-│                                     (all with fakes)
+│                                     tray/shell, notifications, admin prompt, relaunch, automatic updates
+│                                     (rules, open-app detection, scheduler), single instance, ICO writer (all with fakes)
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
 │                                 upgrades, install locations, installed count + non-removable ones, details), prints results
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
@@ -56,6 +56,7 @@ Models/
 ├── OperationResult.cs        Succeeded, ErrorCode, Message (English, logs only), RebootRequired
 ├── OperationOptions.cs       AcceptPackageAgreements, AcceptSourceAgreements (decided by the user, not managers),
 │                             TargetVersion (installs only: this exact version)
+├── AutoUpdateRule.cs         ManagerId, SourceId, PackageId, Force, Name (display only); IsFor(package)
 ├── Agreement.cs / PackageAgreements.cs   agreements of a package and of its source (+ license, informational)
 └── ErrorCodes.cs             stable codes; the UI maps each to Error_<code> strings
 Operations/
@@ -105,6 +106,8 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Services/AgreementsDialog.cs` | `IAgreementsConfirmer`: one modal with every agreement as a link (text in an expander when there is no link) |
 | `Services/UninstallConfirmDialog.cs` | `IUninstallConfirmer`: the "Uninstall X?" modal |
 | `Services/IgnoredUpdatesService.cs` | ignored-update records in settings.json (`ignoredUpdates`): Ignore, Restore, Apply (Core rules + pruning), `Changed` |
+| `Services/AutoUpdateService.cs` | per-app automatic-update rules in settings.json (`autoUpdates`) + the global switches: Set/Toggle/Remove, `CanAutoUpdate` (Upgrade capability, not `local`), `WillHandle`, `PruneInstalled` (per manager that listed its packages), `Changed` |
+| `Services/OpenAppDetector.cs` | "is the app open?": install folder from the manager (read-only) + session processes, with `RelaunchPlanner`'s rules; unknown = not open |
 | `Services/ThemeService.cs`, `IUiDispatcher.cs`, `AvaloniaUiDispatcher.cs` | theme variant, UI-thread marshalling |
 | `Services/ShellHost.cs` | window show/hide, close-to-tray, Quit, activation; explicit shutdown mode. Applies `ShellCoordinator` decisions |
 | `Services/TrayIconHost.cs` | Avalonia `TrayIcon` + `NativeMenu` (Open, Upgrade all (N), Check for updates, Quit); icons rendered per (taskbar theme, state) and cached |
@@ -114,23 +117,24 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Platform/*.cs` | OS abstractions: `IToastNotifier`, `IRunKey`, `ITaskbarTheme`, `IProcessSource` (+ `ProcessSnapshot`, `IProcessLauncher`), `IWindowFlasher` |
 | `Platform/Windows/*.cs` | Windows implementations: toasts + AUMID registration, HKCU Run key, `SystemUsesLightTheme`, process list (QueryFullProcessImageName, NtQueryInformationProcess, token elevation), `Process.Start`, `FlashWindowEx` |
 | `Themes/SourceBadges.axaml` | badge colours (Light/Dark) and icons per source id (`winget`, `msstore`, `local`), with a `default` fallback |
-| `Themes/AppColors.axaml` | other app colours (Light/Dark): (i) button, details overlay/card/footer, version tags, package tile |
+| `Themes/AppColors.axaml` | other app colours (Light/Dark): (i) button, automatic-update toggle (off/on/forced dot), details overlay/card/footer, version tags, package tile |
 | `Controls/SourceBadge.axaml(.cs)` | the source pill used on every package row |
 | `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Installed / Settings; Installed loads on first visit), the details overlay, "manager unavailable" banner, startup |
 | `ViewModels/SearchViewModel.cs` | query, source filter, results, Install, details |
 | `ViewModels/UpdatesViewModel.cs` | upgrades list, unknown-version toggle, "Show ignored" toggle, Refresh, Upgrade, Upgrade all, ignore/don't ignore, details; ignored updates stay out of `Count` (badge, tray), Upgrade all and `Loaded` (notifications); drops rows of uninstalled packages |
-| `ViewModels/InstalledViewModel.cs` | every installed, removable package (`GetInstalledAsync`, `IsRemovable`: like Settings > Installed apps, no toggle), name/id filter, Refresh, details, Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row |
-| `ViewModels/PackageRowViewModel.cs` | one list row: main action, optional details / ignore / don't-ignore handlers, `IsQueued`, `IsIgnored` |
-| `ViewModels/PackageDetailsViewModel.cs` | details popup: loads `PackageDetails`, info-card `Fields`, versions (Latest / Installed / "Install this version"), primary action per page (`DetailsContext`), Ignore; the chosen action runs after closing |
+| `ViewModels/InstalledViewModel.cs` | every installed, removable package (`GetInstalledAsync`, `IsRemovable`: like Settings > Installed apps, no toggle), name/id filter, "Only automatic updates" filter, Refresh (prunes automatic-update rules), details, automatic-update toggle per row (packages `AutoUpdateService.CanAutoUpdate` accepts), Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row and its rule |
+| `ViewModels/PackageRowViewModel.cs` | one list row: main action, optional details / ignore / don't-ignore / automatic-update handlers, `IsQueued`, `IsIgnored`, `IsAutoUpdate`, `IsAutoUpdateForced` |
+| `ViewModels/PackageDetailsViewModel.cs` | details popup: loads `PackageDetails`, info-card `Fields`, versions (Latest / Installed / "Install this version"), primary action per page (`DetailsContext`), Ignore; the chosen action runs after closing; "Automatic updates" checkboxes (Installed/Updates, applied immediately) |
 | `ViewModels/PackageDetailsLauncher.cs`, `DetailsOverlay.cs` | builds the details view model for a row; `IPackageDetailsPresenter` implemented as an in-window modal overlay |
 | `ViewModels/IgnoredUpdateItemViewModel.cs` | one ignored update in Settings, with Restore |
 | `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): always present, collapsed by default, expands by itself only when an operation is queued on an empty history; collapse, pending count, cancel, clear, running flag, unseen failure (red tray dot until the panel is seen or cleared) |
-| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, ignored updates (Restore) |
+| `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, automatic updates (global switch, update open apps too), ignored updates (Restore) |
 | `ViewModels/PackageActions.cs` | Install/Upgrade/Uninstall clicks → `OperationRequester` with the auto-accept setting (and an optional target version) |
 | `ViewModels/TrayViewModel.cs` | tray state (dot priority admin > failure > running > updates > none), tooltip, menu texts |
 | `ViewModels/ShellCoordinator.cs` | close → hide to tray (one-time hint toast) or quit; quit confirmation and cancellation of pending operations |
-| `ViewModels/UpdateCheckScheduler.cs` | hourly refresh of the Updates list (`IUpdateCheckTicker`); skipped while busy or operations are pending |
-| `ViewModels/UpdateNotifier.cs` | "N new updates" toast for updates not notified or seen before (key@version set in settings) |
+| `ViewModels/UpdateCheckScheduler.cs` | hourly refresh of the Updates list (`IUpdateCheckTicker`), then `AutoUpdater`; skipped while busy or operations are pending. `RunAutomaticUpdatesAsync` also runs after the startup check |
+| `ViewModels/AutoUpdater.cs` | automatic updates after a scheduled check: for pending, not ignored, not already queued updates with a rule (global switch on), postpone when the app is open and nothing forces it, otherwise queue like an Upgrade click (`UpdatesViewModel.UpgradeAutomaticallyAsync`); toasts: postponed (once per key@version, `postponedUpdates`), then a summary of succeeded / failed |
+| `ViewModels/UpdateNotifier.cs` | "N new updates" toast for updates not notified or seen before (key@version set in settings); skips packages `AutoUpdater` handles |
 | `ViewModels/AdminPromptWatcher.cs` | from the Installing stage, polls for consent.exe every 500 ms for 20 s: toast, taskbar flash, orange tray dot until it closes |
 | `Views/*.axaml` | `MainWindow` (nav pane \| content card \| `QueuePanel`; the queue is a transparent pane outside the card, styled like the nav pane, and the card rounds both top corners; the details overlay on top), `SearchView`, `UpdatesView`, `InstalledView`, `SettingsView`, `QueuePanel`, `PackageDetailsView` (header, scrolling body, footer) |
 
@@ -145,7 +149,10 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
     "language": "system", "theme": "system", "autoAcceptAgreements": false,
     "closeToTray": true, "trayHintShown": false, "notifyNewUpdates": null,
     "notifiedUpdates": ["winget/winget/7zip.7zip@26.06"], "relaunchClosedApps": true,
-    "ignoredUpdates": [{ "managerId": "winget", "sourceId": "winget", "packageId": "7zip.7zip", "version": "26.06", "name": "7-Zip" }]
+    "ignoredUpdates": [{ "managerId": "winget", "sourceId": "winget", "packageId": "7zip.7zip", "version": "26.06", "name": "7-Zip" }],
+    "autoUpdates": [{ "managerId": "winget", "sourceId": "winget", "packageId": "Git.Git", "force": false, "name": "Git" }],
+    "autoUpdatesEnabled": true, "autoUpdateOpenApps": false,
+    "postponedUpdates": ["winget/winget/Docker.DockerDesktop@4.99.0"]
   }
   ```
 
@@ -154,6 +161,10 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
   notified or seen (`<package key>@<available version>`), replaced by the current list after each complete check.
   `ignoredUpdates`: update versions the user ignored; a record is deleted when another version is offered or, after
   a complete check, when the package is no longer in the upgrade list (`IgnoredUpdateFilter`).
+  `autoUpdates`: packages upgraded automatically (`force`: even while the app is open); a rule is deleted on uninstall
+  and when its manager lists the installed packages without it. `autoUpdatesEnabled` pauses them all;
+  `autoUpdateOpenApps` forces every rule. `postponedUpdates`: automatic updates already notified as postponed
+  (`<package key>@<available version>`), kept only while that update is pending.
   "Start with Windows" is not in the file: it is the HKCU Run value `wgetui`.
 - Outside the data dir: `HKCU\Software\Classes\AppUserModelId\wgetui` (notification name + icon) and
   `%LOCALAPPDATA%\wgetui\notification-icon.png`, rewritten at every start.
