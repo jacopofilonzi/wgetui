@@ -301,7 +301,8 @@ and align this project's copies with it:
   window**: launch it from Git Bash, or launch it a second time with the same `--data-dir` to activate it.
 - **Inno Setup's `ISCC.exe` is not on PATH** (per-user install in `%LOCALAPPDATA%\Programs\Inno Setup 7`, Program
   Files in CI) and its path has spaces, which make can't search: `make installer` resolves it in
-  `tools/build-installer.ps1`; pass `ISCC=<path to ISCC.exe>` for another location. Inno 7 differs from v6 examples
+  `tools/build-installer.ps1`; pass `ISCC=<path to ISCC.exe>` for another location. GitHub's Windows runners have
+  Inno Setup 6 on PATH: the script looks in the Inno Setup 7 folders first, and the script refuses v6. Inno 7 differs from v6 examples
   online: check `ISPPBuiltins.iss` and the help of the installed version (https://jrsoftware.org/ishelp/).
 - **`AppMutex` in `installer/wgetui.iss` must match `InstallerMutex`** (`wgetui-running`; a test
   checks it). Mutex names are case-sensitive; a mismatch silently lets setup replace a running exe.

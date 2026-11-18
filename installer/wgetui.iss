@@ -7,6 +7,10 @@
 ; The version is read from publish\wgetui.exe (built from <Version> in Directory.Build.props), so the props
 ; file stays the only place it is written.
 
+#if Ver < EncodeVer(7, 0, 0, 0)
+  #error Inno Setup 7 is required (SetupArchitecture and other directives are new in 7)
+#endif
+
 #define AppExeSource "..\publish\wgetui.exe"
 
 #if !FileExists(AppExeSource)
