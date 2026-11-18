@@ -82,6 +82,19 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task PackagesWindowsDoesNotLetUsersUninstallAreHidden()
+    {
+        _manager.Installed.Add(new Package("fake", "main", "Microsoft.AppInstaller", "App Installer", "1.29") { IsRemovable = false });
+
+        await _vm.RefreshCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(_vm.Packages, r => r.Id == "Microsoft.AppInstaller");
+        Assert.Equal(3, _vm.TotalCount);
+        _vm.Filter = "installer";
+        Assert.Empty(_vm.Packages);
+    }
+
+    [Fact]
     public async Task TheFilterMatchesNameOrIdIgnoringCase()
     {
         await _vm.RefreshCommand.ExecuteAsync(null);

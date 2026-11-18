@@ -61,6 +61,13 @@ foreach (var group in installed.GroupBy(p => p.SourceId).OrderBy(g => g.Key, Str
     Console.WriteLine($"  [{group.Key}] {group.Count()}, e.g. {string.Join(", ", group.Take(3).Select(p => $"{p.Id} {p.Version ?? "?"}"))}");
 }
 
+var nonRemovable = installed.Where(p => !p.IsRemovable).ToList();
+Console.WriteLine($"Not removable (hidden on the Installed page): {nonRemovable.Count}, removable: {installed.Count - nonRemovable.Count}");
+foreach (var p in nonRemovable)
+{
+    Console.WriteLine($"  [{p.SourceId}] {p.Name} ({p.Id})");
+}
+
 var detailTargets = found.Where(p => p.Id == "7zip.7zip").Take(1)
     .Concat(storeHits.Where(p => p.SourceId == "msstore").Take(1))
     .Concat(installed.Where(p => p.SourceId == "local").Take(1));

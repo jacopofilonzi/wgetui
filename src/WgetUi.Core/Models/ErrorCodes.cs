@@ -27,4 +27,5 @@ public static class ErrorCodes
     public const string InternalError = "internal_error";
     public const string UninstallFailed = "uninstall_failed";
     public const string VersionNotFound = "version_not_found";
+    public const string NotRemovable = "not_removable";
 }

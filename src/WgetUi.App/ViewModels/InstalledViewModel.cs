@@ -19,6 +19,7 @@ public interface IUninstallConfirmer
 /// <summary>
 /// Every installed package of the managers that can list them (packages no source offers included, under
 /// <see cref="PackageSource.LocalId"/>), with a name filter, details and Uninstall (after a confirmation).
+/// Packages that are not <see cref="Package.IsRemovable"/> are left out.
 /// </summary>
 /// <remarks>Loaded the first time the page is shown (<see cref="EnsureLoaded"/>) and on Refresh.</remarks>
 public sealed partial class InstalledViewModel : ViewModelBase
@@ -108,7 +109,8 @@ public sealed partial class InstalledViewModel : ViewModelBase
         try
         {
             var result = await _registry.GetInstalledAsync(CancellationToken.None);
-            _packages = result.Packages;
+            // Like Settings > Installed apps: packages Windows won't uninstall (system apps, App Installer) are hidden.
+            _packages = [.. result.Packages.Where(p => p.IsRemovable)];
             _lastErrors = result.Errors;
             ErrorMessage = DescribeErrors(_registry, _lastErrors);
             BuildRows();

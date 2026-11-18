@@ -20,7 +20,7 @@ repo/
 │                                     tray/shell, notifications, admin prompt, relaunch, single instance, ICO writer
 │                                     (all with fakes)
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
-│                                 upgrades, install locations, installed count, details), prints results
+│                                 upgrades, install locations, installed count + non-removable ones, details), prints results
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
 ├── WgetUi.slnx                   solution
@@ -46,7 +46,8 @@ Managers/
 ├── ManagerAvailability.cs    result of InitializeAsync (available / error code + message)
 └── PackageManagerException.cs  query failure with a stable ErrorCode
 Models/
-├── Package.cs                ManagerId, SourceId, Id, Name, Version (null = unknown), AvailableVersion; Key
+├── Package.cs                ManagerId, SourceId, Id, Name, Version (null = unknown), AvailableVersion; Key;
+│                             IsRemovable (false = the OS won't uninstall it: hidden on Installed, uninstall refused)
 ├── PackageSource.cs          ManagerId, Id, DisplayName; LocalId = "local" (installed, offered by no source)
 ├── PackageDetails.cs         description, publisher, homepage, license (+link), release notes, installed/available
 │                             version, Versions (newest first); WebLink keeps http(s) links only
@@ -59,7 +60,8 @@ Models/
 └── ErrorCodes.cs             stable codes; the UI maps each to Error_<code> strings
 Operations/
 ├── OperationQueue.cs         single sequential queue (Channel + one worker) of Install/Upgrade/Uninstall (each needs
-│                             its capability; a TargetVersion also InstallVersion): Enqueue/EnqueueMany (dedupes active
+│                             its capability; a TargetVersion also InstallVersion; an Uninstall of a package that is not
+│                             IsRemovable fails with not_removable): Enqueue/EnqueueMany (dedupes active
 │                             duplicates), Cancel (queued → skipped; running → token, if the manager supports it),
 │                             ClearFinished, OperationAdded/OperationChanged events (raised off the UI thread)
 ├── QueuedOperation.cs        state machine Queued → Running → Succeeded/Failed/Cancelled, progress, Completion task
@@ -81,7 +83,8 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `WinGetManager.cs` | `IPackageManager` over `Microsoft.Management.Deployment`: activation (`new PackageManager()` through the reg-free factory DLL), sources `winget` + `msstore` (predefined catalogs; `winget-font` and user sources are not exposed), search (`CatalogDefault` contains, 50 per source), upgrades and installed list (composite catalog, `LocalCatalogs`; packages without an exposed source are `local`), agreements (catalog metadata + source agreements), details (catalog metadata of the default install version, `AvailableVersions`, installed state; local packages: ARP publisher), install location (installed version metadata, read-only), install/upgrade (silent, any scope, progress, cancellation; a target version through `InstallOptions.PackageVersionId`), uninstall (installed catalog, `UninstallPackageAsync`, silent, any scope). `FindInstalled` falls back to scanning when the `Id` filter misses local ids |
 | `WinGetSerialExecutor.cs` | one-at-a-time lock for every COM call; 2 min acquire timeout and 2 min query timeout (caller fails with `timeout`, the lock is released only when the COM call returns) |
 | `WinGetMapping.cs` | pure mapping: unknown-version detection, `WinGetPackageData` → `Package` (search, upgrade, installed), `WinGetDetailsData` → `PackageDetails`, install/uninstall progress, `InstallResultStatus`/`UninstallResultStatus` → error code, agreements, license cleanup, version lookup |
-| `WinGetPackageData.cs`, `WinGetDetailsData.cs` | plain snapshots of a COM `CatalogPackage` and of its metadata/versions |
+| `WinGetPackageData.cs`, `WinGetDetailsData.cs` | plain snapshots of a COM `CatalogPackage` (installed list: + MSIX `PackageFamilyNames`) and of its metadata/versions |
+| `INonRemovablePackages.cs`, `AppxNonRemovablePackages.cs` | MSIX families Windows won't let the user uninstall, as `Get-AppxPackage` NonRemovable: `SignatureKind == System` or `appxalluserstore!IsPackageFamilyInUninstallBlocklist` (undocumented; fallback list: App Installer, Windows Security). `WinGetMapping` matches them by `PackageFamilyNames` (correlated ids such as `Microsoft.AppInstaller`) or the family of an `MSIX\<full name>` id; the installed list marks them `IsRemovable = false`, uninstall refuses them (`not_removable`) |
 | `WgetUi.Managers.WinGet.csproj` | re-exports the activation DLL and `.winmd` as content (they must sit next to the exe) |
 
 ## App (`src/WgetUi.App`)
@@ -116,7 +119,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `ViewModels/MainWindowViewModel.cs` | navigation (Search / Updates / Installed / Settings; Installed loads on first visit), the details overlay, "manager unavailable" banner, startup |
 | `ViewModels/SearchViewModel.cs` | query, source filter, results, Install, details |
 | `ViewModels/UpdatesViewModel.cs` | upgrades list, unknown-version toggle, "Show ignored" toggle, Refresh, Upgrade, Upgrade all, ignore/don't ignore, details; ignored updates stay out of `Count` (badge, tray), Upgrade all and `Loaded` (notifications); drops rows of uninstalled packages |
-| `ViewModels/InstalledViewModel.cs` | every installed package (`GetInstalledAsync`), name/id filter, Refresh, details, Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row |
+| `ViewModels/InstalledViewModel.cs` | every installed, removable package (`GetInstalledAsync`, `IsRemovable`: like Settings > Installed apps, no toggle), name/id filter, Refresh, details, Uninstall after `IUninstallConfirmer`; a successful uninstall removes the row |
 | `ViewModels/PackageRowViewModel.cs` | one list row: main action, optional details / ignore / don't-ignore handlers, `IsQueued`, `IsIgnored` |
 | `ViewModels/PackageDetailsViewModel.cs` | details popup: loads `PackageDetails`, info-card `Fields`, versions (Latest / Installed / "Install this version"), primary action per page (`DetailsContext`), Ignore; the chosen action runs after closing |
 | `ViewModels/PackageDetailsLauncher.cs`, `DetailsOverlay.cs` | builds the details view model for a row; `IPackageDetailsPresenter` implemented as an in-window modal overlay |

@@ -5,6 +5,8 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <RootNamespace>WgetUi.Managers.WinGet</RootNamespace>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- LibraryImport (AppxNonRemovablePackages) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Ship the reg-free activation factory DLL statically linked (no VC runtime dependency). -->
     <MicrosoftManagementDeployment-FactoryLinkage>static</MicrosoftManagementDeployment-FactoryLinkage>
   </PropertyGroup>

@@ -76,6 +76,58 @@ public class WinGetDetailsMappingTests
         Assert.Null(WinGetMapping.ToInstalled(new WinGetPackageData(" ", "Nameless", null, "1", null, false)));
     }
 
+    private static readonly IReadOnlySet<string> NonRemovable = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe",
+        "Microsoft.SecHealthUI_8wekyb3d8bbwe",
+    };
+
+    [Fact]
+    public void ACorrelatedPackageIsNotRemovableThroughItsFamilyName()
+    {
+        // App Installer as listed live: correlated with the winget catalog, the family only in PackageFamilyNames.
+        var data = new WinGetPackageData("Microsoft.AppInstaller", "App Installer", "winget", "1.29.380.0", "1.29.380.0", false, ["Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"]);
+
+        var package = WinGetMapping.ToInstalled(data, NonRemovable);
+
+        Assert.False(package?.IsRemovable);
+        Assert.Equal("winget", package?.SourceId);
+    }
+
+    [Fact]
+    public void ALocalMsixPackageIsMatchedThroughTheFamilyOfItsFullNameId()
+    {
+        var security = new WinGetPackageData(@"MSIX\Microsoft.SecHealthUI_1000.29680.1000.0_x64__8wekyb3d8bbwe", "Windows Security", null, "1000.29680.1000.0", null, false);
+        var calculator = new WinGetPackageData(@"MSIX\Microsoft.WindowsCalculator_11.2607.0.0_x64__8wekyb3d8bbwe", "Calculator", null, "11.2607.0.0", null, false);
+
+        Assert.False(WinGetMapping.ToInstalled(security, NonRemovable)?.IsRemovable);
+        Assert.True(WinGetMapping.ToInstalled(calculator, NonRemovable)?.IsRemovable);
+    }
+
+    [Fact]
+    public void PackagesAreRemovableWhenNothingMatchesOrTheOsQueryFailed()
+    {
+        var sevenZip = new WinGetPackageData("7zip.7zip", "7-Zip", "winget", "26.06", null, false);
+        var appInstaller = new WinGetPackageData("Microsoft.AppInstaller", "App Installer", "winget", "1.29", null, false, ["Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"]);
+
+        Assert.True(WinGetMapping.ToInstalled(sevenZip, NonRemovable)?.IsRemovable);
+        Assert.True(WinGetMapping.ToInstalled(appInstaller)?.IsRemovable);
+        Assert.True(WinGetMapping.ToInstalled(appInstaller, new HashSet<string>())?.IsRemovable);
+    }
+
+    [Theory]
+    [InlineData("Microsoft.WindowsCalculator_11.2607.0.0_x64__8wekyb3d8bbwe", "Microsoft.WindowsCalculator_8wekyb3d8bbwe")]
+    [InlineData("Microsoft.LanguageExperiencePackit-IT_26100.166.269.0_neutral__8wekyb3d8bbwe", "Microsoft.LanguageExperiencePackit-IT_8wekyb3d8bbwe")]
+    [InlineData("Contoso.App_1.0.0.0_x64_split.scale-200_abcdefghijklm", "Contoso.App_abcdefghijklm")]
+    [InlineData("Microsoft.WindowsCalculator_8wekyb3d8bbwe", null)]
+    [InlineData("1106-5897-7327-6550", null)]
+    public void FamilyNameIsDerivedFromAPackageFullName(string fullName, string? expected) =>
+        Assert.Equal(expected, WinGetMapping.FamilyNameFromFullName(fullName));
+
+    [Fact]
+    public void ArpIdsDoNotYieldAFamilyName() =>
+        Assert.Empty(WinGetMapping.FamilyNames(new WinGetPackageData(@"ARP\Machine\X64\Tool_A_B_C_D", "Tool", null, "1", null, false)));
+
     [Fact]
     public void TargetVersionIsFoundIgnoringCaseAndSpaces()
     {

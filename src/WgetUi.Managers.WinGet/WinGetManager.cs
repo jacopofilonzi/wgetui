@@ -40,9 +40,19 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
     private readonly WinGetSerialExecutor _executor = new(acquireTimeout: TimeSpan.FromMinutes(2), queryTimeout: TimeSpan.FromMinutes(2));
     private readonly Dictionary<string, PackageCatalogReference> _catalogRefs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PackageCatalog> _connectedCatalogs = new(StringComparer.Ordinal);
+    private readonly INonRemovablePackages _nonRemovable;
     private PackageManager? _packageManager;
 
-    public WinGetManager(ILogger<WinGetManager> logger) => _logger = logger;
+    public WinGetManager(ILogger<WinGetManager> logger)
+        : this(logger, new AppxNonRemovablePackages(logger))
+    {
+    }
+
+    internal WinGetManager(ILogger<WinGetManager> logger, INonRemovablePackages nonRemovable)
+    {
+        _logger = logger;
+        _nonRemovable = nonRemovable;
+    }
 
     public string Id => WinGetMapping.ManagerId;
 
@@ -167,6 +177,19 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
             package.InstalledVersion?.Version,
             available?.Version,
             package.IsUpdateAvailable);
+    }
+
+    // Installed list: also the MSIX family names, to tell the packages Windows won't uninstall.
+    private static WinGetPackageData InstalledSnapshot(CatalogPackage package)
+    {
+        var families = package.InstalledVersion?.PackageFamilyNames;
+        var names = new List<string>(families?.Count ?? 0);
+        for (var i = 0; families is not null && i < families.Count; i++)
+        {
+            names.Add(families[i]);
+        }
+
+        return Snapshot(package) with { PackageFamilyNames = names };
     }
 
     private ManagerAvailability Activate()
@@ -443,9 +466,10 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         return null;
     }
 
-    // Runs under the executor lock. Read-only.
+    // Runs under the executor lock. Read-only. Packages Windows won't uninstall come back with IsRemovable = false.
     private IReadOnlyList<Package> ListInstalled()
     {
+        var nonRemovable = _nonRemovable.GetNonRemovableFamilyNames();
         try
         {
             var result = ConnectInstalled().FindPackages(new FindPackagesOptions());
@@ -460,7 +484,7 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
             {
                 try
                 {
-                    if (WinGetMapping.ToInstalled(Snapshot(matches[i].CatalogPackage)) is { } package)
+                    if (WinGetMapping.ToInstalled(InstalledSnapshot(matches[i].CatalogPackage), nonRemovable) is { } package)
                     {
                         packages.Add(package);
                     }
@@ -685,6 +709,12 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         if (installed?.InstalledVersion is null)
         {
             return OperationResult.Failure(ErrorCodes.PackageNotFound, $"winget {what}: package is not installed any more.");
+        }
+
+        // Checked again against the OS, not only through Package.IsRemovable (the queue's check).
+        if (!WinGetMapping.IsRemovable(InstalledSnapshot(installed), _nonRemovable.GetNonRemovableFamilyNames()))
+        {
+            return OperationResult.Failure(ErrorCodes.NotRemovable, $"winget {what}: Windows does not let users uninstall this system package.");
         }
 
         var options = new UninstallOptions

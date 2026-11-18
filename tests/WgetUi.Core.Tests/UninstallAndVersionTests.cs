@@ -47,6 +47,32 @@ public sealed class UninstallAndVersionTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task UninstallOfANonRemovablePackageIsRefusedWithoutCallingTheManager()
+    {
+        var manager = new FakePackageManager(capabilities: Basic | ManagerCapabilities.Uninstall);
+        var (queue, _, _) = Create(manager);
+
+        var operation = queue.Enqueue(manager.Package("a") with { IsRemovable = false }, OperationKind.Uninstall);
+        await operation.Completion.WaitAsync(Timeout, Ct);
+
+        Assert.Equal(OperationState.Failed, operation.State);
+        Assert.Equal(ErrorCodes.NotRemovable, operation.Result?.ErrorCode);
+        Assert.Empty(manager.Calls);
+    }
+
+    [Fact]
+    public async Task NonRemovablePackagesCanStillBeUpgraded()
+    {
+        var manager = new FakePackageManager(capabilities: Basic | ManagerCapabilities.Uninstall);
+        var (queue, _, _) = Create(manager);
+
+        var operation = queue.Enqueue(manager.Package("a") with { IsRemovable = false }, OperationKind.Upgrade);
+        await operation.Completion.WaitAsync(Timeout, Ct);
+
+        Assert.Equal(OperationState.Succeeded, operation.State);
+    }
+
+    [Fact]
     public async Task UninstallFailsAsNotSupportedWithoutTheCapability()
     {
         var manager = new FakePackageManager(capabilities: Basic);

@@ -73,7 +73,66 @@ internal static class WinGetMapping
     /// Any installed package, for the Installed page. Packages no exposed catalog offers (local installs, ARP,
     /// MSIX, or sources we don't expose) get <see cref="PackageSource.LocalId"/>.
     /// </summary>
-    public static Package? ToInstalled(WinGetPackageData data)
+    public static Package? ToInstalled(WinGetPackageData data) => ToInstalled(data, EmptyFamilySet);
+
+    /// <summary>
+    /// As <see cref="ToInstalled(WinGetPackageData)"/>, marking the package not removable when one of its MSIX
+    /// family names is in <paramref name="nonRemovableFamilies"/>.
+    /// </summary>
+    public static Package? ToInstalled(WinGetPackageData data, IReadOnlySet<string> nonRemovableFamilies)
+    {
+        ArgumentNullException.ThrowIfNull(nonRemovableFamilies);
+        return ToInstalledCore(data) is { } package
+            ? package with { IsRemovable = IsRemovable(data, nonRemovableFamilies) }
+            : null;
+    }
+
+    /// <summary>False when any MSIX family of the package is one Windows does not let the user uninstall.</summary>
+    public static bool IsRemovable(WinGetPackageData data, IReadOnlySet<string> nonRemovableFamilies)
+    {
+        ArgumentNullException.ThrowIfNull(nonRemovableFamilies);
+        return nonRemovableFamilies.Count == 0 || !FamilyNames(data).Any(nonRemovableFamilies.Contains);
+    }
+
+    /// <summary>
+    /// MSIX family names of an installed package: the ones winget reports for the installed version (also for
+    /// packages correlated with a catalog, e.g. App Installer listed as <c>Microsoft.AppInstaller</c>), plus the one
+    /// derived from a local <c>MSIX\&lt;package full name&gt;</c> id.
+    /// </summary>
+    public static IEnumerable<string> FamilyNames(WinGetPackageData data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        foreach (var name in data.PackageFamilyNames ?? [])
+        {
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                yield return name.Trim();
+            }
+        }
+
+        if (data.Id.StartsWith(MsixIdPrefix, StringComparison.OrdinalIgnoreCase)
+            && FamilyNameFromFullName(data.Id[MsixIdPrefix.Length..]) is { } derived)
+        {
+            yield return derived;
+        }
+    }
+
+    /// <summary>
+    /// "Name_Version_Architecture_ResourceId_PublisherId" (resource id often empty) → "Name_PublisherId", or null
+    /// when the text is not a package full name.
+    /// </summary>
+    public static string? FamilyNameFromFullName(string fullName)
+    {
+        ArgumentNullException.ThrowIfNull(fullName);
+        var parts = fullName.Trim().Split('_');
+        return parts.Length == 5 && parts[0].Length > 0 && parts[4].Length > 0 ? $"{parts[0]}_{parts[4]}" : null;
+    }
+
+    private const string MsixIdPrefix = @"MSIX\";
+
+    private static readonly IReadOnlySet<string> EmptyFamilySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    private static Package? ToInstalledCore(WinGetPackageData data)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (string.IsNullOrWhiteSpace(data.Id))

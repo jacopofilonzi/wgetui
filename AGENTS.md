@@ -268,6 +268,10 @@ and align this project's copies with it:
   effects must wait for them, not only for the completion.
 - **The winget COM `Id` filter does not match local entries** (`ARP\Machine\X64\…`, `MSIX\…`): `WinGetManager.FindInstalled`
   falls back to scanning the installed list. Store apps come back from the installed catalog as local (MSIX), not msstore.
+- **No public API says an MSIX package is non-removable**: `AppxNonRemovablePackages` copies what `Get-AppxPackage`
+  does (`SignatureKind == System` or the undocumented `appxalluserstore!IsPackageFamilyInUninstallBlocklist`). Its
+  out flag's width is unknown: pass a zeroed `int` and read the low byte (an uninitialized `out bool` marked every
+  package non-removable). Inbox apps such as Calculator and Notepad are removable and must stay listed.
 - **FluentAvalonia 3 has no `Info`/`Hide` symbols**: those icons are Segoe Fluent Icons / MDL2 glyphs through
   `FAFontIcon` (`FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"`).
 - **`FAContentDialog` keeps an empty command band without buttons** and caps its width (548): custom-layout modals

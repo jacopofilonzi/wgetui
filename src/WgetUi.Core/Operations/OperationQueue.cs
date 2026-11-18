@@ -225,6 +225,11 @@ public sealed partial class OperationQueue : IAsyncDisposable
             return OperationResult.Failure(ErrorCodes.NotSupported, $"{manager.Id} does not support {operation.Kind}.");
         }
 
+        if (operation.Kind == OperationKind.Uninstall && !operation.Package.IsRemovable)
+        {
+            return OperationResult.Failure(ErrorCodes.NotRemovable, $"{operation.Package.Key} is a system package that Windows does not let users uninstall.");
+        }
+
         var progress = new ProgressSink(this, operation);
         try
         {

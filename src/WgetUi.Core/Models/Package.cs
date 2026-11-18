@@ -21,6 +21,13 @@ public sealed record Package(
     /// <summary>Identity across managers and sources, stable for de-duplication.</summary>
     public string Key => $"{ManagerId}/{SourceId}/{Id}";
 
+    /// <summary>
+    /// False for installed packages the OS itself does not let the user uninstall (Windows: system-signed MSIX
+    /// packages and the uninstall blocklist, e.g. App Installer). The Installed page hides them and the queue
+    /// refuses to uninstall them. Only meaningful for installed packages; defaults to true.
+    /// </summary>
+    public bool IsRemovable { get; init; } = true;
+
     /// <summary>True when the installed version is not known to the manager.</summary>
     public bool IsVersionUnknown => string.IsNullOrEmpty(Version);
 }

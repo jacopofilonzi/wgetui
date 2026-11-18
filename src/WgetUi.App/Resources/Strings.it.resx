@@ -113,6 +113,7 @@
   <data name="Settings_RelaunchClosedApps" xml:space="preserve"><value>Riapri le app chiuse da un aggiornamento</value></data>
   <data name="Settings_RelaunchClosedAppsHint" xml:space="preserve"><value>Alcuni installer chiudono l'app che aggiornano senza riavviarla. wgetui la riapre pochi secondi dopo un aggiornamento riuscito, senza permessi di amministratore.</value></data>
   <data name="Error_uninstall_failed" xml:space="preserve"><value>Il programma di disinstallazione ha segnalato un errore.</value></data>
+  <data name="Error_not_removable" xml:space="preserve"><value>Windows non consente di disinstallare questo pacchetto di sistema.</value></data>
   <data name="Error_version_not_found" xml:space="preserve"><value>La versione richiesta non è più disponibile.</value></data>
   <data name="Ops_Kind_Uninstall" xml:space="preserve"><value>Disinstallazione</value></data>
   <data name="Ops_Stage_Uninstalling" xml:space="preserve"><value>disinstallazione</value></data>
