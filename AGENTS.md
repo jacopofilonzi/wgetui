@@ -87,7 +87,7 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   dev instance locks the Debug one).
 - **The setup exe and its uninstaller are a real install/uninstall**: never run `artifacts/wgetui-setup-*.exe`
   (not even with `/VERYSILENT`), an installed `unins000.exe`, or an Inno Setup installer in a check. Building it
-  (`make installer`) is fine; installing (per-user / all users), upgrading over an existing install and uninstalling
+  (`make installer`) is fine; installing (per-user only), upgrading over an existing install and uninstalling
   are tested by me by hand.
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
   keys and a separate database.
@@ -303,5 +303,5 @@ and align this project's copies with it:
   Files in CI) and its path has spaces, which make can't search: `make installer` resolves it in
   `tools/build-installer.ps1`; pass `ISCC=<path to ISCC.exe>` for another location. Inno 7 differs from v6 examples
   online: check `ISPPBuiltins.iss` and the help of the installed version (https://jrsoftware.org/ishelp/).
-- **`AppMutex` in `installer/wgetui.iss` must match `InstallerMutex`** (`wgetui-running`, `Global\wgetui-running`;
-  a test checks it). Mutex names are case-sensitive; a mismatch silently lets setup replace a running exe.
+- **`AppMutex` in `installer/wgetui.iss` must match `InstallerMutex`** (`wgetui-running`; a test
+  checks it). Mutex names are case-sensitive; a mismatch silently lets setup replace a running exe.

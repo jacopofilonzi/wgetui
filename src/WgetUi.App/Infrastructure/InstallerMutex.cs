@@ -3,24 +3,19 @@ using Microsoft.Extensions.Logging;
 namespace WgetUi.App.Infrastructure;
 
 /// <summary>
-/// Fixed-name mutexes that tell the installer wgetui is running, so setup and uninstall ask the user to close
-/// it instead of replacing files in use. Every process holds them for its whole lifetime, whatever its
+/// A fixed-name mutex that tells the installer wgetui is running, so setup and uninstall ask the user to close
+/// it instead of replacing files in use. Every process holds it for its whole lifetime, whatever its
 /// <c>--data-dir</c>; the per-data-directory mutex of <see cref="SingleInstance"/> is a separate thing.
 /// </summary>
 /// <remarks>
-/// Inno Setup's <c>AppMutex</c> only checks that a mutex with the name exists, so the handles are opened
-/// without taking ownership. The session-local name covers the usual case; the <c>Global\</c> one lets a setup
-/// started in another session see it too. Creating one can fail (e.g. another user's instance already created
-/// the global one with its own permissions): that is logged and ignored, never fatal.
+/// Inno Setup's <c>AppMutex</c> only checks that a mutex with the name exists, so the handle is opened without
+/// taking ownership. A session-local name is enough: the install is per-user, so the setup runs in the same
+/// session as the instances it must see. Creating it can fail: that is logged and ignored, never fatal.
 /// </remarks>
 public sealed partial class InstallerMutex : IDisposable
 {
-    /// <summary>
-    /// Used by <c>installer/wgetui.iss</c> (<c>AppMutex=wgetui-running,Global\wgetui-running</c>): never rename.
-    /// </summary>
+    /// <summary>Used by <c>installer/wgetui.iss</c> (<c>AppMutex=wgetui-running</c>): never rename.</summary>
     public const string Name = "wgetui-running";
-
-    public const string GlobalName = @"Global\" + Name;
 
     private readonly List<Mutex> _held;
 
@@ -37,7 +32,7 @@ public sealed partial class InstallerMutex : IDisposable
     {
         var held = new List<Mutex>();
         var failures = new List<(string, Exception)>();
-        foreach (var name in new[] { Name, GlobalName })
+        foreach (var name in new[] { Name })
         {
             try
             {

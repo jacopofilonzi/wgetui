@@ -1,8 +1,8 @@
 ; Inno Setup 7 script for the wgetui installer (`make installer`, after `make publish`).
 ;
 ; Installs the three files of `make publish` (the single-file exe plus the winget COM activation DLL and .winmd,
-; which must sit next to it). Per-user by default (%LOCALAPPDATA%\Programs\wgetui, no UAC); the first page
-; offers "all users" (Program Files\wgetui, elevated). The app itself always runs non-elevated.
+; which must sit next to it). Per-user only: %LOCALAPPDATA%\Programs\wgetui, no UAC, no "all users" choice
+; (the app runs non-elevated anyway, and one scope keeps upgrades and the future self-update simple).
 ;
 ; The version is read from publish\wgetui.exe (built from <Version> in Directory.Build.props), so the props
 ; file stays the only place it is written.
@@ -40,14 +40,13 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 
-; Per-user by default; the dialog lets the user pick "all users" instead ({autopf} follows the choice).
+; Per-user only ({autopf} = %LOCALAPPDATA%\Programs): never elevated, no install-mode dialog.
 PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
 DefaultDirName={autopf}\wgetui
 DisableProgramGroupPage=yes
 
 ; Setup and uninstall stop while wgetui runs. Must match InstallerMutex in src/WgetUi.App (never rename).
-AppMutex=wgetui-running,Global\wgetui-running
+AppMutex=wgetui-running
 
 SetupIconFile=..\src\WgetUi.App\Assets\wgetui.ico
 UninstallDisplayIcon={app}\wgetui.exe
@@ -73,12 +72,13 @@ Source: "..\publish\Microsoft.Management.Deployment.winmd"; DestDir: "{app}"; Fl
 Name: "{autoprograms}\wgetui"; Filename: "{app}\wgetui.exe"; AppUserModelID: "wgetui"
 
 [Run]
-; runasoriginaluser: an all-users setup is elevated, and winget refuses COM activation from an elevated process.
+; runasoriginaluser: winget refuses COM activation from an elevated process; keeps wgetui non-elevated even if
+; the setup itself was started from an elevated prompt.
 Filename: "{app}\wgetui.exe"; Description: "{cm:LaunchProgram,wgetui}"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]
-// Uninstall cleanup of what the app writes outside its install folder, for the user running the uninstaller
-// (in an all-users uninstall that is the elevated account). Settings (%APPDATA%\wgetui) and logs
+// Uninstall cleanup of what the app writes outside its install folder, for the user who installed it
+// (the install is per-user). Settings (%APPDATA%\wgetui) and logs
 // (%LOCALAPPDATA%\wgetui\logs) are kept on purpose: a reinstall picks them up again.
 //
 // - HKCU Run value "wgetui" ("Start with Windows"): deleted only when it starts this install's exe, so a copy

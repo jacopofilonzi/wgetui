@@ -10,7 +10,7 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
 
 - **In-app self-update (with CI/releases).** The app checks for a newer release, and "Update" does the rest
   silently: download the setup exe, verify it (hash from the release, signature once signed), run it with
-  `/VERYSILENT` and the same scope as the current install (`/CURRENTUSER` or `/ALLUSERS`, which needs UAC),
+  `/VERYSILENT` (per-user install, no UAC),
   close and relaunch the new version. No "go to GitHub and download it" link. Needs the release workflow to
   also publish a manifest the app can read. Keep the update source behind one interface so it can be swapped later.
   UI (approved mockup: https://claude.ai/artifact/5SZinW8Wtm4cYdCU7B2Nc2): a highlighted item in the left

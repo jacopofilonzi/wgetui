@@ -23,8 +23,8 @@ repo/
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
 │                                 upgrades, install locations, installed count + non-removable ones, details), prints results
 ├── installer/wgetui.iss          Inno Setup 7 script (`make installer`): packages publish/ as
-│                                 artifacts/wgetui-setup-<version>-x64.exe (version read from the exe; per-user by
-│                                 default, all users on request; AppMutex; uninstall cleanup of Run value + toast
+│                                 artifacts/wgetui-setup-<version>-x64.exe (version read from the exe; per-user
+│                                 only, no UAC; AppMutex; uninstall cleanup of Run value + toast
 │                                 registration, settings and logs kept)
 ├── tools/build-installer.ps1     `make installer`: finds ISCC.exe (ISCC=, PATH, per-user, Program Files) and compiles
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
@@ -109,7 +109,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `app.manifest` | `asInvoker` (never elevated) |
 | `Infrastructure/AppPaths.cs` | settings and log paths (`--data-dir` override), `--tray` and `--force-no-tray` flags |
 | `Infrastructure/SingleInstance.cs` | one instance per user + data dir: named mutex, named pipe for "activate" from a second launch |
-| `Infrastructure/InstallerMutex.cs` | fixed-name mutexes `wgetui-running` + `Global\wgetui-running` for the installer's `AppMutex` (setup/uninstall ask to close wgetui), any data dir; failures logged, never fatal. Never rename |
+| `Infrastructure/InstallerMutex.cs` | fixed-name session-local mutex `wgetui-running` for the installer's `AppMutex` (setup/uninstall ask to close wgetui), any data dir; failures logged, never fatal. Never rename |
 | `Infrastructure/AppSettings.cs`, `SettingsStore.cs`, `SettingsService.cs` | settings model, JSON load/atomic save, current settings |
 | `Infrastructure/FileLoggerProvider.cs` | append-only log file (rolled to `.old` past 5 MB) |
 | `Localization/Loc.cs`, `TrExtension.cs` | resx lookup, live language switch, `{l:Tr Key}` markup extension, error-code → text |

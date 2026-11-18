@@ -10,19 +10,17 @@ public sealed class InstallerMutexTests
         var script = File.ReadAllLines(Path.Combine(RepoRoot(), "installer", "wgetui.iss"));
 
         var appMutex = Assert.Single(script, line => line.StartsWith("AppMutex=", StringComparison.Ordinal));
-        Assert.Equal($"AppMutex={InstallerMutex.Name},{InstallerMutex.GlobalName}", appMutex.Trim());
+        Assert.Equal($"AppMutex={InstallerMutex.Name}", appMutex.Trim());
     }
 
     [Fact]
-    public void BothMutexesExistWhileHeld()
+    public void MutexExistsWhileHeld()
     {
         using var held = InstallerMutex.Acquire();
 
         Assert.Empty(held.Failures);
         Assert.True(Mutex.TryOpenExisting(InstallerMutex.Name, out var local));
         local.Dispose();
-        Assert.True(Mutex.TryOpenExisting(InstallerMutex.GlobalName, out var global));
-        global.Dispose();
     }
 
     private static string RepoRoot()

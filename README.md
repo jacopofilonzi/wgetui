@@ -37,11 +37,11 @@ It talks to winget through its COM API (no console parsing) and is built so othe
 
 Download `wgetui-setup-<version>-x64.exe` from the [Releases](https://github.com/jacopofilonzi/wgetui/releases)
 page and run it. By default it installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
-administrator rights; the first page also offers "all users" (`Program Files\wgetui`, asks for administrator
-permission). Either way wgetui itself runs as a normal user, and the setup starts it at the end. Running the setup
+administrator rights (there is no "all users" option: each user installs their own copy). The setup starts wgetui at
+the end. Running the setup
 again (or a newer one) upgrades the existing install; close wgetui first, the setup asks you to.
 
-Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT /CURRENTUSER` (or `/ALLUSERS`, from an elevated prompt).
+Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT`.
 
 Uninstall from Settings > Apps (or the Start menu entry's "Uninstall"). It removes the program, the "Start with
 Windows" entry (if it points at this install) and the notification registration; your settings and logs stay in
