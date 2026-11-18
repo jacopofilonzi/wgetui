@@ -65,3 +65,7 @@ window quits. "Start with Windows" adds an entry under
 `HKCU\Software\Classes\AppUserModelId`.
 
 See [STRUCTURE.md](STRUCTURE.md) for the code layout and [AGENTS.md](AGENTS.md) for development guidelines.
+
+## License
+
+[MIT](LICENSE)
