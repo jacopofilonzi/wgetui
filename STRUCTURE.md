@@ -23,6 +23,7 @@ repo/
 │                                 upgrades, install locations, installed count + non-removable ones, details), prints results
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
+├── .github/workflows/ci.yml      CI: `make check` on every push and pull request (windows-latest)
 ├── WgetUi.slnx                   solution
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>
 ├── global.json                   SDK 10.0.403, test runner = Microsoft.Testing.Platform

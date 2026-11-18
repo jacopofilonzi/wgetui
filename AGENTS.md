@@ -217,8 +217,9 @@ and align this project's copies with it:
 - Versions are `x.y.z`: `x` major (only when I decide), `y` feature, `z` fix. A feature bumps `y` and resets `z`.
 - The version lives in one place: `<Version>` in `Directory.Build.props`.
 - Tags and releases only when I ask.
-- There is no CI yet. When added, it runs `make check` on every push and pull request, and builds the
-  `make publish` artifact only on a `vX.Y.Z` tag or a manual run, never on a plain push.
+- CI (GitHub Actions, `.github/workflows/ci.yml`, Windows runner) runs `make check` on every push and pull request.
+  Release builds are not wired yet: when the MSI exists, they run only on a `vX.Y.Z` tag or a manual run, never on a
+  plain push, and the GitHub Release carries only the MSI.
 
 ## Adding a package manager
 

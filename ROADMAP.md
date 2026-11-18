@@ -13,7 +13,6 @@ Ideas and agreed follow-ups that are out of scope for the current version. Not a
   with Start menu shortcut and uninstall entry. The installer lets the user choose the scope: system-wide
   (Program Files, all users, needs UAC) or per-user (`%LOCALAPPDATA%`, no admin) — WiX dual-purpose package. `make publish` keeps building the runnable exe directly,
   with its required files in the same folder; the MSI is built on top of that output.
-- CI running `make check` on push and pull request.
 - **In-app self-update (with CI/releases).** The app checks for a newer release, and "Update" does the rest
   silently: download the MSI, verify it (hash from the release, signature once signed), run `msiexec`
   quietly with the same scope as the current install (per-machine needs UAC), close and relaunch the new
