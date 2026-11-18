@@ -12,3 +12,6 @@ TestResults/
 .env
 .vscode/*
 !.vscode/settings.json
+
+# Local hand-off notes (never committed)
+RESUME.md
