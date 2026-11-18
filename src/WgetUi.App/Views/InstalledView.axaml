@@ -37,7 +37,7 @@
               </Panel>
               <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
               <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
-                <!-- Automatic updates: always visible while on, otherwise only on the highlighted row (like (i)).
+                <!-- Automatic updates: grey when off, accent-tinted when on, amber dot when forced.
                      The slot keeps its width when the package can't be updated (local), so rows stay aligned. -->
                 <Panel Width="32" Height="32" VerticalAlignment="Center">
                   <Button Classes="AutoUpdate" Classes.On="{Binding IsAutoUpdate}" Command="{Binding ToggleAutoUpdateCommand}" IsVisible="{Binding CanAutoUpdate}"
