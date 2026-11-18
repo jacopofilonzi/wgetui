@@ -49,7 +49,8 @@ PrivilegesRequired=lowest
 DefaultDirName={autopf}\wgetui
 DisableProgramGroupPage=yes
 
-; Setup and uninstall stop while wgetui runs. Must match InstallerMutex in src/WgetUi.App (never rename).
+; Setup and uninstall stop while wgetui runs. Must match InstallerMutex in src/WgetUi.App (never rename), and
+; AppMutexName in [Code]. Checked after InitializeSetup, which first waits for wgetui to quit on an /UPDATE run.
 AppMutex=wgetui-running
 
 SetupIconFile=..\src\WgetUi.App\Assets\wgetui.ico
@@ -81,6 +82,12 @@ Name: "{autoprograms}\wgetui"; Filename: "{app}\wgetui.exe"; AppUserModelID: "wg
 Filename: "{app}\wgetui.exe"; Description: "{cm:LaunchProgram,wgetui}"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]
+// Self-update. wgetui starts the downloaded setup with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE and
+// quits right after: the AppMutex check (which runs after InitializeSetup and, silent, aborts at once) would
+// race with the app shutting down, so an /UPDATE run first waits for the mutex to disappear. Still there after
+// UpdateWaitSeconds: abort (nothing installed; the log says why, wgetui passes /LOG). The [Run] entry with
+// Check: IsUpdateRun reopens the app afterwards. Runs without /UPDATE keep the usual interactive message.
+
 // Uninstall cleanup of what the app writes outside its install folder, for the user who installed it
 // (the install is per-user). Settings (%APPDATA%\wgetui) and logs
 // (%LOCALAPPDATA%\wgetui\logs) are kept on purpose: a reinstall picks them up again.
@@ -91,9 +98,49 @@ Filename: "{app}\wgetui.exe"; Description: "{cm:LaunchProgram,wgetui}"; Flags: p
 //   registration, rewritten by the app at every start; useless once it is gone.
 
 const
+  AppMutexName = 'wgetui-running';
+  UpdateParam = '/UPDATE';
+  UpdateWaitSeconds = 30;
   RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
   RunValue = 'wgetui';
   AumidKey = 'Software\Classes\AppUserModelId\wgetui';
+
+function IsUpdateRun(): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), UpdateParam) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+function InitializeSetup(): Boolean;
+var
+  Waited: Integer;
+begin
+  Result := True;
+  if not IsUpdateRun() then
+    Exit;
+
+  Waited := 0;
+  while CheckForMutexes(AppMutexName) and (Waited < UpdateWaitSeconds * 1000) do
+  begin
+    Sleep(250);
+    Waited := Waited + 250;
+  end;
+
+  if CheckForMutexes(AppMutexName) then
+  begin
+    Log(Format('Update: wgetui still running after %d s, aborting', [UpdateWaitSeconds]));
+    Result := False;
+  end
+  else
+    Log(Format('Update: wgetui closed after %d ms', [Waited]));
+end;
 
 procedure RemoveRunValueIfOurs();
 var

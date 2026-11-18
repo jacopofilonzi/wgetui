@@ -11,6 +11,10 @@ public sealed class InstallerMutexTests
 
         var appMutex = Assert.Single(script, line => line.StartsWith("AppMutex=", StringComparison.Ordinal));
         Assert.Equal($"AppMutex={InstallerMutex.Name}", appMutex.Trim());
+
+        // The /UPDATE wait in [Code] checks the same mutex before the AppMutex check runs.
+        var codeConstant = Assert.Single(script, line => line.TrimStart().StartsWith("AppMutexName =", StringComparison.Ordinal));
+        Assert.Equal($"AppMutexName = '{InstallerMutex.Name}';", codeConstant.Trim());
     }
 
     [Fact]
