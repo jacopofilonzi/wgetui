@@ -1,7 +1,10 @@
 # Builds the Inno Setup installer (`make installer`).
-# - On a vX.Y.Z tag: the tag must equal v<Version> from Directory.Build.props; runs `make check`, builds the setup
-#   exe and publishes a GitHub pre-release with only that exe attached and its SHA256 in the notes.
-# - On a manual run: same build, the setup exe is only uploaded as a run artifact (no release).
+# - On a vX.Y.Z tag: the tag must equal v<Version> from Directory.Build.props and CHANGELOG.md must have a
+#   non-empty section for that version (tools/changelog-section.ps1); runs `make check`, builds the setup exe and
+#   publishes a normal GitHub release marked Latest, with only that exe attached. Its notes are the CHANGELOG
+#   section followed by the "Installer:" and "SHA256: `<hex>`" lines (the app reads the SHA256 line as a
+#   fallback to the asset digest: keep it exactly so).
+# - On a manual run: same build and checks, the setup exe is only uploaded as a run artifact (no release).
 # The installer is never run here; Inno Setup itself is installed from a pinned, hash-checked download.
 name: Release
 
@@ -48,6 +51,12 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./tools/changelog-section.ps1 -Version $env:VERSION -Out release-notes.md
+
       - name: Ensure GNU make
         shell: pwsh
         run: |
@@ -82,6 +91,12 @@ jobs:
           path: artifacts/wgetui-setup-${{ steps.version.outputs.version }}-x64.exe
           if-no-files-found: error
 
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
   release:
     if: github.ref_type == 'tag'
     needs: build
@@ -94,7 +109,12 @@ jobs:
           name: wgetui-setup-${{ needs.build.outputs.version }}-x64
           path: artifacts
 
-      - name: Create pre-release
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: notes
+
+      - name: Create release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -102,11 +122,15 @@ jobs:
         run: |
           $file = "artifacts/wgetui-setup-$env:VERSION-x64.exe"
           $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          $changelog = (Get-Content -Raw -LiteralPath notes/release-notes.md -Encoding utf8).Trim()
+          if (-not $changelog) { Write-Error 'Empty release notes'; exit 1 }
           $notes = Join-Path $env:RUNNER_TEMP 'notes.md'
           @(
+            $changelog,
+            '',
             "Installer: ``wgetui-setup-$env:VERSION-x64.exe``",
             '',
             "SHA256: ``$hash``"
           ) | Set-Content -LiteralPath $notes -Encoding utf8
-          gh release create $env:GITHUB_REF_NAME $file --repo $env:GITHUB_REPOSITORY --prerelease --title "wgetui $env:VERSION" --notes-file $notes --generate-notes
+          gh release create $env:GITHUB_REF_NAME $file --repo $env:GITHUB_REPOSITORY --latest --title "wgetui $env:VERSION" --notes-file $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

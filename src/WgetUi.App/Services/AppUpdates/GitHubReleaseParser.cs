@@ -13,8 +13,8 @@ public sealed record GitHubReleaseScan(AppRelease? Latest, IReadOnlyList<string>
 /// Pure reading of the GitHub REST "list releases" response (an array of release objects).
 /// </summary>
 /// <remarks>
-/// A release is installable when it is not a draft (pre-releases count: every wgetui release is published as
-/// one), its tag is <c>vX.Y.Z</c>, it has the asset <c>wgetui-setup-X.Y.Z-x64.exe</c> in state "uploaded"
+/// A release is installable when it is not a draft (pre-releases count too: releases up to 0.2.x were published
+/// as pre-releases, later ones are normal releases), its tag is <c>vX.Y.Z</c>, it has the asset <c>wgetui-setup-X.Y.Z-x64.exe</c> in state "uploaded"
 /// with an https download URL, and a SHA-256 is known: the asset's <c>digest</c> ("sha256:&lt;hex&gt;", computed
 /// by GitHub) or else the "SHA256: `&lt;hex&gt;`" line the release workflow writes in the notes. Without a
 /// hash the release is skipped: the download could not be verified. The highest installable version wins,
