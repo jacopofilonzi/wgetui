@@ -110,7 +110,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `Services/TrayIconHost.cs` | Avalonia `TrayIcon` + `NativeMenu` (Open, Upgrade all (N), Check for updates, Quit); icons rendered per (taskbar theme, state) and cached |
 | `Services/QuitConfirmDialog.cs`, `NotificationsConsentDialog.cs` | quit-with-pending-operations modal; first-run "notify me?" Yes/No |
 | `Services/StartWithWindowsService.cs` | "Start with Windows": HKCU Run value `wgetui` = `"<exe>" --tray [--data-dir "<dir>"]`; the Run key is the source of truth |
-| `Services/RelaunchPlanner.cs`, `RelaunchAfterUpgrade.cs` | `IOperationHook`: before an upgrade, record the user-session processes running from the install folder; after success + 5 s grace, restart the missing ones non-elevated with their arguments. Pure selection rules in the planner |
+| `Services/RelaunchPlanner.cs`, `RelaunchAfterUpgrade.cs` | `IOperationHook`: before an upgrade or an install over an installed package (e.g. a downgrade via "Install this version"), record the user-session processes running from the install folder; after success + 5 s grace, restart the missing ones non-elevated with their arguments. Pure selection rules in the planner |
 | `Platform/*.cs` | OS abstractions: `IToastNotifier`, `IRunKey`, `ITaskbarTheme`, `IProcessSource` (+ `ProcessSnapshot`, `IProcessLauncher`), `IWindowFlasher` |
 | `Platform/Windows/*.cs` | Windows implementations: toasts + AUMID registration, HKCU Run key, `SystemUsesLightTheme`, process list (QueryFullProcessImageName, NtQueryInformationProcess, token elevation), `Process.Start`, `FlashWindowEx` |
 | `Themes/SourceBadges.axaml` | badge colours (Light/Dark) and icons per source id (`winget`, `msstore`, `local`), with a `default` fallback |

@@ -72,7 +72,7 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   - `IRunKey` / `HkcuRunKey` (`StartWithWindowsService`): the HKCU `Run` value `wgetui`. Never toggle "Start
     with Windows" in a check; test it with `FakeRunKey`;
   - `IProcessLauncher` / `WindowsProcessLauncher` (`RelaunchAfterUpgrade`): starts programs. Tests use
-    `FakeLauncher`; it only runs after a real upgrade anyway;
+    `FakeLauncher`; it only runs after a real upgrade or install anyway;
   - `IWindowFlasher`: flashes the taskbar button.
   When launching the app for a check use `--data-dir` with an empty scratch folder **and `--force-no-tray`** (so
   closing it never leaves an instance hidden in the tray), don't click

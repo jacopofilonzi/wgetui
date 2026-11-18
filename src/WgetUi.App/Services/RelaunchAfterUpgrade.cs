@@ -58,7 +58,9 @@ public sealed partial class RelaunchAfterUpgrade : IOperationHook
     public async Task BeforeAsync(QueuedOperation operation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(operation);
-        if (operation.Kind != OperationKind.Upgrade || !_settings.Current.RelaunchClosedApps)
+        // Upgrades and installs: installing a specific version over an installed package (e.g. a downgrade) closes
+        // its apps just like an upgrade. A fresh install has no install location yet, so it records nothing.
+        if (operation.Kind is not (OperationKind.Upgrade or OperationKind.Install) || !_settings.Current.RelaunchClosedApps)
         {
             return;
         }

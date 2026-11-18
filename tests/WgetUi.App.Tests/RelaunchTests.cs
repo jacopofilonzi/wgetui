@@ -60,9 +60,9 @@ public sealed class RelaunchTests : IAsyncDisposable
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private async Task<OperationResult> UpgradeAsync(Action whileRunning, OperationResult outcome)
+    private async Task<OperationResult> UpgradeAsync(Action whileRunning, OperationResult outcome, OperationKind kind = OperationKind.Upgrade, OperationOptions? options = null)
     {
-        var operation = _queue.Enqueue(new Package("fake", "main", "netbird", "NetBird", "1.0", "2.0"), OperationKind.Upgrade);
+        var operation = _queue.Enqueue(new Package("fake", "main", "netbird", "NetBird", "1.0", "2.0"), kind, options);
         for (var i = 0; i < 200 && operation.State != OperationState.Running; i++)
         {
             await Task.Delay(10, Ct);
@@ -91,6 +91,22 @@ public sealed class RelaunchTests : IAsyncDisposable
         Assert.Equal(_ui, started.Executable);
         Assert.Equal("--minimized", started.Arguments);
         Assert.Equal(Path.GetDirectoryName(_ui), started.WorkingDirectory);
+    }
+
+    [Fact]
+    public async Task AppClosedByInstallingAnotherVersionIsStartedAgain()
+    {
+        _manager.ExtraCapabilities = ManagerCapabilities.InstallLocation | ManagerCapabilities.InstallVersion;
+        _processes.Processes.Add(Proc(10, _ui));
+
+        // A downgrade: "Install this version" on an installed package.
+        await UpgradeAsync(
+            () => _processes.Processes.RemoveAll(p => p.Id == 10),
+            OperationResult.Success(),
+            OperationKind.Install,
+            new OperationOptions(false, false, "0.9"));
+
+        Assert.Equal(_ui, Assert.Single(_launcher.Started).Executable);
     }
 
     [Fact]
