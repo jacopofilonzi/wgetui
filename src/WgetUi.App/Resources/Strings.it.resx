@@ -150,4 +150,13 @@
   <data name="Source_Local" xml:space="preserve"><value>Locale</value></data>
   <data name="Uninstall_Title" xml:space="preserve"><value>Disinstallare {0}?</value></data>
   <data name="Uninstall_Message" xml:space="preserve"><value>{0} ({1}) verrà rimosso da questo computer. Il programma di disinstallazione potrebbe chiedere i permessi di amministratore.</value></data>
+  <data name="Toast_AutoPostponed_One" xml:space="preserve"><value>Aggiornamento rimandato: {0} {1}</value></data>
+  <data name="Toast_AutoPostponed_OneBody" xml:space="preserve"><value>L'app è aperta. Chiudila e wgetui la aggiornerà al prossimo controllo, oppure aggiornala ora dalla pagina Aggiornamenti.</value></data>
+  <data name="Toast_AutoPostponed_Many" xml:space="preserve"><value>{0} aggiornamenti rimandati</value></data>
+  <data name="Toast_AutoPostponed_ManyBody" xml:space="preserve"><value>{0} sono aperte. Chiudile e wgetui le aggiornerà al prossimo controllo, oppure aggiornale ora dalla pagina Aggiornamenti.</value></data>
+  <data name="Toast_AutoUpdated" xml:space="preserve"><value>Aggiornati automaticamente: {0}</value></data>
+  <data name="Toast_AutoUpdatedBody" xml:space="preserve"><value>Tutto fatto. Apri la coda per i dettagli.</value></data>
+  <data name="Toast_AutoFailed_One" xml:space="preserve"><value>Aggiornamento automatico di {0} non riuscito</value></data>
+  <data name="Toast_AutoFailed_Many" xml:space="preserve"><value>Aggiornamenti automatici non riusciti: {0}</value></data>
+  <data name="Toast_AutoFailedBody" xml:space="preserve"><value>Apri la coda per i dettagli, oppure riprova dalla pagina Aggiornamenti.</value></data>
 </root>

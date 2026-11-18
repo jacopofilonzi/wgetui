@@ -91,6 +91,12 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
     public bool ShowNone => HasLoaded && !IsBusy && Upgrades.Count == 0;
 
+    /// <summary>The updates the last refresh found that are not ignored and can be upgraded (rows of finished upgrades are gone).</summary>
+    public IReadOnlyList<Package> PendingUpdates => [.. _rows.Where(r => r.CanAct && !r.IsIgnored).Select(r => r.Package)];
+
+    /// <summary>The last refresh had no manager failing (its list is the whole truth).</summary>
+    public bool LastRefreshComplete { get; private set; }
+
 
     public override void OnLanguageChanged()
     {
@@ -135,6 +141,7 @@ public sealed partial class UpdatesViewModel : ViewModelBase
             RebuildVisible();
             _lastErrors = result.Errors;
             ErrorMessage = DescribeErrors(_registry, _lastErrors);
+            LastRefreshComplete = isComplete;
             HasLoaded = true;
             Loaded?.Invoke(this, new UpgradesLoadedEventArgs(filtered.Visible, isComplete));
         }
@@ -179,9 +186,21 @@ public sealed partial class UpdatesViewModel : ViewModelBase
         await RequestAsync(rows);
     }
 
-    private Task UpgradeAsync(PackageRowViewModel row) => RequestAsync([row]);
+    private Task<OperationRequestResult> UpgradeAsync(PackageRowViewModel row) => RequestAsync([row]);
 
-    private async Task RequestAsync(IReadOnlyList<PackageRowViewModel> rows)
+    /// <summary>
+    /// Automatic updates: queues these upgrades exactly like an Upgrade click (rows marked queued, agreements as
+    /// for manual upgrades) and returns what was queued.
+    /// </summary>
+    public async Task<IReadOnlyList<QueuedOperation>> UpgradeAutomaticallyAsync(IReadOnlyList<Package> packages)
+    {
+        ArgumentNullException.ThrowIfNull(packages);
+        var keys = packages.Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+        var rows = _rows.Where(r => keys.Contains(r.Package.Key) && r.CanAct && !r.IsQueued).ToList();
+        return rows.Count == 0 ? [] : (await RequestAsync(rows)).Queued;
+    }
+
+    private async Task<OperationRequestResult> RequestAsync(IReadOnlyList<PackageRowViewModel> rows)
     {
         foreach (var row in rows)
         {
@@ -200,6 +219,7 @@ public sealed partial class UpdatesViewModel : ViewModelBase
 
         Notice = result.AgreementErrors.Count > 0 ? Loc["Agreements_ReadFailed"] : null;
         UpgradeAllCommand.NotifyCanExecuteChanged();
+        return result;
     }
 
     /// <summary>Removes the update row of a package that was uninstalled.</summary>

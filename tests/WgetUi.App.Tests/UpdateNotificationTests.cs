@@ -30,7 +30,7 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
         var actions = new PackageActions(requester, _settings, NullLogger<PackageActions>.Instance);
         _updates = new UpdatesViewModel(registry, actions, new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance), RecordingPresenter.Launcher(registry), _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _operations = new OperationsViewModel(_queue, registry, _dispatcher);
-        _notifier = new UpdateNotifier(_updates, _settings, _toasts, NullLogger<UpdateNotifier>.Instance);
+        _notifier = new UpdateNotifier(_updates, _settings, new AutoUpdateService(_settings, NullLogger<AutoUpdateService>.Instance), _toasts, NullLogger<UpdateNotifier>.Instance);
         Loc.Instance.SetLanguage("en");
     }
 
@@ -130,7 +130,17 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
     public async Task EachTickRefreshesTheListAndPendingOperationsSkipIt()
     {
         var ticker = new ManualTicker();
-        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
+        var registry = new ManagerRegistry([_manager], NullLogger<ManagerRegistry>.Instance);
+        var auto = new AutoUpdater(
+            _updates,
+            new AutoUpdateService(_settings, NullLogger<AutoUpdateService>.Instance),
+            _settings,
+            new OpenAppDetector(registry, new FakeProcessSource(), new RelaunchOptions(TimeSpan.Zero, [], 1, 1, null), NullLogger<OpenAppDetector>.Instance),
+            _queue,
+            _toasts,
+            _dispatcher,
+            NullLogger<AutoUpdater>.Instance);
+        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, auto, ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
         scheduler.Start();
 
         ticker.Tick();

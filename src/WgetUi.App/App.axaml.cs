@@ -93,6 +93,7 @@ public sealed partial class App : Application
         {
             // The first refresh is the startup update check; the scheduler takes over hourly.
             await vm.InitializeAsync();
+            await scheduler.RunAutomaticUpdatesAsync();
             scheduler.Start();
         }
         catch (Exception ex)

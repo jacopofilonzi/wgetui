@@ -150,4 +150,13 @@
   <data name="Source_Local" xml:space="preserve"><value>Local</value></data>
   <data name="Uninstall_Title" xml:space="preserve"><value>Uninstall {0}?</value></data>
   <data name="Uninstall_Message" xml:space="preserve"><value>{0} ({1}) will be removed from this computer. Its installer may ask for administrator permission.</value></data>
+  <data name="Toast_AutoPostponed_One" xml:space="preserve"><value>Update postponed: {0} {1}</value></data>
+  <data name="Toast_AutoPostponed_OneBody" xml:space="preserve"><value>The app is open. Close it and wgetui will update it at the next check, or update it now from the Updates page.</value></data>
+  <data name="Toast_AutoPostponed_Many" xml:space="preserve"><value>{0} updates postponed</value></data>
+  <data name="Toast_AutoPostponed_ManyBody" xml:space="preserve"><value>{0} are open. Close them and wgetui will update them at the next check, or update them now from the Updates page.</value></data>
+  <data name="Toast_AutoUpdated" xml:space="preserve"><value>Updated automatically: {0}</value></data>
+  <data name="Toast_AutoUpdatedBody" xml:space="preserve"><value>All done. Open the queue for details.</value></data>
+  <data name="Toast_AutoFailed_One" xml:space="preserve"><value>Automatic update of {0} failed</value></data>
+  <data name="Toast_AutoFailed_Many" xml:space="preserve"><value>Automatic updates failed: {0}</value></data>
+  <data name="Toast_AutoFailedBody" xml:space="preserve"><value>Open the queue for details, or try again from the Updates page.</value></data>
 </root>

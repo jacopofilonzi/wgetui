@@ -95,6 +95,8 @@ internal static class Program
         services.AddSingleton<TrayViewModel>();
         services.AddSingleton<ShellCoordinator>();
         services.AddSingleton<UpdateNotifier>();
+        services.AddSingleton<OpenAppDetector>();
+        services.AddSingleton<AutoUpdater>();
         services.AddSingleton<HourlyTicker>();
         services.AddSingleton<IUpdateCheckTicker>(sp => sp.GetRequiredService<HourlyTicker>());
         services.AddSingleton<UpdateCheckScheduler>();

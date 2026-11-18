@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using WgetUi.App.Infrastructure;
 using WgetUi.App.Localization;
 using WgetUi.App.Platform;
+using WgetUi.App.Services;
 using WgetUi.Core.Models;
 
 namespace WgetUi.App.ViewModels;
@@ -14,19 +15,21 @@ namespace WgetUi.App.ViewModels;
 /// news again. The known set lives in settings (no repeat after a restart) and is replaced by the current
 /// list after every complete check, which keeps it bounded. When the window is active the user sees the list
 /// directly: new entries are recorded as seen without a toast. Nothing is shown until the user answered the
-/// first-run question (<see cref="AppSettings.NotifyNewUpdates"/>).
+/// first-run question (<see cref="AppSettings.NotifyNewUpdates"/>). Packages with automatic updates on are left to <see cref="AutoUpdater"/>'s toasts.
 /// </remarks>
 public sealed partial class UpdateNotifier
 {
     private const int NamesInBody = 3;
     private readonly SettingsService _settings;
+    private readonly AutoUpdateService _autoUpdates;
     private readonly IToastNotifier _notifier;
     private readonly ILogger<UpdateNotifier> _logger;
 
-    public UpdateNotifier(UpdatesViewModel updates, SettingsService settings, IToastNotifier notifier, ILogger<UpdateNotifier> logger)
+    public UpdateNotifier(UpdatesViewModel updates, SettingsService settings, AutoUpdateService autoUpdates, IToastNotifier notifier, ILogger<UpdateNotifier> logger)
     {
         ArgumentNullException.ThrowIfNull(updates);
         _settings = settings;
+        _autoUpdates = autoUpdates;
         _notifier = notifier;
         _logger = logger;
         updates.Loaded += (_, e) => OnLoaded(e.Packages, e.IsComplete);
@@ -48,7 +51,8 @@ public sealed partial class UpdateNotifier
     {
         ArgumentNullException.ThrowIfNull(packages);
         var known = _settings.Current.NotifiedUpdates.ToHashSet(StringComparer.Ordinal);
-        var fresh = packages.Where(p => !known.Contains(KeyOf(p))).ToList();
+        // Updates the automatic updates act on are announced by their own toasts (postponed, done, failed).
+        var fresh = packages.Where(p => !known.Contains(KeyOf(p)) && !_autoUpdates.WillHandle(p)).ToList();
         var current = packages.Select(KeyOf).Distinct(StringComparer.Ordinal);
 
         // A manager that failed returned nothing: keep its entries instead of forgetting them.
