@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using WgetUi.App.Infrastructure;
 using WgetUi.App.Services;
 
@@ -12,15 +13,17 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly ThemeService _theme;
     private readonly StartWithWindowsService _startWithWindows;
     private readonly IgnoredUpdatesService _ignored;
+    private readonly WhatsNewLauncher _whatsNew;
     private readonly bool _loading = true;
 
-    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, IgnoredUpdatesService ignored, AppPaths paths, AppUpdateViewModel appUpdate)
+    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, IgnoredUpdatesService ignored, AppPaths paths, AppUpdateViewModel appUpdate, WhatsNewLauncher whatsNew)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(paths);
         ArgumentNullException.ThrowIfNull(ignored);
         _settings = settings;
         AppUpdate = appUpdate;
+        _whatsNew = whatsNew;
         _ignored = ignored;
         ignored.Changed += (_, _) => LoadIgnored();
         LoadIgnored();
@@ -104,6 +107,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public string LogFile { get; }
 
     public string Version { get; } = AppVersion.Text;
+
+    /// <summary>About > "What's new": the release notes of every version up to this one.</summary>
+    [RelayCommand]
+    private void ShowWhatsNew() => _whatsNew.ShowAll();
 
     public override void OnLanguageChanged()
     {

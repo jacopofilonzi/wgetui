@@ -64,6 +64,12 @@ public sealed class AppSettings
 
     /// <summary>The wgetui version ("x.y.z") last announced by a notification or seen in Settings, so each is notified once.</summary>
     public string? AppUpdateNotifiedVersion { get; set; }
+
+    /// <summary>
+    /// The wgetui version ("x.y.z") that ran last, so "What's new" shows the notes of the versions in between once.
+    /// Null until the first start of a version that records it.
+    /// </summary>
+    public string? LastRunVersion { get; set; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

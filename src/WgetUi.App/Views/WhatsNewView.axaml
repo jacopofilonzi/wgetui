@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:WgetUi.App.ViewModels"
+             xmlns:cl="using:WgetUi.App.Services.Changelog"
+             xmlns:l="using:WgetUi.App.Localization"
+             x:Class="WgetUi.App.Views.WhatsNewView"
+             x:DataType="vm:WhatsNewViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+  </UserControl.KeyBindings>
+  <!-- Same layout and colours as the package details popup: header and footer stay put, the notes scroll. -->
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Margin="24,24,24,0">
+      <Border Width="48" Height="48" CornerRadius="10" Background="{DynamicResource PackageTileBackground}" VerticalAlignment="Top">
+        <ui:FASymbolIcon Symbol="StarFilled" FontSize="24" Foreground="{DynamicResource PackageTileForeground}" />
+      </Border>
+      <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+      <Button Grid.Column="2" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" VerticalAlignment="Top"
+              Command="{Binding CloseCommand}" ToolTip.Tip="{l:Tr WhatsNew_Close}" AutomationProperties.Name="{l:Tr WhatsNew_Close}">
+        <ui:FASymbolIcon Symbol="Dismiss" FontSize="14" />
+      </Button>
+    </Grid>
+
+    <ScrollViewer Grid.Row="1" Margin="0,20,0,0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="20" Margin="24,0,24,0">
+        <TextBlock Classes="Secondary" Text="{l:Tr WhatsNew_Empty}" IsVisible="{Binding !HasVersions}" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding Versions}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="20" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="cl:ChangelogVersion">
+              <Border Padding="16,14,16,4" CornerRadius="8" Background="{DynamicResource DetailsCardBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="1">
+                <StackPanel Spacing="10">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="{Binding VersionText}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Classes="Secondary" Text="{Binding Date}" IsVisible="{Binding HasDate}" FontSize="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="cl:ChangelogSection">
+                        <StackPanel Spacing="4" Margin="0,0,0,10">
+                          <TextBlock Text="{Binding Heading}" IsVisible="{Binding HasHeading}" FontWeight="SemiBold" FontSize="13" />
+                          <ItemsControl ItemsSource="{Binding Items}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <Grid ColumnDefinitions="16,*" Margin="0,2">
+                                  <TextBlock Text="•" Classes="Secondary" />
+                                  <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" LineHeight="20" />
+                                </Grid>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" Margin="0,20,0,0" Padding="24,16" Background="{DynamicResource DetailsFooterBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <HyperlinkButton Grid.Column="0" Content="{l:Tr WhatsNew_ViewOnGitHub}" NavigateUri="{Binding ReleasePage}" ToolTip.Tip="{Binding ReleasePage}" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Classes="accent" Content="{l:Tr WhatsNew_Close}" Command="{Binding CloseCommand}" MinWidth="96" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

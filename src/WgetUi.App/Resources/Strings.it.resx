@@ -195,4 +195,9 @@
   <data name="Settings_AppUpdatesInstalledOnly" xml:space="preserve"><value>Gli aggiornamenti sono disponibili solo nella versione installata di wgetui: questa copia non viene eseguita dalla cartella in cui l'ha installata il setup.</value></data>
   <data name="Settings_CheckAppUpdates" xml:space="preserve"><value>Verifica automaticamente gli aggiornamenti di wgetui</value></data>
   <data name="Settings_CheckAppUpdatesHint" xml:space="preserve"><value>All'avvio e ogni ora, su GitHub. Non viene scaricato nulla finché non fai clic su "Aggiorna wgetui".</value></data>
+  <data name="WhatsNew_Title" xml:space="preserve"><value>Novità di wgetui {0}</value></data>
+  <data name="WhatsNew_ViewOnGitHub" xml:space="preserve"><value>Vedi su GitHub</value></data>
+  <data name="WhatsNew_Close" xml:space="preserve"><value>Chiudi</value></data>
+  <data name="WhatsNew_Empty" xml:space="preserve"><value>Non ci sono note di rilascio per questa versione.</value></data>
+  <data name="Settings_WhatsNew" xml:space="preserve"><value>Novità</value></data>
 </root>

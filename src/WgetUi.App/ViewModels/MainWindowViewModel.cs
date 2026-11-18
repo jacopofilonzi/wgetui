@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private IReadOnlyList<ManagerError> _initErrors = [];
 
-    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details, AppUpdateViewModel appUpdate)
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details, AppUpdateViewModel appUpdate, WhatsNewOverlay whatsNew)
     {
         _registry = registry;
         Details = details;
@@ -24,6 +24,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Operations = operations;
         Settings = settings;
         AppUpdate = appUpdate;
+        WhatsNew = whatsNew;
         CurrentPage = updates;
         Loc.CultureChanged += (_, _) =>
         {
@@ -31,6 +32,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             {
                 page.OnLanguageChanged();
             }
+
+            WhatsNew.Current?.OnLanguageChanged();
         };
     }
 
@@ -49,6 +52,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     /// <summary>wgetui's own update: the sidebar item above Settings.</summary>
     public AppUpdateViewModel AppUpdate { get; }
+
+    /// <summary>The "What's new" popup, shown over the whole window while open.</summary>
+    public WhatsNewOverlay WhatsNew { get; }
 
     [ObservableProperty]
     public partial ViewModelBase CurrentPage { get; set; }

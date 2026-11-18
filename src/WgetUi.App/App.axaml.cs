@@ -40,7 +40,13 @@ public sealed partial class App : Application
             var shell = new ShellHost(desktop, vm, coordinator, _services.GetRequiredService<ILogger<ShellHost>>());
             var notifier = _services.GetRequiredService<UpdateNotifier>();
             shell.WindowActiveChanged += (_, active) => notifier.IsWindowActive = active;
-            shell.WindowFirstShown += (_, _) => _ = AskNotificationConsentAsync(notifier, vm.Settings);
+            var whatsNew = _services.GetRequiredService<WhatsNewLauncher>();
+            whatsNew.RecordStartup();
+            shell.WindowFirstShown += (_, _) =>
+            {
+                whatsNew.ShowPending();
+                _ = AskNotificationConsentAsync(notifier, vm.Settings);
+            };
             var scheduler = _services.GetRequiredService<UpdateCheckScheduler>();
             _ = _services.GetRequiredService<AdminPromptWatcher>();
             var flasher = _services.GetRequiredService<WindowsTaskbarFlasher>();

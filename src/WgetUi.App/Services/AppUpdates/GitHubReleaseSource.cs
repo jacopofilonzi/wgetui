@@ -18,6 +18,13 @@ namespace WgetUi.App.Services.AppUpdates;
 public sealed partial class GitHubReleaseSource : IAppUpdateSource
 {
     public static readonly Uri ReleasesUri = new("https://api.github.com/repos/jacopofilonzi/wgetui/releases?per_page=30");
+
+    /// <summary>The GitHub page of a release (its notes come from CHANGELOG.md), for "View on GitHub".</summary>
+    public static Uri ReleasePage(Version version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        return new Uri($"https://github.com/jacopofilonzi/wgetui/releases/tag/v{version.ToString(3)}");
+    }
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
     private readonly HttpClient _http;
     private readonly ProductInfoHeaderValue _userAgent;

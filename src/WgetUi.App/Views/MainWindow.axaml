@@ -86,5 +86,17 @@
         </ContentControl>
       </Border>
     </Panel>
+    <!-- What's new: same modal overlay style (see WhatsNewOverlay). -->
+    <Panel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding WhatsNew.IsOpen}" Background="{DynamicResource OverlayBackdrop}">
+      <Border Width="640" Margin="24" MaxHeight="760" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="8" ClipToBounds="True"
+              Background="{DynamicResource DetailsDialogBackground}" BorderBrush="{DynamicResource DetailsDialogBorder}" BorderThickness="1"
+              BoxShadow="0 24 64 0 #80000000">
+        <ContentControl Content="{Binding WhatsNew.Current}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:WhatsNewViewModel"><v:WhatsNewView /></DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
+      </Border>
+    </Panel>
   </Grid>
 </Window>

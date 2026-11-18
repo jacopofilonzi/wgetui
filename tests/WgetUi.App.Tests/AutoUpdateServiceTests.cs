@@ -128,7 +128,8 @@ public sealed class AutoUpdateServiceTests : IDisposable
             new StartWithWindowsService(new FakeRunKey(), paths, @"C:\Apps\wgetui.exe", NullLogger<StartWithWindowsService>.Instance),
             new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance),
             paths,
-            new AppUpdateHarness(_settings, queue).ViewModel);
+            new AppUpdateHarness(_settings, queue).ViewModel,
+            WhatsNewTests.Launcher(_settings, new WgetUi.App.ViewModels.WhatsNewOverlay()));
         Assert.True(vm.AutoUpdatesEnabled);
         Assert.True(vm.CheckAppUpdates);
         Assert.False(vm.AutoUpdateOpenApps);

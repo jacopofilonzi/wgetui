@@ -6,6 +6,7 @@ using WgetUi.App.Platform;
 using WgetUi.App.Platform.Windows;
 using WgetUi.App.Services;
 using WgetUi.App.Services.AppUpdates;
+using WgetUi.App.Services.Changelog;
 using WgetUi.App.ViewModels;
 using WgetUi.Core;
 using WgetUi.Core.Managers;
@@ -119,6 +120,9 @@ internal static class Program
         services.AddSingleton<IUpdateRestartConfirmer, UpdateRestartDialog>();
         services.AddSingleton<AppUpdateViewModel>();
         services.AddSingleton<IAppUpdateChecker>(sp => sp.GetRequiredService<AppUpdateViewModel>());
+        services.AddSingleton<IChangelogSource, EmbeddedChangelogSource>();
+        services.AddSingleton<WhatsNewOverlay>();
+        services.AddSingleton<WhatsNewLauncher>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }
