@@ -43,10 +43,35 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public void PanelIsHiddenWhileThereIsNothingToShow()
+    public void PanelStartsCollapsedAndEmpty()
     {
-        Assert.False(_vm.IsPanelVisible);
+        Assert.True(_vm.IsCollapsed);
+        Assert.True(_vm.IsEmpty);
         Assert.Equal(0, _vm.PendingCount);
+    }
+
+    [Fact]
+    public async Task OnlyAnOperationQueuedOnAnEmptyHistoryExpandsThePanel()
+    {
+        _queue.Enqueue(ScriptedManager.Package("a"), OperationKind.Install);
+        await UntilAsync(() => _vm.Items.Count == 1);
+        Assert.True(_vm.IsExpanded);
+
+        // The user collapses it: later operations in the session don't reopen it while there is history.
+        _vm.ToggleExpandedCommand.Execute(null);
+        _manager.Complete("a", OperationResult.Success());
+        await UntilAsync(() => _vm.Items[0].IsSucceeded);
+        _queue.Enqueue(ScriptedManager.Package("b"), OperationKind.Install);
+        await UntilAsync(() => _vm.Items.Count == 2);
+        Assert.True(_vm.IsCollapsed);
+
+        // History cleared: it is empty again, so the next operation expands it.
+        _manager.Complete("b", OperationResult.Success());
+        await UntilAsync(() => _vm.Items.All(i => i.Operation.IsFinished));
+        _vm.ClearFinishedCommand.Execute(null);
+        _queue.Enqueue(ScriptedManager.Package("c"), OperationKind.Install);
+        await UntilAsync(() => _vm.Items.Count == 1);
+        Assert.True(_vm.IsExpanded);
     }
 
     [Fact]
@@ -57,7 +82,6 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
 
         await UntilAsync(() => _vm.Items.Count == 2 && _vm.Items[0].State == OperationState.Running);
 
-        Assert.True(_vm.IsPanelVisible);
         Assert.True(_vm.IsExpanded);
         Assert.Equal(2, _vm.PendingCount);
         Assert.True(_vm.Items[0].CanCancel);
@@ -75,7 +99,6 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
         await UntilAsync(() => _vm.Items.Count == 2);
 
         Assert.True(_vm.IsCollapsed);
-        Assert.True(_vm.IsPanelVisible);
         Assert.Equal(2, _vm.PendingCount);
         _vm.ToggleExpandedCommand.Execute(null);
         Assert.True(_vm.IsExpanded);
@@ -91,7 +114,6 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
 
         await UntilAsync(() => _vm.Items.Count == 2 && _vm.Items.All(i => i.Operation.IsFinished) && _vm.PendingCount == 0);
 
-        Assert.True(_vm.IsPanelVisible);
         Assert.True(_vm.HasFinished);
         var failed = _vm.Items.Single(i => i.Id == "ko");
         Assert.True(failed.HasError);
@@ -101,7 +123,7 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
         _vm.ClearFinishedCommand.Execute(null);
 
         Assert.Empty(_vm.Items);
-        Assert.False(_vm.IsPanelVisible);
+        Assert.True(_vm.IsEmpty);
     }
 
     [Fact]
@@ -116,7 +138,6 @@ public sealed class QueuePanelViewModelTests : IAsyncDisposable
         _vm.ClearFinishedCommand.Execute(null);
 
         Assert.Equal("busy", _vm.Items.Single().Id);
-        Assert.True(_vm.IsPanelVisible);
         Assert.Equal(1, _vm.PendingCount);
     }
 

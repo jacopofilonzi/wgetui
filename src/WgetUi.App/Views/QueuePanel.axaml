@@ -4,8 +4,7 @@
              xmlns:vm="using:WgetUi.App.ViewModels"
              xmlns:l="using:WgetUi.App.Localization"
              x:Class="WgetUi.App.Views.QueuePanel"
-             x:DataType="vm:OperationsViewModel"
-             IsVisible="{Binding IsPanelVisible}">
+             x:DataType="vm:OperationsViewModel">
   <!-- Transparent pane on the window (Mica) background, like the left navigation pane. -->
   <Border Background="Transparent">
     <Panel>
@@ -33,6 +32,8 @@
             <TextBlock Text="»" FontSize="16" />
           </Button>
         </Grid>
+        <TextBlock Grid.Row="1" Classes="Secondary" Text="{l:Tr Queue_Empty}" IsVisible="{Binding IsEmpty}"
+                   Margin="12,4,12,0" TextWrapping="Wrap" />
         <ScrollViewer Grid.Row="1">
           <ItemsControl ItemsSource="{Binding Items}" Margin="8,0,8,8">
             <ItemsControl.ItemTemplate>

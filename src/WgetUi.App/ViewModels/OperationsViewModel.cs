@@ -8,9 +8,10 @@ using WgetUi.Core.Operations;
 namespace WgetUi.App.ViewModels;
 
 /// <summary>
-/// The queue panel on the right of the shell. Hidden while there is nothing to show; appears when an
-/// operation is queued; stays visible after everything finished so results (and failures) are seen, until
-/// the user clears them. Expanded/collapsed is the user's choice for the session.
+/// The queue panel on the right of the shell. Always present: collapsed (a narrow strip with the pending count)
+/// by default, expanded when the user clicks it. It expands by itself only when an operation is queued while the
+/// history is empty; once there is history, the user's expanded/collapsed choice wins for the rest of the session
+/// (collapsing after the first download means later downloads don't pop it open). Finished items stay until cleared.
 /// </summary>
 public sealed partial class OperationsViewModel : ViewModelBase
 {
@@ -35,6 +36,11 @@ public sealed partial class OperationsViewModel : ViewModelBase
         {
             if (Items.All(i => i.Operation != operation))
             {
+                if (Items.Count == 0)
+                {
+                    IsExpanded = true;
+                }
+
                 Items.Add(Create(operation));
                 Changed();
             }
@@ -62,12 +68,12 @@ public sealed partial class OperationsViewModel : ViewModelBase
 
     public bool HasFinished => Items.Any(i => i.Operation.IsFinished);
 
-    /// <summary>The panel exists only while it has something to show.</summary>
-    public bool IsPanelVisible => Items.Count > 0;
+    /// <summary>Nothing queued, running or finished: the expanded panel shows a placeholder.</summary>
+    public bool IsEmpty => Items.Count == 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCollapsed))]
-    public partial bool IsExpanded { get; set; } = true;
+    public partial bool IsExpanded { get; set; }
 
     public bool IsCollapsed => !IsExpanded;
 
@@ -87,7 +93,7 @@ public sealed partial class OperationsViewModel : ViewModelBase
     public void SetWindowActive(bool active)
     {
         _windowActive = active;
-        if (IsBeingViewed && IsPanelVisible)
+        if (IsBeingViewed)
         {
             HasUnseenFailure = false;
         }
@@ -133,7 +139,7 @@ public sealed partial class OperationsViewModel : ViewModelBase
         OnPropertyChanged(nameof(PendingCount));
         OnPropertyChanged(nameof(HasPending));
         OnPropertyChanged(nameof(HasFinished));
-        OnPropertyChanged(nameof(IsPanelVisible));
+        OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(IsRunning));
     }
 }

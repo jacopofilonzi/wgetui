@@ -28,6 +28,7 @@
   <data name="Version_Unknown" xml:space="preserve"><value>sconosciuta</value></data>
   <data name="Queue_Title" xml:space="preserve"><value>Coda</value></data>
   <data name="Queue_Clear" xml:space="preserve"><value>Pulisci</value></data>
+  <data name="Queue_Empty" xml:space="preserve"><value>Nessuna operazione. Installazioni, aggiornamenti e disinstallazioni compaiono qui.</value></data>
   <data name="Queue_Expand" xml:space="preserve"><value>Mostra la coda</value></data>
   <data name="Queue_Collapse" xml:space="preserve"><value>Comprimi la coda</value></data>
   <data name="Ops_Cancel" xml:space="preserve"><value>Annulla</value></data>

@@ -121,7 +121,7 @@ ManagerRegistry.cs            registered managers; InitializeAsync, SearchAsync,
 | `ViewModels/PackageDetailsViewModel.cs` | details popup: loads `PackageDetails`, info-card `Fields`, versions (Latest / Installed / "Install this version"), primary action per page (`DetailsContext`), Ignore; the chosen action runs after closing |
 | `ViewModels/PackageDetailsLauncher.cs`, `DetailsOverlay.cs` | builds the details view model for a row; `IPackageDetailsPresenter` implemented as an in-window modal overlay |
 | `ViewModels/IgnoredUpdateItemViewModel.cs` | one ignored update in Settings, with Restore |
-| `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): visibility, collapse, pending count, cancel, clear, running flag, unseen failure (red tray dot until the panel is seen or cleared) |
+| `ViewModels/OperationsViewModel.cs`, `OperationItemViewModel.cs` | the queue panel (right column): always present, collapsed by default, expands by itself only when an operation is queued on an empty history; collapse, pending count, cancel, clear, running flag, unseen failure (red tray dot until the panel is seen or cleared) |
 | `ViewModels/SettingsViewModel.cs` | language, theme, automatic acceptance of agreements, close to tray, start with Windows, update notifications, reopen closed apps, ignored updates (Restore) |
 | `ViewModels/PackageActions.cs` | Install/Upgrade/Uninstall clicks → `OperationRequester` with the auto-accept setting (and an optional target version) |
 | `ViewModels/TrayViewModel.cs` | tray state (dot priority admin > failure > running > updates > none), tooltip, menu texts |
