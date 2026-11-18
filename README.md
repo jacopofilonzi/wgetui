@@ -1,45 +1,70 @@
 # wgetui
 
-A desktop GUI for [winget](https://learn.microsoft.com/windows/package-manager/) on Windows: search packages in
-the winget and Microsoft Store sources, install them, see which installed packages have updates, and upgrade
-them one by one or all at once. The Installed page lists everything installed (also apps winget doesn't know,
-marked "Local") and can uninstall them, after a confirmation. Operations run one at a time in a queue panel
-with progress and cancel.
+[![CI](https://github.com/jacopofilonzi/wgetui/actions/workflows/ci.yml/badge.svg)](https://github.com/jacopofilonzi/wgetui/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/jacopofilonzi/wgetui?include_prereleases&sort=semver)](https://github.com/jacopofilonzi/wgetui/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A desktop GUI for [winget](https://learn.microsoft.com/windows/package-manager/) on Windows: search, install,
+update and uninstall apps from the winget and Microsoft Store sources, without the command line.
+
+![Updates page](docs/screenshots/updates.png)
 
 It talks to winget through its COM API (no console parsing) and is built so other package managers
 (Chocolatey, npm…) can be added later.
 
+## Features
+
+**Find and install**
+
+- Search the winget and Microsoft Store sources, filter by source, install with one click.
 - The (i) button on every row opens the package details: description, license, homepage, release notes and the
   available versions, each of which can be installed.
+- Packages with agreements (for example from the Microsoft Store) show them before installing, unless you turn
+  on automatic acceptance in Settings. Upgrades don't ask.
+
+![Search results](docs/screenshots/search.png)
+
+![Package details](docs/screenshots/details.png)
+
+**Keep everything up to date**
+
+- See which installed packages have updates and upgrade them one by one or all at once. Operations run one at a
+  time in a queue panel, with progress and cancel.
+- Checks for updates at startup and every hour, and notifies you about new ones if you said yes on first run.
 - An update you don't want can be ignored (from the details or the row's right-click menu): that version is no
   longer counted, offered by "Upgrade all" or notified, until a newer one comes out. "Show ignored" on the
   Updates page and the "Ignored updates" section in Settings bring it back.
-- English and Italian UI (follows the system language by default), light/dark theme, Mica on Windows 11.
-- Runs as a normal user: installers that need administrator rights ask for permission themselves.
-  Don't run wgetui as administrator: winget refuses that connection.
-- Packages with agreements (for example from the Microsoft Store) show them before installing, unless you turn
-  on automatic acceptance in Settings. Upgrades don't ask.
-- Lives in the notification area: closing the window keeps it running there (Settings can change that). The tray
-  icon shows a dot for available updates (blue), a running operation (green), an installer waiting for
-  administrator permission (orange) or a failure (red), and its menu can upgrade everything or check now. It can
-  start with Windows, minimized to the tray.
-- Checks for updates at startup and every hour, and notifies you about new ones if you said yes on first run.
-- When an installer waits on the Windows permission prompt (UAC), wgetui tells you instead of looking stuck.
-- Reopens apps an upgrade closed and did not restart (on by default, in Settings).
 - Automatic updates per app: the round-arrows button left of (i) on the Installed page (or the details popup)
   turns them on. At the startup and hourly checks wgetui queues those updates by itself; an app that is open is
   postponed to the next check (you get one notification per version) unless you allowed updating it even while
   open, per app or for all of them in Settings. A notification sums up what was updated or failed. Settings can
   pause them all.
+- Reopens apps an upgrade closed and did not restart (on by default, in Settings).
+- When an installer waits on the Windows permission prompt (UAC), wgetui tells you instead of looking stuck.
+
+**Manage what's installed**
+
+- The Installed page lists everything installed (also apps winget doesn't know, marked "Local") and can
+  uninstall them, after a confirmation.
+
+**Stays out of the way**
+
+- Lives in the notification area: closing the window keeps it running there (Settings can change that). The tray
+  icon shows a dot for available updates (blue), a running operation (green), an installer waiting for
+  administrator permission (orange) or a failure (red), and its menu can upgrade everything or check now. It can
+  start with Windows, minimized to the tray.
+- Runs as a normal user: installers that need administrator rights ask for permission themselves.
+  Don't run wgetui as administrator: winget refuses that connection.
+- English and Italian UI (follows the system language by default), light/dark theme, Mica on Windows 11.
 - One window per data folder: launching it again brings the running one forward.
 
 ## Install
 
 Download `wgetui-setup-<version>-x64.exe` from the [Releases](https://github.com/jacopofilonzi/wgetui/releases)
-page and run it. By default it installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
-administrator rights (there is no "all users" option: each user installs their own copy). The setup starts wgetui at
-the end. Running the setup
-again (or a newer one) upgrades the existing install; close wgetui first, the setup asks you to.
+page and run it. It installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
+administrator rights (there is no "all users" option: each user installs their own copy), and starts wgetui at
+the end. Running the setup again (or a newer one) upgrades the existing install; close wgetui first, the setup
+asks you to.
 
 Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT`.
 

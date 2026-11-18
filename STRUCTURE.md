@@ -26,6 +26,7 @@ repo/
 │                                 artifacts/wgetui-setup-<version>-x64.exe (version read from the exe; per-user
 │                                 only, no UAC; AppMutex; uninstall cleanup of Run value + toast
 │                                 registration, settings and logs kept)
+├── docs/screenshots/             README screenshots (light/dark split diagonally; Updates list is demo data)
 ├── tools/build-installer.ps1     `make installer`: finds ISCC.exe (ISCC=, per-user, Program Files, PATH) and compiles
 ├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
