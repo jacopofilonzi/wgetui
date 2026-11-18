@@ -40,6 +40,12 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Foreground" Value="{DynamicResource InfoButtonForeground}" />
+      <!-- Shown only on the highlighted row: hover, selection or keyboard focus. Opacity, not IsVisible, so the
+           row layout doesn't shift and the button stays reachable with Tab. -->
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Button.Info, ListBoxItem:selected Button.Info, ListBoxItem:focus-within Button.Info">
+      <Setter Property="Opacity" Value="1" />
     </Style>
   </Application.Styles>
 
