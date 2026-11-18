@@ -234,7 +234,9 @@ and align this project's copies with it:
 - The main dev machine is Windows 11; shells are PowerShell and Git Bash. Commands and scripts must work there.
 - **Git Bash rewrites env values that look like paths** (`BASE_PATH=/x` becomes `C:/Program Files/Git/x`):
   prefix the command with `MSYS2_ENV_CONV_EXCL='*'` (also affects path arguments such as `--data-dir`).
-- A running `.exe` locks its binary on Windows: stop it before rebuilding.
+- A running `.exe` locks its binary on Windows: stop it before rebuilding. With close-to-tray, closing the window
+  leaves a dev instance running in the tray; `make dev`/`make run` stop leftover Debug instances first (`make stop`,
+  `tools/stop-dev.ps1`, only processes under this repo's `src/WgetUi.App/bin/Debug`).
 - **winget COM activation fails from an elevated process** (and when App Installer is missing/outdated): the
   manager reports `com_activation_elevated` / `com_activation_failed` and the UI shows a banner. Don't "fix" it
   by requesting elevation.

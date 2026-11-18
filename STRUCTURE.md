@@ -21,6 +21,7 @@ repo/
 │                                     (all with fakes)
 ├── tools/WgetUi.Smoke/           opt-in live check (`make smoke`): read-only winget calls (search, agreements,
 │                                 upgrades, install locations, installed count, details), prints results
+├── tools/stop-dev.ps1           `make stop` (run before `make dev`/`make run`): stops Debug wgetui instances of this repo
 ├── tools/WgetUi.IconGen/         `make icons`: renders the artwork (App `Icons/`, linked) into Assets/wgetui.ico
 ├── WgetUi.slnx                   solution
 ├── Directory.Build.props         shared settings: nullable, warnings as errors, analyzers, <Version>

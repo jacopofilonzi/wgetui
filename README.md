@@ -40,7 +40,8 @@ Run from the repository root (`make help` lists them):
 
 | Command | What it does |
 | --- | --- |
-| `make dev` | run the app with `dotnet watch` (hot reload) |
+| `make dev` | run the app with `dotnet watch` (hot reload); stops a leftover dev instance first |
+| `make stop` | stop wgetui instances started from this repo (Debug), e.g. one left in the tray |
 | `make run` | run the app once (Debug) |
 | `make build` | build the solution |
 | `make test` | run the unit tests |

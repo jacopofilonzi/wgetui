@@ -7,10 +7,11 @@ SMOKE := tools/WgetUi.Smoke/WgetUi.Smoke.csproj
 ICONGEN := tools/WgetUi.IconGen/WgetUi.IconGen.csproj
 
 .DEFAULT_GOAL := help
-.PHONY: help dev run build test format check publish smoke icons clean
+.PHONY: help stop dev run build test format check publish smoke icons clean
 
 help:
-	@echo make dev      - run the app with dotnet watch (hot reload)
+	@echo make dev      - run the app with dotnet watch (hot reload); stops a leftover dev instance first
+	@echo make stop     - stop wgetui instances started from this repo (Debug), e.g. one left in the tray
 	@echo make run      - run the app once (Debug)
 	@echo make build    - build the solution (Debug)
 	@echo make test     - run the unit tests
@@ -21,10 +22,13 @@ help:
 	@echo make icons    - regenerate src/WgetUi.App/Assets/wgetui.ico from the artwork in Icons/IconArt.cs
 	@echo make clean    - dotnet clean
 
-dev:
+stop:
+	powershell -NoProfile -ExecutionPolicy Bypass -File tools/stop-dev.ps1
+
+dev: stop
 	dotnet watch --project $(APP) run
 
-run:
+run: stop
 	dotnet run --project $(APP)
 
 build:
