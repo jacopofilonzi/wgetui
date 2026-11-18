@@ -33,6 +33,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
         CloseToTray = settings.Current.CloseToTray;
         NotifyNewUpdates = settings.Current.NotifyNewUpdates == true;
         RelaunchClosedApps = settings.Current.RelaunchClosedApps;
+        AutoUpdatesEnabled = settings.Current.AutoUpdatesEnabled;
+        AutoUpdateOpenApps = settings.Current.AutoUpdateOpenApps;
         StartWithWindows = startWithWindows.IsEnabled;
         _loading = false;
     }
@@ -68,6 +70,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool RelaunchClosedApps { get; set; }
+
+    /// <summary>Global switch of the per-app automatic updates (off pauses them all, keeping each app's choice).</summary>
+    [ObservableProperty]
+    public partial bool AutoUpdatesEnabled { get; set; }
+
+    /// <summary>Automatic updates also for apps that are open, as if each had "Even if the app is open".</summary>
+    [ObservableProperty]
+    public partial bool AutoUpdateOpenApps { get; set; }
 
     /// <summary>Read from and written to the Run key, not settings.json.</summary>
     [ObservableProperty]
@@ -154,6 +164,22 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!_loading)
         {
             Save(s => s.RelaunchClosedApps = value);
+        }
+    }
+
+    partial void OnAutoUpdatesEnabledChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.AutoUpdatesEnabled = value);
+        }
+    }
+
+    partial void OnAutoUpdateOpenAppsChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.AutoUpdateOpenApps = value);
         }
     }
 

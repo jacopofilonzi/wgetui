@@ -72,6 +72,23 @@
           </ItemsControl>
         </Border>
 
+        <!-- Automatic updates: settings saved right away (not an action run after closing). -->
+        <StackPanel Spacing="4" IsVisible="{Binding ShowAutoUpdate}">
+          <TextBlock Text="{l:Tr Details_AutoUpdate}" FontWeight="SemiBold" Margin="0,0,0,4" />
+          <CheckBox IsChecked="{Binding AutoUpdate}">
+            <StackPanel>
+              <TextBlock Text="{l:Tr Details_AutoUpdateOn}" />
+              <TextBlock Classes="Secondary" FontSize="12" Text="{l:Tr Details_AutoUpdateOnHint}" TextWrapping="Wrap" />
+            </StackPanel>
+          </CheckBox>
+          <CheckBox IsChecked="{Binding AutoUpdateForce}" IsEnabled="{Binding AutoUpdate}">
+            <StackPanel>
+              <TextBlock Text="{l:Tr Details_AutoUpdateForce}" />
+              <TextBlock Classes="Secondary" FontSize="12" Text="{l:Tr Details_AutoUpdateForceHint}" TextWrapping="Wrap" />
+            </StackPanel>
+          </CheckBox>
+        </StackPanel>
+
         <StackPanel Spacing="8" IsVisible="{Binding HasVersions}">
           <TextBlock Text="{l:Tr Details_Versions}" FontWeight="SemiBold" />
           <ListBox ItemsSource="{Binding Versions}" MaxHeight="200" Background="Transparent">

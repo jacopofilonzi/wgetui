@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using WgetUi.App.Services;
 using WgetUi.Core;
 using WgetUi.Core.Managers;
 using WgetUi.Core.Models;
@@ -32,17 +33,20 @@ public sealed record PackageDetailsActions(
 /// <remarks>
 /// An action never runs while the popup is open: it is stored in <see cref="ChosenAction"/>, the popup closes
 /// (<see cref="CloseRequested"/>) and the presenter runs it afterwards, because an install may need the
-/// agreements modal and only one dialog can be open at a time.
+/// agreements modal and only one dialog can be open at a time. The "Automatic updates" checkboxes are settings, not
+/// actions: they apply immediately (<see cref="AutoUpdateService"/>).
 /// </remarks>
 public sealed partial class PackageDetailsViewModel : ViewModelBase
 {
     private readonly ManagerRegistry _registry;
     private readonly PackageDetailsActions _actions;
+    private readonly AutoUpdateService? _autoUpdates;
     private readonly ILogger _logger;
+    private readonly bool _initializing = true;
     private PackageDetails _details;
     private string? _errorCode;
 
-    public PackageDetailsViewModel(Package package, string sourceName, DetailsContext context, ManagerRegistry registry, PackageDetailsActions actions, ILogger logger)
+    public PackageDetailsViewModel(Package package, string sourceName, DetailsContext context, ManagerRegistry registry, PackageDetailsActions actions, ILogger logger, AutoUpdateService? autoUpdates = null)
     {
         ArgumentNullException.ThrowIfNull(package);
         ArgumentNullException.ThrowIfNull(registry);
@@ -51,6 +55,7 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
         Context = context;
         _registry = registry;
         _actions = actions;
+        _autoUpdates = autoUpdates;
         _logger = logger;
         Capabilities = registry.Find(package.ManagerId)?.Capabilities ?? ManagerCapabilities.None;
         _details = PackageDetails.Minimal(package) with
@@ -58,6 +63,11 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
             // Search results carry the latest available version in Version, not an installed one.
             InstalledVersion = context == DetailsContext.Search ? null : package.Version,
         };
+        // Installed packages only: a search result is not (necessarily) installed.
+        ShowAutoUpdate = autoUpdates is not null && context != DetailsContext.Search && AutoUpdateService.CanAutoUpdate(package, Capabilities);
+        AutoUpdate = autoUpdates?.IsEnabled(package) == true;
+        AutoUpdateForce = autoUpdates?.IsForced(package) == true;
+        _initializing = false;
         Refresh();
     }
 
@@ -140,6 +150,37 @@ public sealed partial class PackageDetailsViewModel : ViewModelBase
     public string? IgnoreText => AvailableVersion is null ? null : Loc.Format("Details_Ignore", AvailableVersion);
 
     public bool ShowIgnore => _actions.Ignore is not null && AvailableVersion is not null;
+
+    /// <summary>The "Automatic updates" section: installed packages a manager can upgrade from a source.</summary>
+    public bool ShowAutoUpdate { get; }
+
+    /// <summary>"Update automatically".</summary>
+    [ObservableProperty]
+    public partial bool AutoUpdate { get; set; }
+
+    /// <summary>"Even if the app is open"; only meaningful (and enabled) while <see cref="AutoUpdate"/> is on.</summary>
+    [ObservableProperty]
+    public partial bool AutoUpdateForce { get; set; }
+
+    partial void OnAutoUpdateChanged(bool value)
+    {
+        if (!value)
+        {
+            AutoUpdateForce = false;
+        }
+
+        SaveAutoUpdate();
+    }
+
+    partial void OnAutoUpdateForceChanged(bool value) => SaveAutoUpdate();
+
+    private void SaveAutoUpdate()
+    {
+        if (!_initializing && ShowAutoUpdate)
+        {
+            _autoUpdates?.Set(Package, AutoUpdate, AutoUpdate && AutoUpdateForce);
+        }
+    }
 
     /// <summary>Reads the details from the manager. Failures leave the basic info and show an error line.</summary>
     public async Task LoadAsync(CancellationToken cancellationToken)

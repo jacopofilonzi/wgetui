@@ -84,7 +84,11 @@ internal static class Program
         services.AddSingleton<PackageActions>();
         services.AddSingleton<DetailsOverlay>();
         services.AddSingleton<IPackageDetailsPresenter>(sp => sp.GetRequiredService<DetailsOverlay>());
-        services.AddSingleton<PackageDetailsLauncher>();
+        services.AddSingleton(sp => new PackageDetailsLauncher(
+            sp.GetRequiredService<ManagerRegistry>(),
+            sp.GetRequiredService<IPackageDetailsPresenter>(),
+            sp.GetRequiredService<ILogger<PackageDetailsViewModel>>(),
+            sp.GetRequiredService<AutoUpdateService>()));
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<UpdatesViewModel>();
         services.AddSingleton<IUninstallConfirmer, UninstallConfirmDialog>();

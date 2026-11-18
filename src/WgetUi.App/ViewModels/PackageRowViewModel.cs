@@ -6,7 +6,8 @@ namespace WgetUi.App.ViewModels;
 
 /// <summary>
 /// One package in the Search, Updates or Installed list: its main action (install, upgrade or uninstall), plus the
-/// optional details (i) button and ignore/unignore (Updates). Optional handlers left null hide their action.
+/// optional details (i) button, ignore/unignore (Updates) and the automatic-update toggle (Installed). Optional
+/// handlers left null hide their action.
 /// </summary>
 public sealed partial class PackageRowViewModel : ObservableObject
 {
@@ -49,7 +50,12 @@ public sealed partial class PackageRowViewModel : ObservableObject
     /// <summary>Stops ignoring this update.</summary>
     public Action<PackageRowViewModel>? UnignoreHandler { get; init; }
 
+    /// <summary>Turns automatic updates on/off; null when the package can't have them (local, or no Upgrade).</summary>
+    public Action<PackageRowViewModel>? AutoUpdateHandler { get; init; }
+
     public bool CanShowDetails => DetailsHandler is not null;
+
+    public bool CanAutoUpdate => AutoUpdateHandler is not null;
 
     public bool CanIgnore => IgnoreHandler is not null && AvailableVersion is not null;
 
@@ -63,6 +69,21 @@ public sealed partial class PackageRowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowAction), nameof(RowOpacity))]
     public partial bool IsIgnored { get; set; }
 
+    /// <summary>Automatic updates are on for this package (the toggle stays visible and accent-tinted).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AutoUpdateLabel), nameof(ShowAutoUpdateForced))]
+    public partial bool IsAutoUpdate { get; set; }
+
+    /// <summary>Automatic updates even while the app is open (small amber dot on the toggle).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AutoUpdateLabel), nameof(ShowAutoUpdateForced))]
+    public partial bool IsAutoUpdateForced { get; set; }
+
+    public bool ShowAutoUpdateForced => IsAutoUpdate && IsAutoUpdateForced;
+
+    /// <summary>Tooltip and accessible name of the toggle: its current state.</summary>
+    public string AutoUpdateLabel => Localization.Loc.Instance[!IsAutoUpdate ? "AutoUpdate_Off" : IsAutoUpdateForced ? "AutoUpdate_OnForced" : "AutoUpdate_On"];
+
     public bool ShowAction => CanAct && !IsIgnored;
 
     public double RowOpacity => IsIgnored ? 0.55 : 1.0;
@@ -74,6 +95,9 @@ public sealed partial class PackageRowViewModel : ObservableObject
 
     [RelayCommand]
     private Task ShowDetailsAsync() => DetailsHandler?.Invoke(this) ?? Task.CompletedTask;
+
+    [RelayCommand]
+    private void ToggleAutoUpdate() => AutoUpdateHandler?.Invoke(this);
 
     [RelayCommand]
     private void Ignore() => IgnoreHandler?.Invoke(this);

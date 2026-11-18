@@ -159,4 +159,17 @@
   <data name="Toast_AutoFailed_One" xml:space="preserve"><value>Aggiornamento automatico di {0} non riuscito</value></data>
   <data name="Toast_AutoFailed_Many" xml:space="preserve"><value>Aggiornamenti automatici non riusciti: {0}</value></data>
   <data name="Toast_AutoFailedBody" xml:space="preserve"><value>Apri la coda per i dettagli, oppure riprova dalla pagina Aggiornamenti.</value></data>
+  <data name="AutoUpdate_Off" xml:space="preserve"><value>Aggiornamento automatico: disattivo</value></data>
+  <data name="AutoUpdate_On" xml:space="preserve"><value>Aggiornamento automatico: attivo</value></data>
+  <data name="AutoUpdate_OnForced" xml:space="preserve"><value>Aggiornamento automatico: attivo, anche se l'app è aperta</value></data>
+  <data name="Installed_OnlyAutoUpdates" xml:space="preserve"><value>Solo aggiornamento automatico</value></data>
+  <data name="Details_AutoUpdate" xml:space="preserve"><value>Aggiornamento automatico</value></data>
+  <data name="Details_AutoUpdateOn" xml:space="preserve"><value>Aggiorna automaticamente</value></data>
+  <data name="Details_AutoUpdateOnHint" xml:space="preserve"><value>Al controllo orario, se c'è una nuova versione la mette in coda.</value></data>
+  <data name="Details_AutoUpdateForce" xml:space="preserve"><value>Anche se l'app è aperta</value></data>
+  <data name="Details_AutoUpdateForceHint" xml:space="preserve"><value>L'installer può chiuderla; wgetui la riapre a fine aggiornamento.</value></data>
+  <data name="Settings_AutoUpdatesEnabled" xml:space="preserve"><value>Aggiornamenti automatici attivi</value></data>
+  <data name="Settings_AutoUpdatesEnabledHint" xml:space="preserve"><value>Spegnilo per sospenderli tutti senza togliere le spunte. Si attivano per singola app dalla pagina Installati.</value></data>
+  <data name="Settings_AutoUpdateOpenApps" xml:space="preserve"><value>Aggiorna anche le app aperte</value></data>
+  <data name="Settings_AutoUpdateOpenAppsHint" xml:space="preserve"><value>Vale per tutte le app con aggiornamento automatico, come se avessero la forzatura.</value></data>
 </root>

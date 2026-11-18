@@ -47,6 +47,47 @@
     <Style Selector="ListBoxItem:pointerover Button.Info, ListBoxItem:selected Button.Info, ListBoxItem:focus-within Button.Info">
       <Setter Property="Opacity" Value="1" />
     </Style>
+    <!-- The automatic-update toggle left of (i): off = grey and only on the highlighted row (like Button.Info);
+         on (.On) = accent-tinted and always visible; forced = on plus a small amber dot (Border.AutoUpdateForced). -->
+    <Style Selector="Button.AutoUpdate">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Button.AutoUpdate Path">
+      <Setter Property="Stroke" Value="{DynamicResource AutoUpdateOffForeground}" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Button.AutoUpdate, ListBoxItem:selected Button.AutoUpdate, ListBoxItem:focus-within Button.AutoUpdate">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.AutoUpdate.On">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource AutoUpdateOnBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AutoUpdateOnBorder}" />
+    </Style>
+    <Style Selector="Button.AutoUpdate.On Path">
+      <Setter Property="Stroke" Value="{DynamicResource AutoUpdateOnForeground}" />
+    </Style>
+    <Style Selector="Border.AutoUpdateForced">
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="Margin" Value="0,0,-4,-4" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Background" Value="{DynamicResource AutoUpdateForcedBackground}" />
+    </Style>
+    <Style Selector="Border.AutoUpdateForced Path">
+      <Setter Property="Stroke" Value="{DynamicResource AutoUpdateForcedForeground}" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+    </Style>
   </Application.Styles>
 
   <!-- Page view models → views. -->

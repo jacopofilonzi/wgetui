@@ -13,7 +13,7 @@ namespace WgetUi.App.Services;
 /// <remarks>
 /// Only packages a manager can upgrade and that come from a source can have a rule (<see cref="CanAutoUpdate"/>):
 /// local packages are offered by no source, so nothing would ever upgrade them. Rules of packages that are no
-/// longer installed are dropped after a complete installed list (<see cref="PruneInstalled"/>) and right after an
+/// longer installed are dropped after each installed list (<see cref="PruneInstalled"/>) and right after an
 /// uninstall (<see cref="Remove"/>). Used from the UI thread only; <see cref="Changed"/> is raised there.
 /// </remarks>
 public sealed partial class AutoUpdateService
@@ -89,16 +89,21 @@ public sealed partial class AutoUpdateService
     /// <summary>Drops the rule of a package that was uninstalled.</summary>
     public bool Remove(Package package) => Set(package, enabled: false);
 
-    /// <summary>After a complete installed list: drops the rules of packages that are not installed any more.</summary>
-    public void PruneInstalled(IReadOnlyList<Package> installed, bool isComplete)
+    /// <summary>
+    /// After an installed list: drops the rules of packages that are not installed any more. Only the managers in
+    /// <paramref name="listedManagers"/> (those that listed their packages without failing) are trusted; the rules of
+    /// the others are kept.
+    /// </summary>
+    public void PruneInstalled(IReadOnlyList<Package> installed, IReadOnlyCollection<string> listedManagers)
     {
         ArgumentNullException.ThrowIfNull(installed);
-        if (!isComplete || Rules.Count == 0)
+        ArgumentNullException.ThrowIfNull(listedManagers);
+        if (Rules.Count == 0)
         {
             return;
         }
 
-        var kept = Rules.Where(r => installed.Any(r.IsFor)).ToList();
+        var kept = Rules.Where(r => !listedManagers.Contains(r.ManagerId) || installed.Any(r.IsFor)).ToList();
         if (kept.Count != Rules.Count)
         {
             LogPruned(Rules.Count - kept.Count);

@@ -18,16 +18,21 @@ public interface IUninstallConfirmer
 
 /// <summary>
 /// Every installed package of the managers that can list them (packages no source offers included, under
-/// <see cref="PackageSource.LocalId"/>), with a name filter, details and Uninstall (after a confirmation).
-/// Packages that are not <see cref="Package.IsRemovable"/> are left out.
+/// <see cref="PackageSource.LocalId"/>), with a name filter, details, Uninstall (after a confirmation) and the
+/// per-app automatic-update toggle (<see cref="AutoUpdateService"/>). Packages that are not
+/// <see cref="Package.IsRemovable"/> are left out.
 /// </summary>
-/// <remarks>Loaded the first time the page is shown (<see cref="EnsureLoaded"/>) and on Refresh.</remarks>
+/// <remarks>
+/// Loaded the first time the page is shown (<see cref="EnsureLoaded"/>) and on Refresh; each load prunes the
+/// automatic-update rules of packages no longer installed.
+/// </remarks>
 public sealed partial class InstalledViewModel : ViewModelBase
 {
     private readonly ManagerRegistry _registry;
     private readonly PackageActions _actions;
     private readonly PackageDetailsLauncher _details;
     private readonly IgnoredUpdatesService _ignored;
+    private readonly AutoUpdateService _autoUpdates;
     private readonly IUninstallConfirmer _confirmer;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger<InstalledViewModel> _logger;
@@ -40,6 +45,7 @@ public sealed partial class InstalledViewModel : ViewModelBase
         PackageActions actions,
         PackageDetailsLauncher details,
         IgnoredUpdatesService ignored,
+        AutoUpdateService autoUpdates,
         IUninstallConfirmer confirmer,
         OperationQueue queue,
         IUiDispatcher dispatcher,
@@ -50,11 +56,14 @@ public sealed partial class InstalledViewModel : ViewModelBase
         _actions = actions;
         _details = details;
         _ignored = ignored;
+        _autoUpdates = autoUpdates;
         _confirmer = confirmer;
         _dispatcher = dispatcher;
         _logger = logger;
         Packages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowNone));
         queue.OperationChanged += OnOperationChanged;
+        autoUpdates.Changed += (_, _) => ApplyAutoUpdates();
+        ShowAutoUpdateFilter = registry.Managers.Any(m => m.Capabilities.HasFlag(ManagerCapabilities.Upgrade));
     }
 
     /// <summary>The rows matching <see cref="Filter"/>.</summary>
@@ -65,6 +74,13 @@ public sealed partial class InstalledViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string Filter { get; set; } = string.Empty;
+
+    /// <summary>Shows only the packages with automatic updates on.</summary>
+    [ObservableProperty]
+    public partial bool OnlyAutoUpdates { get; set; }
+
+    /// <summary>The "Only automatic updates" filter is offered when some manager can upgrade.</summary>
+    public bool ShowAutoUpdateFilter { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowNone))]
@@ -100,6 +116,8 @@ public sealed partial class InstalledViewModel : ViewModelBase
 
     partial void OnFilterChanged(string value) => ApplyFilter();
 
+    partial void OnOnlyAutoUpdatesChanged(bool value) => ApplyFilter();
+
     private bool CanRefresh() => !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
@@ -113,6 +131,12 @@ public sealed partial class InstalledViewModel : ViewModelBase
             _packages = [.. result.Packages.Where(p => p.IsRemovable)];
             _lastErrors = result.Errors;
             ErrorMessage = DescribeErrors(_registry, _lastErrors);
+            var failed = result.Errors.Select(e => e.ManagerId).ToHashSet(StringComparer.Ordinal);
+            var listed = _registry.Managers
+                .Where(m => m.Capabilities.HasFlag(ManagerCapabilities.ListInstalled) && !failed.Contains(m.Id))
+                .Select(m => m.Id)
+                .ToList();
+            _autoUpdates.PruneInstalled(result.Packages, listed);
             BuildRows();
             HasLoaded = true;
         }
@@ -136,7 +160,10 @@ public sealed partial class InstalledViewModel : ViewModelBase
             _rows.Add(new PackageRowViewModel(package, sourceName, capabilities.HasFlag(ManagerCapabilities.Uninstall), UninstallAsync)
             {
                 DetailsHandler = capabilities.HasFlag(ManagerCapabilities.Details) ? ShowDetailsAsync : null,
+                AutoUpdateHandler = AutoUpdateService.CanAutoUpdate(package, capabilities) ? r => _autoUpdates.Toggle(r.Package) : null,
                 IsQueued = queued.Contains(package.Key),
+                IsAutoUpdate = _autoUpdates.IsEnabled(package),
+                IsAutoUpdateForced = _autoUpdates.IsForced(package),
             });
         }
 
@@ -148,11 +175,26 @@ public sealed partial class InstalledViewModel : ViewModelBase
     {
         var filter = Filter.Trim();
         Packages.Clear();
-        foreach (var row in _rows.Where(r => filter.Length == 0
+        foreach (var row in _rows.Where(r => (!OnlyAutoUpdates || r.IsAutoUpdate) && (filter.Length == 0
             || r.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-            || r.Id.Contains(filter, StringComparison.CurrentCultureIgnoreCase)))
+            || r.Id.Contains(filter, StringComparison.CurrentCultureIgnoreCase))))
         {
             Packages.Add(row);
+        }
+    }
+
+    // Re-reads the rules (row toggle, details popup, pruning) without asking the managers again.
+    private void ApplyAutoUpdates()
+    {
+        foreach (var row in _rows)
+        {
+            row.IsAutoUpdate = _autoUpdates.IsEnabled(row.Package);
+            row.IsAutoUpdateForced = _autoUpdates.IsForced(row.Package);
+        }
+
+        if (OnlyAutoUpdates)
+        {
+            ApplyFilter();
         }
     }
 
@@ -196,6 +238,7 @@ public sealed partial class InstalledViewModel : ViewModelBase
             if (operation.State == OperationState.Succeeded)
             {
                 _packages = [.. _packages.Where(p => p.Key != operation.Package.Key)];
+                _autoUpdates.Remove(operation.Package);
                 _rows.Remove(row);
                 Packages.Remove(row);
                 OnPropertyChanged(nameof(TotalCount));

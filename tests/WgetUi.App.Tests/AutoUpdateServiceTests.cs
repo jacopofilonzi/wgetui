@@ -102,19 +102,42 @@ public sealed class AutoUpdateServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnlyCompleteInstalledListsPruneRules()
+    public void OnlyManagersThatListedTheirPackagesPruneRules()
     {
         _service.Set(Pkg("a"), enabled: true);
         _service.Set(Pkg("b"), enabled: true);
 
-        _service.PruneInstalled([Pkg("a")], isComplete: false);
+        _service.PruneInstalled([Pkg("a")], listedManagers: []);
         Assert.Equal(2, _service.Rules.Count);
 
-        _service.PruneInstalled([Pkg("a")], isComplete: true);
+        _service.PruneInstalled([Pkg("a")], listedManagers: ["fake"]);
         Assert.Equal(["a"], _service.Rules.Select(r => r.PackageId));
 
         _service.Remove(Pkg("a"));
         Assert.Empty(_service.Rules);
+    }
+
+    [Fact]
+    public void SettingsTogglesSaveTheGlobalSwitches()
+    {
+        var paths = AppPaths.FromArgs(["--data-dir", _dataDir]);
+        var vm = new WgetUi.App.ViewModels.SettingsViewModel(
+            _settings,
+            new ThemeService(),
+            new StartWithWindowsService(new FakeRunKey(), paths, @"C:\Apps\wgetui.exe", NullLogger<StartWithWindowsService>.Instance),
+            new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance),
+            paths);
+        Assert.True(vm.AutoUpdatesEnabled);
+        Assert.False(vm.AutoUpdateOpenApps);
+
+        vm.AutoUpdatesEnabled = false;
+        vm.AutoUpdateOpenApps = true;
+
+        var saved = Reload().Current;
+        Assert.False(saved.AutoUpdatesEnabled);
+        Assert.True(saved.AutoUpdateOpenApps);
+        Assert.False(_service.IsGloballyEnabled);
+        Assert.True(_service.ForceOpenApps);
     }
 
     [Fact]

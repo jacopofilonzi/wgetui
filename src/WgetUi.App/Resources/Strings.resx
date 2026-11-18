@@ -159,4 +159,17 @@
   <data name="Toast_AutoFailed_One" xml:space="preserve"><value>Automatic update of {0} failed</value></data>
   <data name="Toast_AutoFailed_Many" xml:space="preserve"><value>Automatic updates failed: {0}</value></data>
   <data name="Toast_AutoFailedBody" xml:space="preserve"><value>Open the queue for details, or try again from the Updates page.</value></data>
+  <data name="AutoUpdate_Off" xml:space="preserve"><value>Automatic updates: off</value></data>
+  <data name="AutoUpdate_On" xml:space="preserve"><value>Automatic updates: on</value></data>
+  <data name="AutoUpdate_OnForced" xml:space="preserve"><value>Automatic updates: on, even if the app is open</value></data>
+  <data name="Installed_OnlyAutoUpdates" xml:space="preserve"><value>Only automatic updates</value></data>
+  <data name="Details_AutoUpdate" xml:space="preserve"><value>Automatic updates</value></data>
+  <data name="Details_AutoUpdateOn" xml:space="preserve"><value>Update automatically</value></data>
+  <data name="Details_AutoUpdateOnHint" xml:space="preserve"><value>At the hourly check, a new version is queued for you.</value></data>
+  <data name="Details_AutoUpdateForce" xml:space="preserve"><value>Even if the app is open</value></data>
+  <data name="Details_AutoUpdateForceHint" xml:space="preserve"><value>The installer may close it; wgetui reopens it when the update is done.</value></data>
+  <data name="Settings_AutoUpdatesEnabled" xml:space="preserve"><value>Automatic updates enabled</value></data>
+  <data name="Settings_AutoUpdatesEnabledHint" xml:space="preserve"><value>Turn it off to pause them all without clearing each app's choice. Turn them on per app from the Installed page.</value></data>
+  <data name="Settings_AutoUpdateOpenApps" xml:space="preserve"><value>Update open apps too</value></data>
+  <data name="Settings_AutoUpdateOpenAppsHint" xml:space="preserve"><value>Applies to every app with automatic updates, as if each had "Even if the app is open".</value></data>
 </root>

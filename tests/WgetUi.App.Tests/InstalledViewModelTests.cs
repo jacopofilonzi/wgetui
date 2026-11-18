@@ -18,6 +18,8 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
     private readonly SettingsService _settings;
     private readonly string _dataDir;
     private readonly FakeUninstallConfirmer _confirmer = new();
+    private readonly RecordingPresenter _presenter = new();
+    private readonly AutoUpdateService _autoUpdates;
     private readonly InstalledViewModel _vm;
     private readonly UpdatesViewModel _updates;
 
@@ -29,8 +31,9 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
         var ignored = new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance);
         var requester = new OperationRequester(registry, _queue, new NoAgreements(), NullLogger<OperationRequester>.Instance);
         var actions = new PackageActions(requester, _settings, NullLogger<PackageActions>.Instance);
-        var launcher = RecordingPresenter.Launcher(registry);
-        _vm = new InstalledViewModel(registry, actions, launcher, ignored, _confirmer, _queue, _dispatcher, NullLogger<InstalledViewModel>.Instance);
+        _autoUpdates = new AutoUpdateService(_settings, NullLogger<AutoUpdateService>.Instance);
+        var launcher = new PackageDetailsLauncher(registry, _presenter, NullLogger<PackageDetailsViewModel>.Instance, _autoUpdates);
+        _vm = new InstalledViewModel(registry, actions, launcher, ignored, _autoUpdates, _confirmer, _queue, _dispatcher, NullLogger<InstalledViewModel>.Instance);
         _updates = new UpdatesViewModel(registry, actions, ignored, launcher, _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _manager.Installed.AddRange([
             new Package("fake", "main", "7zip.7zip", "7-Zip", "26.05", "26.06"),
@@ -160,6 +163,95 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
 
         Assert.True(_vm.HasLoaded);
         Assert.Equal(3, _vm.Packages.Count);
+    }
+
+    [Fact]
+    public async Task OnlyPackagesFromASourceGetTheAutomaticUpdateToggle()
+    {
+        await _vm.RefreshCommand.ExecuteAsync(null);
+
+        Assert.True(_vm.ShowAutoUpdateFilter);
+        Assert.True(Row("7zip.7zip").CanAutoUpdate);
+        Assert.False(Row(@"ARP\Machine\X64\Tool").CanAutoUpdate);
+        Assert.False(Row("Steam App 1").CanAutoUpdate);
+        Assert.Equal("Automatic updates: off", Row("7zip.7zip").AutoUpdateLabel);
+    }
+
+    [Fact]
+    public async Task TheRowToggleSavesTheRuleAndTheFilterShowsOnlyThoseRows()
+    {
+        await _vm.RefreshCommand.ExecuteAsync(null);
+
+        Row("7zip.7zip").ToggleAutoUpdateCommand.Execute(null);
+
+        Assert.True(Row("7zip.7zip").IsAutoUpdate);
+        Assert.False(Row("7zip.7zip").ShowAutoUpdateForced);
+        Assert.Equal("Automatic updates: on", Row("7zip.7zip").AutoUpdateLabel);
+        Assert.Equal("7zip.7zip", Assert.Single(_settings.Current.AutoUpdates).PackageId);
+
+        _vm.OnlyAutoUpdates = true;
+        Assert.Equal(["7zip.7zip"], _vm.Packages.Select(r => r.Id));
+
+        Row("7zip.7zip").ToggleAutoUpdateCommand.Execute(null);
+        Assert.Empty(_vm.Packages);
+        Assert.Empty(_settings.Current.AutoUpdates);
+    }
+
+    [Fact]
+    public async Task TheDetailsSectionSetsAutomaticUpdatesAndForce()
+    {
+        await _vm.RefreshCommand.ExecuteAsync(null);
+        _presenter.OnShow = details =>
+        {
+            Assert.True(details.ShowAutoUpdate);
+            details.AutoUpdate = true;
+            details.AutoUpdateForce = true;
+            return Task.CompletedTask;
+        };
+
+        await Row("7zip.7zip").ShowDetailsCommand.ExecuteAsync(null);
+
+        Assert.True(Assert.Single(_settings.Current.AutoUpdates).Force);
+        Assert.True(Row("7zip.7zip").ShowAutoUpdateForced);
+        Assert.Equal("Automatic updates: on, even if the app is open", Row("7zip.7zip").AutoUpdateLabel);
+        Assert.Empty(_queue.Operations);
+
+        _presenter.OnShow = details =>
+        {
+            Assert.True(details.AutoUpdate && details.AutoUpdateForce);
+            details.AutoUpdate = false;
+            Assert.False(details.AutoUpdateForce);
+            return Task.CompletedTask;
+        };
+        await Row("7zip.7zip").ShowDetailsCommand.ExecuteAsync(null);
+
+        Assert.Empty(_settings.Current.AutoUpdates);
+        Assert.False(Row("7zip.7zip").IsAutoUpdate);
+    }
+
+    [Fact]
+    public async Task TheDetailsSectionIsHiddenForLocalPackages()
+    {
+        await _vm.RefreshCommand.ExecuteAsync(null);
+
+        await Row(@"ARP\Machine\X64\Tool").ShowDetailsCommand.ExecuteAsync(null);
+
+        Assert.False(Assert.Single(_presenter.Shown).ShowAutoUpdate);
+    }
+
+    [Fact]
+    public async Task RulesOfPackagesNoLongerInstalledArePrunedOnRefreshAndOnUninstall()
+    {
+        _autoUpdates.Set(new Package("fake", "main", "gone.app", "Gone", "1.0"), enabled: true);
+        _autoUpdates.Set(_manager.Installed[0], enabled: true);
+
+        await _vm.RefreshCommand.ExecuteAsync(null);
+        Assert.Equal(["7zip.7zip"], _settings.Current.AutoUpdates.Select(r => r.PackageId));
+
+        await Row("7zip.7zip").ActCommand.ExecuteAsync(null);
+        _manager.Complete("7zip.7zip", OperationResult.Success());
+
+        await UntilAsync(() => _settings.Current.AutoUpdates.Count == 0);
     }
 
     private sealed class FakeUninstallConfirmer : IUninstallConfirmer

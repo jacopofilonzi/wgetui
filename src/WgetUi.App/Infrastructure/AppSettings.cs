@@ -43,7 +43,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Packages upgraded automatically at the update checks (one rule per package, with its "even if open" flag).
-    /// Pruned after each complete installed list, so it never grows past the number of installed packages.
+    /// Pruned after each installed list (managers that failed keep their rules), so it never grows past the number of installed packages.
     /// </summary>
     public IReadOnlyList<AutoUpdateRule> AutoUpdates { get; set; } = [];
 
