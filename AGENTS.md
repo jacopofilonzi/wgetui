@@ -85,6 +85,10 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   closing it never leaves an instance hidden in the tray), don't click
   Install/Upgrade/Uninstall (or confirm them), and stop it afterwards (if `make dev` is running, build and launch the Release output: the
   dev instance locks the Debug one).
+- **The setup exe and its uninstaller are a real install/uninstall**: never run `artifacts/wgetui-setup-*.exe`
+  (not even with `/VERYSILENT`), an installed `unins000.exe`, or an Inno Setup installer in a check. Building it
+  (`make installer`) is fine; installing (per-user / all users), upgrading over an existing install and uninstalling
+  are tested by me by hand.
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
   keys and a separate database.
 
@@ -218,8 +222,12 @@ and align this project's copies with it:
 - The version lives in one place: `<Version>` in `Directory.Build.props`.
 - Tags and releases only when I ask.
 - CI (GitHub Actions, `.github/workflows/ci.yml`, Windows runner) runs `make check` on every push and pull request.
-  Release builds are not wired yet: when the MSI exists, they run only on a `vX.Y.Z` tag or a manual run, never on a
-  plain push, and the GitHub Release carries only the MSI.
+- Distribution is the Inno Setup installer `wgetui-setup-<version>-x64.exe` (`make installer`); its version is read
+  from the published exe, so `<Version>` stays the only place to change.
+- Releases (`.github/workflows/release.yml`) build only on a `vX.Y.Z` tag or a manual run, never on a plain push. A tag
+  must equal `v<Version>` and creates a GitHub **pre-release** (while 0.x) with only the setup exe attached and its
+  SHA256 in the notes; a manual run only uploads the setup exe as a run artifact. Inno Setup is pinned there by
+  version and SHA256 (`INNO_VERSION`, `INNO_SHA256`): bump both together.
 
 ## Adding a package manager
 
@@ -291,3 +299,9 @@ and align this project's copies with it:
   use an overlay instead (see `DetailsOverlay`).
 - **The app started from a hidden-window shell (e.g. PowerShell `Start-Process` in a tool) opens with no visible
   window**: launch it from Git Bash, or launch it a second time with the same `--data-dir` to activate it.
+- **Inno Setup's `ISCC.exe` is not on PATH** (per-user install in `%LOCALAPPDATA%\Programs\Inno Setup 7`, Program
+  Files in CI) and its path has spaces, which make can't search: `make installer` resolves it in
+  `tools/build-installer.ps1`; pass `ISCC=<path to ISCC.exe>` for another location. Inno 7 differs from v6 examples
+  online: check `ISPPBuiltins.iss` and the help of the installed version (https://jrsoftware.org/ishelp/).
+- **`AppMutex` in `installer/wgetui.iss` must match `InstallerMutex`** (`wgetui-running`, `Global\wgetui-running`;
+  a test checks it). Mutex names are case-sensitive; a mismatch silently lets setup replace a running exe.

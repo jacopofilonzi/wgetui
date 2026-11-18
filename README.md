@@ -33,11 +33,25 @@ It talks to winget through its COM API (no console parsing) and is built so othe
   pause them all.
 - One window per data folder: launching it again brings the running one forward.
 
+## Install
+
+Download `wgetui-setup-<version>-x64.exe` from the [Releases](https://github.com/jacopofilonzi/wgetui/releases)
+page and run it. By default it installs for the current user only, in `%LOCALAPPDATA%\Programs\wgetui`, without
+administrator rights; the first page also offers "all users" (`Program Files\wgetui`, asks for administrator
+permission). Either way wgetui itself runs as a normal user, and the setup starts it at the end. Running the setup
+again (or a newer one) upgrades the existing install; close wgetui first, the setup asks you to.
+
+Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT /CURRENTUSER` (or `/ALLUSERS`, from an elevated prompt).
+
+Uninstall from Settings > Apps (or the Start menu entry's "Uninstall"). It removes the program, the "Start with
+Windows" entry (if it points at this install) and the notification registration; your settings and logs stay in
+`%APPDATA%\wgetui` and `%LOCALAPPDATA%\wgetui\logs`, so a reinstall picks them up.
+
 ## Requirements
 
 - Windows 10 1809 or later / Windows 11, x64.
 - winget (App Installer from the Microsoft Store), up to date.
-- To build: .NET SDK 10.0.403 or later 10.0.x, GNU Make.
+- To build: .NET SDK 10.0.403 or later 10.0.x, GNU Make; for `make installer`, Inno Setup 7.
 
 ## Commands
 
@@ -53,6 +67,7 @@ Run from the repository root (`make help` lists them):
 | `make format` | apply code formatting |
 | `make check` | formatting check + Release build with warnings as errors + tests (must be clean before committing) |
 | `make publish` | self-contained single-file `publish/wgetui.exe` (keep the two `Microsoft.Management.Deployment.*` files next to it) |
+| `make installer` | `make publish`, then the Inno Setup 7 installer `artifacts/wgetui-setup-<version>-x64.exe` (`ISCC=<path to ISCC.exe>` if it isn't found) |
 | `make smoke` | opt-in live check: read-only winget search, agreements, upgrade listing, install locations, installed packages and details; never installs, upgrades or uninstalls |
 | `make icons` | regenerate `src/WgetUi.App/Assets/wgetui.ico` from the artwork in `src/WgetUi.App/Icons/IconArt.cs` |
 | `make clean` | `dotnet clean` |
