@@ -1,0 +1,112 @@
+# Builds the Inno Setup installer (`make installer`).
+# - On a vX.Y.Z tag: the tag must equal v<Version> from Directory.Build.props; runs `make check`, builds the setup
+#   exe and publishes a GitHub pre-release with only that exe attached and its SHA256 in the notes.
+# - On a manual run: same build, the setup exe is only uploaded as a run artifact (no release).
+# The installer is never run here; Inno Setup itself is installed from a pinned, hash-checked download.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Official installer linked from https://jrsoftware.org/isdl.php (GitHub release of jrsoftware/issrc).
+  # Bump both together; the hash is also in the .issig file next to the download.
+  INNO_VERSION: 7.1.1
+  INNO_SHA256: 8a5a6711c3766a6e5fb74f280ba0e3551e719ce94538d901fdbd1f8f9920b3f0
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content -Raw Directory.Build.props
+          $version = @($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ })[0]
+          if (-not $version) { Write-Error 'No <Version> in Directory.Build.props'; exit 1 }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            Write-Error "Tag $env:GITHUB_REF_NAME does not match <Version> $version (expected v$version)"
+            exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Ensure GNU make
+        shell: pwsh
+        run: |
+          if (-not (Get-Command make -ErrorAction SilentlyContinue)) { choco install make -y --no-progress }
+          make --version
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $tag = 'is-' + ($env:INNO_VERSION -replace '\.', '_')
+          $url = "https://github.com/jrsoftware/issrc/releases/download/$tag/innosetup-$env:INNO_VERSION-x64.exe"
+          $file = Join-Path $env:RUNNER_TEMP "innosetup-$env:INNO_VERSION-x64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $file
+          $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:INNO_SHA256) { Write-Error "Inno Setup download hash mismatch: $hash"; exit 1 }
+          # All users into Program Files, one of the places tools/build-installer.ps1 looks.
+          $dir = Join-Path $env:ProgramFiles 'Inno Setup 7'
+          $setup = Start-Process -FilePath $file -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/ALLUSERS', "/DIR=`"$dir`"")
+          if ($setup.ExitCode -ne 0) { Write-Error "Inno Setup install failed ($($setup.ExitCode))"; exit 1 }
+          if (-not (Test-Path -LiteralPath (Join-Path $dir 'ISCC.exe'))) { Write-Error "ISCC.exe not found in $dir"; exit 1 }
+
+      - name: make check
+        run: make check
+
+      - name: make installer
+        run: make installer
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wgetui-setup-${{ steps.version.outputs.version }}-x64
+          path: artifacts/wgetui-setup-${{ steps.version.outputs.version }}-x64.exe
+          if-no-files-found: error
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: wgetui-setup-${{ needs.build.outputs.version }}-x64
+          path: artifacts
+
+      - name: Create pre-release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          $file = "artifacts/wgetui-setup-$env:VERSION-x64.exe"
+          $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          $notes = Join-Path $env:RUNNER_TEMP 'notes.md'
+          @(
+            "Installer: ``wgetui-setup-$env:VERSION-x64.exe``",
+            '',
+            "SHA256: ``$hash``"
+          ) | Set-Content -LiteralPath $notes -Encoding utf8
+          gh release create $env:GITHUB_REF_NAME $file --repo $env:GITHUB_REPOSITORY --prerelease --title "wgetui $env:VERSION" --notes-file $notes --generate-notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
