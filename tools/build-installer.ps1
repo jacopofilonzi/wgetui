@@ -1,0 +1,31 @@
+# Compiles installer/wgetui.iss with Inno Setup 7 (`make installer`, after `make publish`).
+# ISCC.exe is usually not on PATH and lives under a folder with spaces, which make can't search for, so it is
+# resolved here: -Iscc (`make installer ISCC=...`), then PATH, then the per-user install
+# (%LOCALAPPDATA%\Programs\Inno Setup 7) and the all-users one (Program Files, used by the release workflow).
+param([string]$Iscc = '')
+
+$ErrorActionPreference = 'Stop'
+
+if (-not $Iscc) {
+    $onPath = Get-Command 'ISCC.exe' -ErrorAction SilentlyContinue
+    $candidates = @()
+    if ($onPath) { $candidates += $onPath.Source }
+    foreach ($root in @($env:LOCALAPPDATA, $env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if ($root) {
+            $base = if ($root -eq $env:LOCALAPPDATA) { Join-Path $root 'Programs' } else { $root }
+            $candidates += Join-Path (Join-Path $base 'Inno Setup 7') 'ISCC.exe'
+        }
+    }
+    $Iscc = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $Iscc) {
+        Write-Error "Inno Setup 7 (ISCC.exe) not found. Install it from https://jrsoftware.org/isdl.php or pass ISCC=<path to ISCC.exe>."
+    }
+}
+elseif (-not (Test-Path -LiteralPath $Iscc)) {
+    Write-Error "ISCC not found at '$Iscc'."
+}
+
+$script = Join-Path $PSScriptRoot '..\installer\wgetui.iss'
+Write-Host "Using $Iscc"
+& $Iscc $script
+exit $LASTEXITCODE
