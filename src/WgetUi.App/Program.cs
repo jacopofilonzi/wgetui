@@ -18,6 +18,8 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Held by every process, primary or not, until it exits: the installer's AppMutex check looks for it.
+        using var installerMutex = InstallerMutex.Acquire();
         var paths = AppPaths.FromArgs(args);
         using var instance = SingleInstance.Acquire(SingleInstance.KeyFor(paths.DataDirectory));
         if (!instance.IsPrimary)
@@ -29,6 +31,7 @@ internal static class Program
 
         WindowsToastNotifier.SetProcessAppUserModelId();
         var services = ConfigureServices(paths, instance);
+        installerMutex.LogFailures(services.GetRequiredService<ILogger<InstallerMutex>>());
         try
         {
             return AppBuilder.Configure(() => new App(services))
