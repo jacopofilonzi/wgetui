@@ -63,17 +63,165 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task StartClearsOldSetupsThenChecks()
+    public async Task StartClearsOldSetupsThenChecksAndDownloadsInTheBackground()
     {
+        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
+
+        var start = Vm.StartAsync();
+
+        Assert.Equal(1, _h.Downloader.Cleanups);
+        Assert.Null(_h.Downloader.Kept);
+        Assert.Equal(AppUpdateState.Downloading, Vm.State);
+        _h.Downloader.Complete(SetupPath);
+        await start;
+        Assert.Equal(AppUpdateState.Ready, Vm.State);
+        Assert.Equal("Restart to update", Vm.Title);
+        Assert.Equal("Version 0.3.0", Vm.Subtitle);
+    }
+
+    [Fact]
+    public async Task TheManualCheckOnlyOffersTheUpdate()
+    {
+        _settings.Update(s => s.NotifyNewUpdates = true);
+        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
+
+        await Vm.CheckCommand.ExecuteAsync(null);
+
+        Assert.Equal(AppUpdateState.Available, Vm.State);
+        Assert.True(Vm.IsVisible);
+        Assert.Equal("Update wgetui", Vm.Title);
+        Assert.Equal(0, _h.Downloader.Downloads);
+        Assert.Empty(_h.Notifier.Shown);
+        Assert.Null(_settings.Current.PendingAppUpdate);
+        Assert.Equal("wgetui 0.3.0 is available: click \"Update wgetui\" in the menu.", Vm.CheckResult);
+    }
+
+    [Fact]
+    public async Task AnAutomaticCheckDownloadsVerifiesRecordsAndNotifiesReadyOnce()
+    {
+        _settings.Update(s => s.NotifyNewUpdates = true);
+        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
+
+        var check = Vm.CheckAutomaticallyAsync();
+        Assert.Equal(AppUpdateState.Downloading, Vm.State);
+        Assert.False(Vm.IsChecking);
+        _h.Downloader.Complete(SetupPath);
+        await check;
+
+        Assert.Equal(AppUpdateState.Ready, Vm.State);
+        Assert.Equal([("wgetui 0.3.0 is ready: restart to update", "Click \"Restart to update\" in the wgetui menu, or it installs by itself the next time wgetui starts.")], _h.Notifier.Shown);
+        Assert.Equal(WgetUi.App.Platform.ToastAction.OpenWindow, Assert.Single(_h.Notifier.Actions));
+        Assert.Equal("0.3.0", _settings.Current.AppUpdateNotifiedVersion);
+        var pending = Assert.IsType<PendingAppUpdate>(_settings.Current.PendingAppUpdate);
+        Assert.Equal(("0.3.0", "wgetui-setup-0.3.0-x64.exe", new string('a', 64)), (pending.Version, pending.FileName, pending.Sha256));
+        Assert.Empty(_h.Launcher.Started);
+
+        // Ready: later checks change nothing and notify nothing.
+        await Vm.CheckAutomaticallyAsync();
+        Assert.Equal(1, _h.Downloader.Downloads);
+        Assert.Single(_h.Notifier.Shown);
+        Assert.Equal("wgetui 0.3.0 is ready: click \"Restart to update\" in the menu.", Vm.CheckResult);
+    }
+
+    [Fact]
+    public async Task TheReadyNotificationNeedsNotificationsOnAndComesOncePerVersion()
+    {
+        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
+        var check = Vm.CheckAutomaticallyAsync();
+        _h.Downloader.Complete(SetupPath);
+        await check;
+        Assert.Empty(_h.Notifier.Shown);
+
+        _settings.Update(s =>
+        {
+            s.NotifyNewUpdates = true;
+            s.AppUpdateNotifiedVersion = "0.4.0";
+        });
+        var h = new AppUpdateHarness(_settings, _queue);
+        h.Source.Latest = FakeAppUpdateSource.Release("0.4.0");
+        check = h.ViewModel.CheckAutomaticallyAsync();
+        h.Downloader.Complete(SetupPath);
+        await check;
+        Assert.Empty(h.Notifier.Shown);
+    }
+
+    [Fact]
+    public async Task AFailedBackgroundDownloadFallsBackToAvailableQuietlyAndTheNextCheckRetries()
+    {
+        _settings.Update(s => s.NotifyNewUpdates = true);
+        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
+
+        var check = Vm.CheckAutomaticallyAsync();
+        _h.Downloader.Fail(new AppUpdateException(ErrorCodes.AppUpdateDownloadFailed, "offline"));
+        await check;
+
+        Assert.Equal(AppUpdateState.Available, Vm.State);
+        Assert.Null(Vm.ErrorCode);
+        Assert.Empty(_h.Notifier.Shown);
+        Assert.Null(_settings.Current.PendingAppUpdate);
+
+        check = Vm.CheckAutomaticallyAsync();
+        Assert.Equal(2, _h.Downloader.Downloads);
+        _h.Downloader.Complete(SetupPath);
+        await check;
+        Assert.Equal(AppUpdateState.Ready, Vm.State);
+        Assert.Single(_h.Notifier.Shown);
+    }
+
+    [Fact]
+    public async Task StartOffersAgainAVerifiedDownloadThatWasNotInstalled()
+    {
+        // E.g. automatic updates were turned off after the download: no install at startup, but still Ready.
+        _settings.Update(s => s.PendingAppUpdate = new PendingAppUpdate { Version = "0.3.0", FileName = "wgetui-setup-0.3.0-x64.exe", Sha256 = new string('a', 64) });
+
+        await Vm.StartAsync();
+
+        Assert.Equal(AppUpdateState.Ready, Vm.State);
+        Assert.Equal([SetupPath], _h.Downloader.Verified);
+        Assert.Equal("wgetui-setup-0.3.0-x64.exe", _h.Downloader.Kept);
+        Assert.Equal(0, _h.Source.Calls);
+
+        await Vm.ActivateAsync();
+        var (exe, _, _) = Assert.Single(_h.Launcher.Started);
+        Assert.Equal(SetupPath, exe);
+    }
+
+    [Fact]
+    public async Task StartShowsRetryWhenThePendingInstallAlreadyFailed()
+    {
+        _settings.Update(s =>
+        {
+            s.PendingAppUpdate = new PendingAppUpdate { Version = "0.3.0", FileName = "wgetui-setup-0.3.0-x64.exe", Sha256 = new string('a', 64) };
+            s.AppUpdateAutoInstallAttempted = "0.3.0";
+        });
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
 
         await Vm.StartAsync();
 
-        Assert.Equal(1, _h.Downloader.Cleanups);
-        Assert.Equal(AppUpdateState.Available, Vm.State);
-        Assert.True(Vm.IsVisible);
-        Assert.Equal("Update wgetui", Vm.Title);
-        Assert.Equal("Version 0.3.0", Vm.Subtitle);
+        Assert.Equal(AppUpdateState.Failed, Vm.State);
+        Assert.Equal("Retry update", Vm.Title);
+        Assert.Equal(Loc.Instance.Error(ErrorCodes.AppUpdateInstallFailed), Vm.Subtitle);
+        Assert.Equal(0, _h.Downloader.Downloads);
+        Assert.Equal("wgetui-setup-0.3.0-x64.exe", _h.Downloader.Kept);
+
+        // Clicking retries the install of the same file, without downloading again.
+        await Vm.ActivateAsync();
+        Assert.Single(_h.Launcher.Started);
+        Assert.Equal(0, _h.Downloader.Downloads);
+    }
+
+    [Fact]
+    public async Task StartDropsAPendingFileThatNoLongerMatches()
+    {
+        _settings.Update(s => s.PendingAppUpdate = new PendingAppUpdate { Version = "0.3.0", FileName = "wgetui-setup-0.3.0-x64.exe", Sha256 = new string('a', 64) });
+        _settings.Update(s => s.CheckAppUpdates = false);
+        _h.Downloader.VerifyResult = false;
+
+        await Vm.StartAsync();
+
+        Assert.Equal(AppUpdateState.None, Vm.State);
+        Assert.Null(_settings.Current.PendingAppUpdate);
+        Assert.Null(_h.Downloader.Kept);
     }
 
     [Fact]
@@ -92,7 +240,7 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     public async Task AvailableThenDownloadingThenReadyThenInstall()
     {
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-        await Vm.CheckAutomaticallyAsync();
+        await Vm.CheckCommand.ExecuteAsync(null);
 
         var download = Vm.ActivateAsync();
         Assert.Equal(AppUpdateState.Downloading, Vm.State);
@@ -117,13 +265,15 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
         Assert.Equal(AppUpdateHarness.DownloadDirectory, dir);
         Assert.Equal(1, _h.QuitRequests);
         Assert.Empty(_h.Confirmer.Asked);
+        Assert.Equal("0.3.0", _settings.Current.PendingAppUpdate?.Version);
+        Assert.Equal("0.3.0", _settings.Current.AppUpdateAutoInstallAttempted);
     }
 
     [Fact]
     public async Task ClickingWhileDownloadingCancels()
     {
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-        await Vm.CheckAutomaticallyAsync();
+        await Vm.CheckCommand.ExecuteAsync(null);
         var download = Vm.ActivateAsync();
 
         await Vm.ActivateAsync();
@@ -140,7 +290,7 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     public async Task AHashMismatchFailsAndClickingRetriesTheDownload()
     {
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-        await Vm.CheckAutomaticallyAsync();
+        await Vm.CheckCommand.ExecuteAsync(null);
         var download = Vm.ActivateAsync();
 
         _h.Downloader.Fail(new AppUpdateException(ErrorCodes.AppUpdateHashMismatch, "mismatch"));
@@ -221,40 +371,6 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task EachNewVersionIsNotifiedOnceAndOnlyWithNotificationsOn()
-    {
-        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-
-        await Vm.CheckAutomaticallyAsync();
-        Assert.Empty(_h.Notifier.Shown);
-
-        _settings.Update(s => s.NotifyNewUpdates = true);
-        await Vm.CheckAutomaticallyAsync();
-        await Vm.CheckAutomaticallyAsync();
-        Assert.Equal([("wgetui 0.3.0 is available", "Open wgetui and click \"Update wgetui\" in the menu to install it.")], _h.Notifier.Shown);
-        Assert.Equal(WgetUi.App.Platform.ToastAction.OpenWindow, Assert.Single(_h.Notifier.Actions));
-        Assert.Equal("0.3.0", _settings.Current.AppUpdateNotifiedVersion);
-
-        _h.Source.Latest = FakeAppUpdateSource.Release("0.4.0");
-        await Vm.CheckAutomaticallyAsync();
-        Assert.Equal(2, _h.Notifier.Shown.Count);
-        Assert.Equal("Version 0.4.0", Vm.Subtitle);
-    }
-
-    [Fact]
-    public async Task AVersionSeenThroughTheManualCheckIsNotNotifiedLater()
-    {
-        _settings.Update(s => s.NotifyNewUpdates = true);
-        _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-
-        await Vm.CheckCommand.ExecuteAsync(null);
-        await Vm.CheckAutomaticallyAsync();
-
-        Assert.Empty(_h.Notifier.Shown);
-        Assert.Equal("wgetui 0.3.0 is available: click \"Update wgetui\" in the menu.", Vm.CheckResult);
-    }
-
-    [Fact]
     public async Task WithChecksOffOnlyTheManualCheckRuns()
     {
         _settings.Update(s => s.CheckAppUpdates = false);
@@ -267,13 +383,14 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
         await Vm.CheckCommand.ExecuteAsync(null);
         Assert.Equal(1, _h.Source.Calls);
         Assert.Equal(AppUpdateState.Available, Vm.State);
+        Assert.Equal(0, _h.Downloader.Downloads);
     }
 
     [Fact]
     public async Task ACheckFailureIsReportedAndKeepsWhatWasOffered()
     {
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-        await Vm.CheckAutomaticallyAsync();
+        await Vm.CheckCommand.ExecuteAsync(null);
         _h.Source.Failure = new AppUpdateException(ErrorCodes.AppUpdateRateLimited, "403");
 
         await Vm.CheckCommand.ExecuteAsync(null);
@@ -302,15 +419,22 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     {
         var script = File.ReadAllText(Path.Combine(RepoRoot(), "installer", "wgetui.iss"));
 
-        // The script waits for the app and reopens it only for this parameter.
+        // The script waits for the app and reopens it only for /UPDATE; /TRAY picks the hidden relaunch.
         Assert.Contains("UpdateParam = '/UPDATE';", script, StringComparison.Ordinal);
-        Assert.Contains("/UPDATE", AppUpdateViewModel.SetupArguments.Split(' '));
-        // A real [Run] entry, not just the comment that mentions it.
-        Assert.Contains(
-            script.Split('\n'),
-            line => line.StartsWith("Filename: \"{app}\\wgetui.exe\";", StringComparison.Ordinal)
-                && line.Contains("Check: IsUpdateRun", StringComparison.Ordinal)
-                && !line.Contains("skipifsilent", StringComparison.Ordinal));
+        Assert.Contains($"TrayParam = '{SetupCommand.TrayParameter}';", script, StringComparison.Ordinal);
+        Assert.Contains("/UPDATE", SetupCommand.BaseArguments.Split(' '));
+        Assert.Contains(SetupCommand.TrayParameter, SetupCommand.Arguments("x", tray: true).Split(' '));
+        Assert.DoesNotContain(SetupCommand.TrayParameter, SetupCommand.Arguments("x", tray: false).Split(' '));
+
+        // Real [Run] entries (not the comments that mention them): one per relaunch, both telling the app it was
+        // just updated, only the /TRAY one hidden in the tray, never skipped because the run is silent.
+        var lines = script.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        var window = Assert.Single(lines, l => l.StartsWith("Filename: \"{app}\\wgetui.exe\";", StringComparison.Ordinal) && l.Contains("Check: IsUpdateWindowRun", StringComparison.Ordinal));
+        var tray = Assert.Single(lines, l => l.StartsWith("Filename: \"{app}\\wgetui.exe\";", StringComparison.Ordinal) && l.Contains("Check: IsUpdateTrayRun", StringComparison.Ordinal));
+        Assert.Contains($"Parameters: \"{AppPaths.UpdatedArgument}\";", window, StringComparison.Ordinal);
+        Assert.Contains($"Parameters: \"{AppPaths.TrayArgument} {AppPaths.UpdatedArgument}\";", tray, StringComparison.Ordinal);
+        Assert.All(new[] { window, tray }, l => Assert.DoesNotContain("skipifsilent", l, StringComparison.Ordinal));
+        Assert.All(new[] { window, tray }, l => Assert.Contains("runasoriginaluser", l, StringComparison.Ordinal));
 
         // The uninstall entry read to find the installed copy is the one this AppId creates.
         var appId = Assert.Single(script.Split('\n'), l => l.StartsWith("AppId=", StringComparison.Ordinal)).Trim();
@@ -321,7 +445,7 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
     private async Task ReadyAsync()
     {
         _h.Source.Latest = FakeAppUpdateSource.Release("0.3.0");
-        await Vm.CheckAutomaticallyAsync();
+        await Vm.CheckCommand.ExecuteAsync(null);
         var download = Vm.ActivateAsync();
         _h.Downloader.Complete(SetupPath);
         await download;

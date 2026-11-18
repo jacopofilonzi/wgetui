@@ -35,4 +35,5 @@ public static class ErrorCodes
     public const string AppUpdateDownloadFailed = "app_update_download_failed";
     public const string AppUpdateHashMismatch = "app_update_hash_mismatch";
     public const string AppUpdateLaunchFailed = "app_update_launch_failed";
+    public const string AppUpdateInstallFailed = "app_update_install_failed";
 }

@@ -85,15 +85,27 @@ public sealed class AppUpdateDownloaderTests : IDisposable
         File.WriteAllText(Path.Combine(_dir, "wgetui-setup-0.2.0-x64.exe.partial"), "half");
         File.WriteAllText(Path.Combine(_dir, "setup.log"), "log");
 
-        Downloader(new ScriptedHandler(HttpStatusCode.OK, "")).DeleteOldSetups();
+        Downloader(new ScriptedHandler(HttpStatusCode.OK, "")).DeleteOldSetups(null);
 
         Assert.Equal([Path.Combine(_dir, "setup.log")], Directory.GetFiles(_dir));
     }
 
     [Fact]
+    public void ThePendingSetupIsKept()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(Path.Combine(_dir, "wgetui-setup-0.1.0-x64.exe"), "old");
+        File.WriteAllText(Path.Combine(_dir, "wgetui-setup-0.3.0-x64.exe"), "pending");
+
+        Downloader(new ScriptedHandler(HttpStatusCode.OK, "")).DeleteOldSetups("wgetui-setup-0.3.0-x64.exe");
+
+        Assert.Equal([Path.Combine(_dir, "wgetui-setup-0.3.0-x64.exe")], Directory.GetFiles(_dir));
+    }
+
+    [Fact]
     public void NoFolderNothingToDelete()
     {
-        Downloader(new ScriptedHandler(HttpStatusCode.OK, "")).DeleteOldSetups();
+        Downloader(new ScriptedHandler(HttpStatusCode.OK, "")).DeleteOldSetups(null);
 
         Assert.False(Directory.Exists(_dir));
     }

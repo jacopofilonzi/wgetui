@@ -37,7 +37,12 @@ internal sealed class FakeAppUpdateDownloader : IAppUpdateDownloader
 
     public bool VerifyResult { get; set; } = true;
 
+    public List<string> Verified { get; } = [];
+
     public int Cleanups { get; private set; }
+
+    /// <summary>The file name the last cleanup was told to keep.</summary>
+    public string? Kept { get; private set; }
 
     public Task<string> DownloadAsync(AppRelease release, IProgress<double?> progress, CancellationToken cancellationToken)
     {
@@ -53,9 +58,17 @@ internal sealed class FakeAppUpdateDownloader : IAppUpdateDownloader
 
     public void Fail(Exception error) => _pending!.TrySetException(error);
 
-    public bool Verify(string path, AppRelease release) => VerifyResult;
+    public bool Verify(string path, AppRelease release)
+    {
+        Verified.Add(path);
+        return VerifyResult;
+    }
 
-    public void DeleteOldSetups() => Cleanups++;
+    public void DeleteOldSetups(string? keep)
+    {
+        Cleanups++;
+        Kept = keep;
+    }
 }
 
 internal sealed class FakeInstallInfo(string? location) : IAppInstallInfo

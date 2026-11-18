@@ -177,6 +177,7 @@
   <data name="Error_app_update_download_failed" xml:space="preserve"><value>The update could not be downloaded. Check the connection and try again.</value></data>
   <data name="Error_app_update_hash_mismatch" xml:space="preserve"><value>The downloaded update did not match its checksum and was deleted.</value></data>
   <data name="Error_app_update_launch_failed" xml:space="preserve"><value>The update installer could not be started.</value></data>
+  <data name="Error_app_update_install_failed" xml:space="preserve"><value>The update was not installed. Click to try again.</value></data>
   <data name="AppUpdate_Available" xml:space="preserve"><value>Update wgetui</value></data>
   <data name="AppUpdate_Version" xml:space="preserve"><value>Version {0}</value></data>
   <data name="AppUpdate_Downloading" xml:space="preserve"><value>Downloading update</value></data>
@@ -186,15 +187,16 @@
   <data name="AppUpdate_Restart_Title" xml:space="preserve"><value>Restart to update?</value></data>
   <data name="AppUpdate_Restart_Message" xml:space="preserve"><value>Operations still queued or running: {0}. Restarting to install wgetui {1} cancels them.</value></data>
   <data name="AppUpdate_Restart_Confirm" xml:space="preserve"><value>Restart and update</value></data>
-  <data name="Toast_AppUpdate_Title" xml:space="preserve"><value>wgetui {0} is available</value></data>
-  <data name="Toast_AppUpdate_Body" xml:space="preserve"><value>Open wgetui and click "Update wgetui" in the menu to install it.</value></data>
+  <data name="Toast_AppUpdateReady_Title" xml:space="preserve"><value>wgetui {0} is ready: restart to update</value></data>
+  <data name="Toast_AppUpdateReady_Body" xml:space="preserve"><value>Click "Restart to update" in the wgetui menu, or it installs by itself the next time wgetui starts.</value></data>
   <data name="Settings_CheckAppUpdatesNow" xml:space="preserve"><value>Check for updates</value></data>
   <data name="Settings_AppUpdateChecking" xml:space="preserve"><value>Checking…</value></data>
   <data name="Settings_AppUpToDate" xml:space="preserve"><value>wgetui is up to date.</value></data>
   <data name="Settings_AppUpdateAvailable" xml:space="preserve"><value>wgetui {0} is available: click "Update wgetui" in the menu.</value></data>
   <data name="Settings_AppUpdatesInstalledOnly" xml:space="preserve"><value>Updates are available only in the installed version of wgetui: this copy does not run from the folder the setup installed.</value></data>
-  <data name="Settings_CheckAppUpdates" xml:space="preserve"><value>Check for wgetui updates automatically</value></data>
-  <data name="Settings_CheckAppUpdatesHint" xml:space="preserve"><value>At startup and every hour, on GitHub. Nothing is downloaded until you click "Update wgetui".</value></data>
+  <data name="Settings_CheckAppUpdates" xml:space="preserve"><value>Update wgetui automatically</value></data>
+  <data name="Settings_CheckAppUpdatesHint" xml:space="preserve"><value>Checks GitHub at startup and every hour and downloads a new version in the background. It is installed when you click "Restart to update", or by itself the next time wgetui starts. When off, "Check for updates" still works and nothing is downloaded until you click "Update wgetui".</value></data>
+  <data name="Settings_AppUpdateReady" xml:space="preserve"><value>wgetui {0} is ready: click "Restart to update" in the menu.</value></data>
   <data name="WhatsNew_Title" xml:space="preserve"><value>What's new in wgetui {0}</value></data>
   <data name="WhatsNew_ViewOnGitHub" xml:space="preserve"><value>View on GitHub</value></data>
   <data name="WhatsNew_Close" xml:space="preserve"><value>Close</value></data>

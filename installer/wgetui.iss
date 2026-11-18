@@ -80,15 +80,20 @@ Name: "{autoprograms}\wgetui"; Filename: "{app}\wgetui.exe"; AppUserModelID: "wg
 ; runasoriginaluser: winget refuses COM activation from an elevated process; keeps wgetui non-elevated even if
 ; the setup itself was started from an elevated prompt.
 Filename: "{app}\wgetui.exe"; Description: "{cm:LaunchProgram,wgetui}"; Flags: postinstall nowait skipifsilent runasoriginaluser
-; Self-update (/UPDATE, always silent): reopen wgetui with its window once the new files are in place.
-Filename: "{app}\wgetui.exe"; Flags: nowait runasoriginaluser; Check: IsUpdateRun
+; Self-update (/UPDATE, always silent): reopen wgetui once the new files are in place, with --updated so it shows
+; "What's new". With its window, or hidden in the tray (--tray) when /TRAY was given too (an update installed by
+; itself at a --tray start, e.g. Start with Windows).
+Filename: "{app}\wgetui.exe"; Parameters: "--updated"; Flags: nowait runasoriginaluser; Check: IsUpdateWindowRun
+Filename: "{app}\wgetui.exe"; Parameters: "--tray --updated"; Flags: nowait runasoriginaluser; Check: IsUpdateTrayRun
 
 [Code]
 // Self-update. wgetui starts the downloaded setup with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE and
 // quits right after: the AppMutex check (which runs after InitializeSetup and, silent, aborts at once) would
 // race with the app shutting down, so an /UPDATE run first waits for the mutex to disappear. Still there after
-// UpdateWaitSeconds: abort (nothing installed; the log says why, wgetui passes /LOG). The [Run] entry with
-// Check: IsUpdateRun reopens the app afterwards. Runs without /UPDATE keep the usual interactive message.
+// UpdateWaitSeconds: abort (nothing installed; the log says why, wgetui passes /LOG). The [Run] entries with
+// Check: IsUpdateWindowRun / IsUpdateTrayRun reopen the app afterwards (/TRAY, only meaningful with /UPDATE,
+// picks the hidden one). Runs without /UPDATE keep the usual interactive message. Setup ignores parameters it
+// doesn't know, so these custom ones never break a run.
 
 // Uninstall cleanup of what the app writes outside its install folder, for the user who installed it
 // (the install is per-user). Settings (%APPDATA%\wgetui) and logs
@@ -102,22 +107,38 @@ Filename: "{app}\wgetui.exe"; Flags: nowait runasoriginaluser; Check: IsUpdateRu
 const
   AppMutexName = 'wgetui-running';
   UpdateParam = '/UPDATE';
+  TrayParam = '/TRAY';
   UpdateWaitSeconds = 30;
   RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
   RunValue = 'wgetui';
   AumidKey = 'Software\Classes\AppUserModelId\wgetui';
 
-function IsUpdateRun(): Boolean;
+function HasParam(const Name: String): Boolean;
 var
   I: Integer;
 begin
   Result := False;
   for I := 1 to ParamCount do
-    if CompareText(ParamStr(I), UpdateParam) = 0 then
+    if CompareText(ParamStr(I), Name) = 0 then
     begin
       Result := True;
       Exit;
     end;
+end;
+
+function IsUpdateRun(): Boolean;
+begin
+  Result := HasParam(UpdateParam);
+end;
+
+function IsUpdateWindowRun(): Boolean;
+begin
+  Result := IsUpdateRun() and not HasParam(TrayParam);
+end;
+
+function IsUpdateTrayRun(): Boolean;
+begin
+  Result := IsUpdateRun() and HasParam(TrayParam);
 end;
 
 function InitializeSetup(): Boolean;

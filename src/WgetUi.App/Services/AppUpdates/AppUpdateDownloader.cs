@@ -17,8 +17,11 @@ public interface IAppUpdateDownloader
     /// <summary>True when the file is still there and still matches the release's SHA-256 (checked again before running it).</summary>
     bool Verify(string path, AppRelease release);
 
-    /// <summary>Deletes setups left by earlier runs (best effort; a file still in use stays until next time).</summary>
-    void DeleteOldSetups();
+    /// <summary>
+    /// Deletes setups left by earlier runs except <paramref name="keep"/> (a file name: the pending update), best
+    /// effort; a file still in use stays until next time.
+    /// </summary>
+    void DeleteOldSetups(string? keep);
 }
 
 /// <summary>
@@ -115,7 +118,7 @@ public sealed partial class AppUpdateDownloader : IAppUpdateDownloader
         }
     }
 
-    public void DeleteOldSetups()
+    public void DeleteOldSetups(string? keep)
     {
         if (!Directory.Exists(_options.DownloadDirectory))
         {
@@ -126,7 +129,10 @@ public sealed partial class AppUpdateDownloader : IAppUpdateDownloader
         {
             foreach (var file in Directory.EnumerateFiles(_options.DownloadDirectory, "wgetui-setup-*"))
             {
-                TryDelete(file);
+                if (keep is null || !string.Equals(Path.GetFileName(file), keep, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryDelete(file);
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

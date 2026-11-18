@@ -59,10 +59,13 @@ public sealed class AppSettings
     /// </summary>
     public IReadOnlyList<string> PostponedUpdates { get; set; } = [];
 
-    /// <summary>Look for newer wgetui versions at startup and every hour (installed copy only). On by default.</summary>
+    /// <summary>
+    /// Keep wgetui up to date by itself (installed copy only): check at startup and every hour, download a newer
+    /// version in the background, install it at the next start. On by default.
+    /// </summary>
     public bool CheckAppUpdates { get; set; } = true;
 
-    /// <summary>The wgetui version ("x.y.z") last announced by a notification or seen in Settings, so each is notified once.</summary>
+    /// <summary>The wgetui version ("x.y.z") last announced as ready by a notification, so each is notified once.</summary>
     public string? AppUpdateNotifiedVersion { get; set; }
 
     /// <summary>
@@ -70,6 +73,32 @@ public sealed class AppSettings
     /// Null until the first start of a version that records it.
     /// </summary>
     public string? LastRunVersion { get; set; }
+
+    /// <summary>
+    /// A downloaded and verified wgetui setup not installed yet (in the updates folder): installed by itself at the
+    /// next start. Cleared once the running version reaches it, or when the file no longer matches.
+    /// </summary>
+    public PendingAppUpdate? PendingAppUpdate { get; set; }
+
+    /// <summary>
+    /// The version ("x.y.z") whose setup was last started (at startup or by "Restart to update"). If wgetui starts
+    /// again still older than it, the install failed: it is not started by itself again (loop protection).
+    /// Cleared with <see cref="PendingAppUpdate"/>.
+    /// </summary>
+    public string? AppUpdateAutoInstallAttempted { get; set; }
+}
+
+/// <summary>A downloaded, verified wgetui setup waiting to be installed.</summary>
+public sealed class PendingAppUpdate
+{
+    /// <summary>"x.y.z".</summary>
+    public string Version { get; set; } = string.Empty;
+
+    /// <summary>File name in the updates folder (<c>wgetui-setup-x.y.z-x64.exe</c>, never a path).</summary>
+    public string FileName { get; set; } = string.Empty;
+
+    /// <summary>SHA-256 the file must still match before it is started, 64 lowercase hex characters.</summary>
+    public string Sha256 { get; set; } = string.Empty;
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

@@ -34,6 +34,15 @@ internal static class Program
         WindowsToastNotifier.SetProcessAppUserModelId();
         var services = ConfigureServices(paths, instance);
         installerMutex.LogFailures(services.GetRequiredService<ILogger<InstallerMutex>>());
+
+        // A downloaded update not installed yet installs now, before any UI (installed copy only; see
+        // StartupUpdateInstaller). The setup waits for this process, and so for the installer mutex, to go.
+        if (services.GetRequiredService<StartupUpdateInstaller>().TryStart(paths.StartInTray))
+        {
+            services.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            return 0;
+        }
+
         try
         {
             return AppBuilder.Configure(() => new App(services))
@@ -117,6 +126,7 @@ internal static class Program
         services.AddSingleton(_ => AppUpdateHttp.CreateClient());
         services.AddSingleton<IAppUpdateSource, GitHubReleaseSource>();
         services.AddSingleton<IAppUpdateDownloader, AppUpdateDownloader>();
+        services.AddSingleton<StartupUpdateInstaller>();
         services.AddSingleton<IUpdateRestartConfirmer, UpdateRestartDialog>();
         services.AddSingleton<AppUpdateViewModel>();
         services.AddSingleton<IAppUpdateChecker>(sp => sp.GetRequiredService<AppUpdateViewModel>());

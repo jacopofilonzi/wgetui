@@ -17,7 +17,7 @@ public enum AppUpdateState
     /// <summary>No newer version known: the item is hidden.</summary>
     None,
 
-    /// <summary>A newer version exists: "Update wgetui", click downloads.</summary>
+    /// <summary>A newer version exists: "Update wgetui", click downloads (an automatic check downloads by itself).</summary>
     Available,
 
     /// <summary>Downloading with progress: click cancels.</summary>
@@ -26,7 +26,7 @@ public enum AppUpdateState
     /// <summary>Downloaded and verified: "Restart to update", click installs.</summary>
     Ready,
 
-    /// <summary>Download or launch failed: the error is shown, click retries.</summary>
+    /// <summary>A download started by a click, the launch, or the install at startup failed: the error is shown, click retries.</summary>
     Failed,
 }
 
@@ -44,29 +44,27 @@ public interface IAppUpdateChecker
 }
 
 /// <summary>
-/// Self-update of wgetui, started by the user: check (startup, hourly, or "Check for updates" in Settings) →
-/// sidebar item → download → "Restart to update" → silent setup, then quit; the setup reopens the app.
+/// Self-update of wgetui: check (startup, hourly, or "Check for updates" in Settings) → download → sidebar item
+/// "Restart to update" → silent setup, then quit; the setup reopens the app. A downloaded update not installed
+/// in this run is installed at the next start (<see cref="StartupUpdateInstaller"/>).
 /// </summary>
 /// <remarks>
 /// Only the installed copy takes part (<see cref="AppUpdateOptions.IsInstalledCopy"/>): dev and portable copies
-/// never check, download or show the item. Nothing is downloaded until the user clicks. Restarting with
-/// operations queued or running asks first (<see cref="IUpdateRestartConfirmer"/>) and cancels them, and the
-/// setup file is verified again just before it is started with <see cref="SetupArguments"/>; the setup (see
-/// installer/wgetui.iss) waits for this process to exit. A launch failure keeps the app open in
-/// <see cref="AppUpdateState.Failed"/>. Each new version is notified once (only when update notifications are
-/// on); a version seen through the manual check counts as notified. Runs on the UI thread.
+/// never check, download or show the item. An automatic check (<see cref="AppSettings.CheckAppUpdates"/> on)
+/// that finds a newer version downloads it in the background right away; the manual check only offers it and
+/// downloads on click. A background download that fails is logged and falls back to
+/// <see cref="AppUpdateState.Available"/> (no notification): the next automatic check retries. Every verified
+/// download is recorded in <see cref="AppSettings.PendingAppUpdate"/> (and kept by the startup cleanup); at the
+/// next start it is either installed by <see cref="StartupUpdateInstaller"/> or, when that is not allowed (checks
+/// off) or already failed, offered again here as Ready / Failed. Restarting with operations queued or running asks
+/// first (<see cref="IUpdateRestartConfirmer"/>) and cancels them, and the setup file is verified again just before
+/// it is started with <see cref="SetupCommand"/>; the setup (see installer/wgetui.iss) waits for this process to
+/// exit. A launch failure keeps the app open in <see cref="AppUpdateState.Failed"/>. "wgetui X is ready" is
+/// notified once per version, after a background download, only when update notifications are on. Runs on the UI
+/// thread.
 /// </remarks>
 public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecker
 {
-    /// <summary>
-    /// Setup command line; <c>/UPDATE</c> makes it wait for wgetui to quit and reopen it (installer/wgetui.iss).
-    /// <c>/LOG</c> is added with <see cref="SetupLogName"/> in the updates folder.
-    /// </summary>
-    public const string SetupArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE";
-
-    /// <summary>Setup log in the updates folder (kept across starts: only setups are deleted).</summary>
-    public const string SetupLogName = "setup.log";
-
     private readonly IAppUpdateSource _source;
     private readonly IAppUpdateDownloader _downloader;
     private readonly AppUpdateOptions _options;
@@ -177,6 +175,7 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
     public string? CheckResult => IsChecking ? Loc["Settings_AppUpdateChecking"] : _outcome switch
     {
         CheckOutcome.UpToDate => Loc["Settings_AppUpToDate"],
+        CheckOutcome.Available when State == AppUpdateState.Ready => Loc.Format("Settings_AppUpdateReady", Latest?.VersionText),
         CheckOutcome.Available => Loc.Format("Settings_AppUpdateAvailable", Latest?.VersionText),
         CheckOutcome.Error => Loc.Error(_checkError),
         _ => null,
@@ -185,7 +184,10 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
     /// <summary>Settings' "Check for updates": works even with automatic checks off.</summary>
     public IAsyncRelayCommand CheckCommand { get; }
 
-    /// <summary>At startup: clears setups left by earlier runs, then the first automatic check.</summary>
+    /// <summary>
+    /// At startup: offers again a downloaded update that was not installed, clears the other setups left by
+    /// earlier runs, then the first automatic check.
+    /// </summary>
     public async Task StartAsync()
     {
         if (!IsSupported)
@@ -194,7 +196,8 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
             return;
         }
 
-        _downloader.DeleteOldSetups();
+        RestorePending();
+        _downloader.DeleteOldSetups(_downloadedPath is null ? null : Latest?.AssetName);
         await CheckAutomaticallyAsync();
     }
 
@@ -243,7 +246,7 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
             return;
         }
 
-        if (State is AppUpdateState.Downloading or AppUpdateState.Ready)
+        if (State is AppUpdateState.Downloading or AppUpdateState.Ready || (State == AppUpdateState.Failed && _downloadedPath is not null))
         {
             // Already on its way: a check would only disturb the download or the ready file.
             _outcome = CheckOutcome.Available;
@@ -252,6 +255,7 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
         }
 
         IsChecking = true;
+        var download = false;
         try
         {
             var release = await _source.GetLatestAsync(CancellationToken.None);
@@ -274,7 +278,8 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
                 LogAvailable(release.VersionText);
             }
 
-            Announce(release, manual);
+            // Automatic checks download right away (and retry a failed download); the manual one only offers it.
+            download = !manual && State is AppUpdateState.Available or AppUpdateState.Failed;
         }
         catch (AppUpdateException ex)
         {
@@ -286,6 +291,40 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
         {
             IsChecking = false;
         }
+
+        if (download)
+        {
+            await DownloadAsync(background: true);
+        }
+    }
+
+    /// <summary>A verified download from an earlier run that was not installed: Ready again, or Failed when its install already failed.</summary>
+    private void RestorePending()
+    {
+        var release = StartupUpdateInstaller.ReadPending(_settings.Current.PendingAppUpdate);
+        if (release is null || release.Version <= _options.CurrentVersion)
+        {
+            return;
+        }
+
+        var path = Path.Combine(_options.DownloadDirectory, release.AssetName);
+        if (!_downloader.Verify(path, release))
+        {
+            _settings.Update(s => s.PendingAppUpdate = null);
+            return;
+        }
+
+        Latest = release;
+        _downloadedPath = path;
+        _outcome = CheckOutcome.Available;
+        if (string.Equals(_settings.Current.AppUpdateAutoInstallAttempted, release.VersionText, StringComparison.Ordinal))
+        {
+            Fail(ErrorCodes.AppUpdateInstallFailed, null);
+        }
+        else
+        {
+            State = AppUpdateState.Ready;
+        }
     }
 
     private void Reset(AppRelease? release, AppUpdateState state)
@@ -296,29 +335,21 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
         State = state;
     }
 
-    private void Announce(AppRelease release, bool manual)
+    private void AnnounceReady(AppRelease release)
     {
         var version = release.VersionText;
-        if (string.Equals(_settings.Current.AppUpdateNotifiedVersion, version, StringComparison.Ordinal))
+        if (_settings.Current.NotifyNewUpdates != true
+            || string.Equals(_settings.Current.AppUpdateNotifiedVersion, version, StringComparison.Ordinal))
         {
             return;
         }
 
-        if (!manual)
-        {
-            if (_settings.Current.NotifyNewUpdates != true)
-            {
-                return;
-            }
-
-            _notifier.Show(Loc.Format("Toast_AppUpdate_Title", version), Loc["Toast_AppUpdate_Body"], ToastAction.OpenWindow);
-            LogNotified(version);
-        }
-
+        _notifier.Show(Loc.Format("Toast_AppUpdateReady_Title", version), Loc["Toast_AppUpdateReady_Body"], ToastAction.OpenWindow);
         _settings.Update(s => s.AppUpdateNotifiedVersion = version);
+        LogNotified(version);
     }
 
-    private async Task DownloadAsync()
+    private async Task DownloadAsync(bool background = false)
     {
         if (Latest is not { } release || _download is not null)
         {
@@ -335,11 +366,22 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
         {
             var path = await _downloader.DownloadAsync(release, new DispatchedProgress(this), cancel.Token);
             _downloadedPath = path;
+            _settings.Update(s => s.PendingAppUpdate = StartupUpdateInstaller.ToRecord(release));
             State = AppUpdateState.Ready;
+            if (background)
+            {
+                AnnounceReady(release);
+            }
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {
             LogDownloadCancelled(release.VersionText);
+            State = AppUpdateState.Available;
+        }
+        catch (AppUpdateException ex) when (background)
+        {
+            // Nobody clicked: no error on screen, the next automatic check tries again.
+            LogBackgroundDownloadFailed(release.VersionText, ex.ErrorCode, ex);
             State = AppUpdateState.Available;
         }
         catch (AppUpdateException ex)
@@ -376,10 +418,11 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
                 return;
             }
 
-            var arguments = $"{SetupArguments} /LOG=\"{Path.Combine(_options.DownloadDirectory, SetupLogName)}\"";
+            // Recorded first: if this install fails, the next start doesn't start it again by itself.
+            _settings.Update(s => s.AppUpdateAutoInstallAttempted = release.VersionText);
             try
             {
-                _launcher.Start(path, arguments, _options.DownloadDirectory);
+                _launcher.Start(path, SetupCommand.Arguments(_options.DownloadDirectory, tray: false), _options.DownloadDirectory);
             }
             catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException or PlatformNotSupportedException)
             {
@@ -430,7 +473,10 @@ public sealed partial class AppUpdateViewModel : ViewModelBase, IAppUpdateChecke
     [LoggerMessage(Level = LogLevel.Information, Message = "wgetui {Version} is available")]
     private partial void LogAvailable(string version);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Notified wgetui {Version}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Background download of wgetui {Version} failed ({Code}); retried at the next automatic check")]
+    private partial void LogBackgroundDownloadFailed(string version, string code, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Notified wgetui {Version} as ready")]
     private partial void LogNotified(string version);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "wgetui update check failed ({Code})")]
