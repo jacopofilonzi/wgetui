@@ -80,6 +80,7 @@ internal static class Program
         services.AddSingleton(sp => new StartWithWindowsService(sp.GetRequiredService<IRunKey>(), paths, sp.GetRequiredService<ILogger<StartWithWindowsService>>()));
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
         services.AddSingleton<IgnoredUpdatesService>();
+        services.AddSingleton<AutoUpdateService>();
         services.AddSingleton<PackageActions>();
         services.AddSingleton<DetailsOverlay>();
         services.AddSingleton<IPackageDetailsPresenter>(sp => sp.GetRequiredService<DetailsOverlay>());

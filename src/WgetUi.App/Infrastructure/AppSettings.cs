@@ -40,6 +40,24 @@ public sealed class AppSettings
     /// <see cref="Core.Updates.IgnoredUpdateFilter"/>, so it never grows past the number of pending updates.
     /// </summary>
     public IReadOnlyList<IgnoredUpdate> IgnoredUpdates { get; set; } = [];
+
+    /// <summary>
+    /// Packages upgraded automatically at the update checks (one rule per package, with its "even if open" flag).
+    /// Pruned after each complete installed list, so it never grows past the number of installed packages.
+    /// </summary>
+    public IReadOnlyList<AutoUpdateRule> AutoUpdates { get; set; } = [];
+
+    /// <summary>Global switch for <see cref="AutoUpdates"/>: off pauses them all without dropping the rules. On by default.</summary>
+    public bool AutoUpdatesEnabled { get; set; } = true;
+
+    /// <summary>Upgrade automatically even the apps that are open, as if every rule had Force. Off by default.</summary>
+    public bool AutoUpdateOpenApps { get; set; }
+
+    /// <summary>
+    /// Automatic updates already notified as postponed (app open), as "&lt;package key&gt;@&lt;available version&gt;".
+    /// Kept only while that update is still pending, so it never grows past the number of pending updates.
+    /// </summary>
+    public IReadOnlyList<string> PostponedUpdates { get; set; } = [];
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
