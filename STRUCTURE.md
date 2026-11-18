@@ -28,6 +28,7 @@ repo/
 ├── global.json                   SDK 10.0.403, test runner = Microsoft.Testing.Platform
 ├── .editorconfig                 code style (checked by `dotnet format` in `make check`)
 ├── ROADMAP.md                    agreed follow-ups and ideas out of the current scope
+├── RESUME.md                     hand-off snapshot for a new conversation, written only on request
 └── Makefile                      dev commands (`make help`)
 ```
 

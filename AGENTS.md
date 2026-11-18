@@ -40,6 +40,9 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   proposal ends with questions and the reply answers some of them but asks for clarification on others
   (or skips them), answer the clarification and wait: don't launch the agent or start editing until each
   question has an explicit answer.
+- **`RESUME.md` is written only when I ask for it.** It holds what you judge useful to pick the work up from a
+  new conversation while keeping important things consistent (how I work, decisions not obvious from the code,
+  what is waiting on me, next steps). Don't update it on your own; when asked, rewrite it as a fresh snapshot.
 - Run commands from the repo root through the Makefile (`make help` lists them). A new recurring command
   goes into the Makefile too.
 - **While developing, use the framework's dev tools** (`make dev`: `dotnet watch` with hot reload) instead of building and launching the app after every change. Build and run the real artifact
