@@ -64,6 +64,13 @@
       <StackPanel Spacing="4">
         <TextBlock Classes="RowTitle" Text="{l:Tr Settings_About}" />
         <TextBlock Classes="Secondary" Text="{Binding Version, StringFormat='wgetui {0}'}" />
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,4,0,0">
+          <Button Grid.Column="0" Content="{l:Tr Settings_CheckAppUpdatesNow}" Command="{Binding AppUpdate.CheckCommand}" />
+          <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding AppUpdate.CheckResult}" />
+        </Grid>
+        <TextBlock Classes="Secondary" IsVisible="{Binding !AppUpdate.IsSupported}" Text="{l:Tr Settings_AppUpdatesInstalledOnly}" TextWrapping="Wrap" />
+        <CheckBox IsChecked="{Binding CheckAppUpdates}" IsEnabled="{Binding AppUpdate.IsSupported}" Content="{l:Tr Settings_CheckAppUpdates}" />
+        <TextBlock Classes="Secondary" Text="{l:Tr Settings_CheckAppUpdatesHint}" TextWrapping="Wrap" Margin="0,0,0,8" />
         <SelectableTextBlock Classes="Secondary" Text="{Binding SettingsFile}" />
         <SelectableTextBlock Classes="Secondary" Text="{Binding LogFile}" />
       </StackPanel>

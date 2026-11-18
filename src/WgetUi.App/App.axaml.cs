@@ -47,6 +47,7 @@ public sealed partial class App : Application
             shell.Window.Opened += (_, _) => flasher.Attach(shell.Window.TryGetPlatformHandle()?.Handle ?? 0);
             shell.Start(paths.StartInTray, paths.TrayDisabled, _services.GetRequiredService<TrayViewModel>(), _services.GetRequiredService<ITaskbarTheme>());
             desktop.Exit += (_, _) => shell.Dispose();
+            vm.AppUpdate.QuitRequested += (_, _) => shell.QuitNow();
 
             var instance = _services.GetRequiredService<SingleInstance>();
             instance.MessageReceived += (_, message) =>
@@ -91,10 +92,13 @@ public sealed partial class App : Application
     {
         try
         {
-            // The first refresh is the startup update check; the scheduler takes over hourly.
+            // The first refresh is the startup update check; the scheduler takes over hourly. wgetui's own
+            // update check runs alongside: it doesn't wait for winget.
+            var appUpdate = vm.AppUpdate.StartAsync();
             await vm.InitializeAsync();
             await scheduler.RunAutomaticUpdatesAsync();
             scheduler.Start();
+            await appUpdate;
         }
         catch (Exception ex)
         {

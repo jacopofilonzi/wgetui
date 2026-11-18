@@ -11,6 +11,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Nav.SelectionChanged += OnNavigationChanged;
+        Nav.ItemInvoked += OnItemInvoked;
         Nav.SelectedItem = UpdatesItem;
         Opened += (_, _) => ApplyBackdrop();
     }
@@ -30,6 +31,15 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm && e.SelectedItem is FANavigationViewItem { Tag: string page })
         {
             vm.Navigate(page);
+        }
+    }
+
+    // The "Update wgetui" item is an action, not a page (it never gets selected).
+    private void OnItemInvoked(object? sender, FANavigationViewItemInvokedEventArgs e)
+    {
+        if (e.InvokedItemContainer == AppUpdateItem && DataContext is MainWindowViewModel vm)
+        {
+            _ = vm.AppUpdate.ActivateAsync();
         }
     }
 

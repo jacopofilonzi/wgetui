@@ -275,7 +275,7 @@ public sealed class AutoUpdaterTests : IAsyncDisposable
         _rules.Set(Pkg("a"), enabled: true);
         _manager.Upgrades.Add(Pkg("a"));
         var ticker = new ManualTicker();
-        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, _auto, ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
+        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, _auto, new FakeAppUpdateChecker(), ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
         scheduler.Start();
 
         ticker.Tick();

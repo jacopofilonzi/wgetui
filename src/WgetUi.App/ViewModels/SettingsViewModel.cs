@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WgetUi.App.Infrastructure;
 using WgetUi.App.Services;
@@ -15,12 +14,13 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly IgnoredUpdatesService _ignored;
     private readonly bool _loading = true;
 
-    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, IgnoredUpdatesService ignored, AppPaths paths)
+    public SettingsViewModel(SettingsService settings, ThemeService theme, StartWithWindowsService startWithWindows, IgnoredUpdatesService ignored, AppPaths paths, AppUpdateViewModel appUpdate)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(paths);
         ArgumentNullException.ThrowIfNull(ignored);
         _settings = settings;
+        AppUpdate = appUpdate;
         _ignored = ignored;
         ignored.Changed += (_, _) => LoadIgnored();
         LoadIgnored();
@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         AutoUpdatesEnabled = settings.Current.AutoUpdatesEnabled;
         AutoUpdateOpenApps = settings.Current.AutoUpdateOpenApps;
         StartWithWindows = startWithWindows.IsEnabled;
+        CheckAppUpdates = settings.Current.CheckAppUpdates;
         _loading = false;
     }
 
@@ -83,8 +84,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool StartWithWindows { get; set; }
 
+    /// <summary>Automatic checks for a newer wgetui (the manual check works regardless).</summary>
+    [ObservableProperty]
+    public partial bool CheckAppUpdates { get; set; }
+
     [ObservableProperty]
     public partial bool SaveFailed { get; set; }
+
+    /// <summary>About: current version, "Check for updates" and its result.</summary>
+    public AppUpdateViewModel AppUpdate { get; }
 
     /// <summary>Ignored updates, each with "Restore".</summary>
     public ObservableCollection<IgnoredUpdateItemViewModel> IgnoredUpdates { get; } = [];
@@ -95,8 +103,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public string LogFile { get; }
 
-    public string Version { get; } =
-        typeof(SettingsViewModel).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "?";
+    public string Version { get; } = AppVersion.Text;
 
     public override void OnLanguageChanged()
     {
@@ -180,6 +187,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
         if (!_loading)
         {
             Save(s => s.AutoUpdateOpenApps = value);
+        }
+    }
+
+    partial void OnCheckAppUpdatesChanged(bool value)
+    {
+        if (!_loading)
+        {
+            Save(s => s.CheckAppUpdates = value);
         }
     }
 

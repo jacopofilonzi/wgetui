@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The "Update wgetui" sidebar item (Light/Dark). Merged into that item's own Resources only: it overrides
+       FluentAvalonia's NavigationViewItem* lightweight-styling keys, so no other item changes. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="NavigationViewItemBackground" Color="#FFEEEBFF" />
+      <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#FFE4DFFF" />
+      <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#FFD9D2FF" />
+      <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#FF4B3A9E" />
+      <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FF4B3A9E" />
+      <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FF3B2D80" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="NavigationViewItemBackground" Color="#FF2E2A4F" />
+      <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#FF37325E" />
+      <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#FF403A6B" />
+      <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#FFC9BFFF" />
+      <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFD8D0FF" />
+      <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFB5A8FF" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

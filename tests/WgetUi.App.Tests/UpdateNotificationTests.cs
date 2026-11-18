@@ -130,6 +130,7 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
     public async Task EachTickRefreshesTheListAndPendingOperationsSkipIt()
     {
         var ticker = new ManualTicker();
+        var appUpdates = new FakeAppUpdateChecker();
         var registry = new ManagerRegistry([_manager], NullLogger<ManagerRegistry>.Instance);
         var auto = new AutoUpdater(
             _updates,
@@ -140,7 +141,7 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
             _toasts,
             _dispatcher,
             NullLogger<AutoUpdater>.Instance);
-        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, auto, ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
+        await using var scheduler = new UpdateCheckScheduler(_updates, _operations, auto, appUpdates, ticker, _dispatcher, NullLogger<UpdateCheckScheduler>.Instance);
         scheduler.Start();
 
         ticker.Tick();
@@ -153,6 +154,9 @@ public sealed class UpdateNotificationTests : IAsyncDisposable
         _dispatcher.Drain();
 
         Assert.Equal(1, _manager.UpgradeQueries);
+
+        // wgetui's own check doesn't touch winget: it runs on both ticks, pending operations or not.
+        Assert.Equal(2, appUpdates.Checks);
     }
 
     private async Task UntilAsync(Func<bool> condition)

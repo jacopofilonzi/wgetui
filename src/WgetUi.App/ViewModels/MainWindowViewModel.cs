@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private IReadOnlyList<ManagerError> _initErrors = [];
 
-    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details)
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details, AppUpdateViewModel appUpdate)
     {
         _registry = registry;
         Details = details;
@@ -23,10 +23,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Installed = installed;
         Operations = operations;
         Settings = settings;
+        AppUpdate = appUpdate;
         CurrentPage = updates;
         Loc.CultureChanged += (_, _) =>
         {
-            foreach (var page in new ViewModelBase[] { this, Search, Updates, Installed, Operations, Settings })
+            foreach (var page in new ViewModelBase[] { this, Search, Updates, Installed, Operations, Settings, AppUpdate })
             {
                 page.OnLanguageChanged();
             }
@@ -45,6 +46,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public OperationsViewModel Operations { get; }
 
     public SettingsViewModel Settings { get; }
+
+    /// <summary>wgetui's own update: the sidebar item above Settings.</summary>
+    public AppUpdateViewModel AppUpdate { get; }
 
     [ObservableProperty]
     public partial ViewModelBase CurrentPage { get; set; }

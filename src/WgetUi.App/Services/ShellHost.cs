@@ -118,6 +118,15 @@ public sealed partial class ShellHost : IDisposable
         }
     }
 
+    /// <summary>Quits without the pending-operations confirmation: the caller already asked (self-update restart).</summary>
+    public void QuitNow()
+    {
+        if (!_quitting)
+        {
+            Shutdown();
+        }
+    }
+
     public void Dispose() => _tray?.Dispose();
 
     private void SetActive(bool active)

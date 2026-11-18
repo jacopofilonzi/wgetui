@@ -58,6 +58,12 @@ public sealed class AppSettings
     /// Kept only while that update is still pending, so it never grows past the number of pending updates.
     /// </summary>
     public IReadOnlyList<string> PostponedUpdates { get; set; } = [];
+
+    /// <summary>Look for newer wgetui versions at startup and every hour (installed copy only). On by default.</summary>
+    public bool CheckAppUpdates { get; set; } = true;
+
+    /// <summary>The wgetui version ("x.y.z") last announced by a notification or seen in Settings, so each is notified once.</summary>
+    public string? AppUpdateNotifiedVersion { get; set; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

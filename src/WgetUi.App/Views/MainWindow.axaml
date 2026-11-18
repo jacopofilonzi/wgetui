@@ -40,6 +40,33 @@
         </ui:FANavigationViewItem>
       </ui:FANavigationView.MenuItems>
       <ui:FANavigationView.FooterMenuItems>
+        <!-- wgetui's own update: shown only when a newer version exists; invoking it never changes the page
+             (SelectsOnInvoked=False, handled in ItemInvoked). Compact pane: icon + accent dot. -->
+        <ui:FANavigationViewItem x:Name="AppUpdateItem" SelectsOnInvoked="False"
+                                 IsVisible="{Binding AppUpdate.IsVisible}"
+                                 ToolTip.Tip="{Binding AppUpdate.ToolTipText}"
+                                 AutomationProperties.Name="{Binding AppUpdate.Title}">
+          <ui:FANavigationViewItem.Resources>
+            <ResourceDictionary>
+              <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://wgetui/Themes/AppUpdateItem.axaml" />
+              </ResourceDictionary.MergedDictionaries>
+            </ResourceDictionary>
+          </ui:FANavigationViewItem.Resources>
+          <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Download" /></ui:FANavigationViewItem.IconSource>
+          <ui:FANavigationViewItem.InfoBadge>
+            <ui:FAInfoBadge IsVisible="{Binding !#Nav.IsPaneOpen}" />
+          </ui:FANavigationViewItem.InfoBadge>
+          <StackPanel Spacing="1" Margin="0,6">
+            <!-- The pane is 220 px: a longer translation wraps instead of losing its end. The error in the
+                 subtitle is trimmed; the tooltip has both lines in full. -->
+            <TextBlock Text="{Binding AppUpdate.Title}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding AppUpdate.Subtitle}" FontSize="12" Opacity="0.8" TextTrimming="CharacterEllipsis" />
+            <ProgressBar IsVisible="{Binding AppUpdate.IsDownloading}" Value="{Binding AppUpdate.Progress}"
+                         IsIndeterminate="{Binding AppUpdate.IsProgressIndeterminate}"
+                         Minimum="0" Maximum="100" MinHeight="3" Height="3" Margin="0,4,8,0" />
+          </StackPanel>
+        </ui:FANavigationViewItem>
         <ui:FANavigationViewItem Content="{l:Tr Nav_Settings}" Tag="settings">
           <ui:FANavigationViewItem.IconSource><ui:FASymbolIconSource Symbol="Settings" /></ui:FANavigationViewItem.IconSource>
         </ui:FANavigationViewItem>

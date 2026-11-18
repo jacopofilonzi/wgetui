@@ -208,7 +208,17 @@ internal sealed class FakeLauncher : WgetUi.App.Platform.IProcessLauncher
 {
     public List<(string Executable, string Arguments, string WorkingDirectory)> Started { get; } = [];
 
-    public void Start(string executablePath, string arguments, string workingDirectory) => Started.Add((executablePath, arguments, workingDirectory));
+    /// <summary>Thrown by <see cref="Start"/> (after recording the attempt) when set, as a failing Process.Start would.</summary>
+    public Exception? Failure { get; set; }
+
+    public void Start(string executablePath, string arguments, string workingDirectory)
+    {
+        Started.Add((executablePath, arguments, workingDirectory));
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+    }
 }
 
 internal sealed class FakeFlasher : WgetUi.App.Platform.IWindowFlasher

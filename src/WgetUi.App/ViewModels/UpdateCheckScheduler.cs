@@ -26,24 +26,27 @@ public sealed class HourlyTicker : IUpdateCheckTicker, IDisposable
 /// then runs the automatic updates (<see cref="AutoUpdater"/>). The startup check is the shell's first refresh,
 /// followed by <see cref="RunAutomaticUpdatesAsync"/>. A tick is skipped while the list is already refreshing or
 /// an operation is queued/running: winget serializes calls, so a check would wait behind the install and
-/// time out.
+/// time out. Every tick also checks for a newer wgetui (<see cref="IAppUpdateChecker"/>), independently of
+/// the package check and of those skip rules: it doesn't touch winget.
 /// </summary>
 public sealed partial class UpdateCheckScheduler : IAsyncDisposable
 {
     private readonly UpdatesViewModel _updates;
     private readonly OperationsViewModel _operations;
     private readonly AutoUpdater _autoUpdater;
+    private readonly IAppUpdateChecker _appUpdates;
     private readonly IUpdateCheckTicker _ticker;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger<UpdateCheckScheduler> _logger;
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
 
-    public UpdateCheckScheduler(UpdatesViewModel updates, OperationsViewModel operations, AutoUpdater autoUpdater, IUpdateCheckTicker ticker, IUiDispatcher dispatcher, ILogger<UpdateCheckScheduler> logger)
+    public UpdateCheckScheduler(UpdatesViewModel updates, OperationsViewModel operations, AutoUpdater autoUpdater, IAppUpdateChecker appUpdates, IUpdateCheckTicker ticker, IUiDispatcher dispatcher, ILogger<UpdateCheckScheduler> logger)
     {
         _updates = updates;
         _operations = operations;
         _autoUpdater = autoUpdater;
+        _appUpdates = appUpdates;
         _ticker = ticker;
         _dispatcher = dispatcher;
         _logger = logger;
@@ -72,6 +75,8 @@ public sealed partial class UpdateCheckScheduler : IAsyncDisposable
     /// <summary>One tick, on the UI thread.</summary>
     public void Tick()
     {
+        // A wgetui release check doesn't touch winget, so it runs even while operations are pending.
+        _ = _appUpdates.CheckAutomaticallyAsync();
         if (_operations.HasPending || !_updates.RefreshCommand.CanExecute(null))
         {
             LogSkipped();

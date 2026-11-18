@@ -5,6 +5,7 @@ using WgetUi.App.Infrastructure;
 using WgetUi.App.Platform;
 using WgetUi.App.Platform.Windows;
 using WgetUi.App.Services;
+using WgetUi.App.Services.AppUpdates;
 using WgetUi.App.ViewModels;
 using WgetUi.Core;
 using WgetUi.Core.Managers;
@@ -68,6 +69,7 @@ internal static class Program
         services.AddSingleton<IProcessLauncher, WindowsProcessLauncher>();
         services.AddSingleton<WindowsTaskbarFlasher>();
         services.AddSingleton<IWindowFlasher>(sp => sp.GetRequiredService<WindowsTaskbarFlasher>());
+        services.AddSingleton<IAppInstallInfo, RegistryAppInstallInfo>();
         services.AddSingleton(TimeProvider.System);
 
         services.AddSingleton<ManagerRegistry>();
@@ -108,6 +110,15 @@ internal static class Program
         services.AddSingleton<IUpdateCheckTicker>(sp => sp.GetRequiredService<HourlyTicker>());
         services.AddSingleton<UpdateCheckScheduler>();
         services.AddSingleton<AdminPromptWatcher>();
+
+        // wgetui's own updates (GitHub Releases; swap IAppUpdateSource to change where they come from).
+        services.AddSingleton(AppUpdateOptions.ForCurrentProcess(paths));
+        services.AddSingleton(_ => AppUpdateHttp.CreateClient());
+        services.AddSingleton<IAppUpdateSource, GitHubReleaseSource>();
+        services.AddSingleton<IAppUpdateDownloader, AppUpdateDownloader>();
+        services.AddSingleton<IUpdateRestartConfirmer, UpdateRestartDialog>();
+        services.AddSingleton<AppUpdateViewModel>();
+        services.AddSingleton<IAppUpdateChecker>(sp => sp.GetRequiredService<AppUpdateViewModel>());
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

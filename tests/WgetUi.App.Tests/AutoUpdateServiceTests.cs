@@ -118,24 +118,29 @@ public sealed class AutoUpdateServiceTests : IDisposable
     }
 
     [Fact]
-    public void SettingsTogglesSaveTheGlobalSwitches()
+    public async Task SettingsTogglesSaveTheGlobalSwitches()
     {
+        await using var queue = new WgetUi.Core.Operations.OperationQueue(new WgetUi.Core.ManagerRegistry([], NullLogger<WgetUi.Core.ManagerRegistry>.Instance), NullLogger<WgetUi.Core.Operations.OperationQueue>.Instance);
         var paths = AppPaths.FromArgs(["--data-dir", _dataDir]);
         var vm = new WgetUi.App.ViewModels.SettingsViewModel(
             _settings,
             new ThemeService(),
             new StartWithWindowsService(new FakeRunKey(), paths, @"C:\Apps\wgetui.exe", NullLogger<StartWithWindowsService>.Instance),
             new IgnoredUpdatesService(_settings, NullLogger<IgnoredUpdatesService>.Instance),
-            paths);
+            paths,
+            new AppUpdateHarness(_settings, queue).ViewModel);
         Assert.True(vm.AutoUpdatesEnabled);
+        Assert.True(vm.CheckAppUpdates);
         Assert.False(vm.AutoUpdateOpenApps);
 
         vm.AutoUpdatesEnabled = false;
         vm.AutoUpdateOpenApps = true;
+        vm.CheckAppUpdates = false;
 
         var saved = Reload().Current;
         Assert.False(saved.AutoUpdatesEnabled);
         Assert.True(saved.AutoUpdateOpenApps);
+        Assert.False(saved.CheckAppUpdates);
         Assert.False(_service.IsGloballyEnabled);
         Assert.True(_service.ForceOpenApps);
     }

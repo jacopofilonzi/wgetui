@@ -177,4 +177,22 @@
   <data name="Error_app_update_download_failed" xml:space="preserve"><value>Impossibile scaricare l'aggiornamento. Controlla la connessione e riprova.</value></data>
   <data name="Error_app_update_hash_mismatch" xml:space="preserve"><value>L'aggiornamento scaricato non corrisponde al suo checksum ed è stato eliminato.</value></data>
   <data name="Error_app_update_launch_failed" xml:space="preserve"><value>Impossibile avviare il programma di installazione dell'aggiornamento.</value></data>
+  <data name="AppUpdate_Available" xml:space="preserve"><value>Aggiorna wgetui</value></data>
+  <data name="AppUpdate_Version" xml:space="preserve"><value>Versione {0}</value></data>
+  <data name="AppUpdate_Downloading" xml:space="preserve"><value>Download in corso</value></data>
+  <data name="AppUpdate_ClickToCancel" xml:space="preserve"><value>Clic per annullare</value></data>
+  <data name="AppUpdate_Ready" xml:space="preserve"><value>Riavvia e aggiorna</value></data>
+  <data name="AppUpdate_Retry" xml:space="preserve"><value>Riprova aggiornamento</value></data>
+  <data name="AppUpdate_Restart_Title" xml:space="preserve"><value>Riavviare per aggiornare?</value></data>
+  <data name="AppUpdate_Restart_Message" xml:space="preserve"><value>Operazioni ancora in coda o in corso: {0}. Riavviando per installare wgetui {1} verranno annullate.</value></data>
+  <data name="AppUpdate_Restart_Confirm" xml:space="preserve"><value>Riavvia e aggiorna</value></data>
+  <data name="Toast_AppUpdate_Title" xml:space="preserve"><value>wgetui {0} è disponibile</value></data>
+  <data name="Toast_AppUpdate_Body" xml:space="preserve"><value>Apri wgetui e fai clic su "Aggiorna wgetui" nel menu per installarlo.</value></data>
+  <data name="Settings_CheckAppUpdatesNow" xml:space="preserve"><value>Verifica aggiornamenti</value></data>
+  <data name="Settings_AppUpdateChecking" xml:space="preserve"><value>Verifica in corso…</value></data>
+  <data name="Settings_AppUpToDate" xml:space="preserve"><value>wgetui è aggiornato.</value></data>
+  <data name="Settings_AppUpdateAvailable" xml:space="preserve"><value>wgetui {0} è disponibile: fai clic su "Aggiorna wgetui" nel menu.</value></data>
+  <data name="Settings_AppUpdatesInstalledOnly" xml:space="preserve"><value>Gli aggiornamenti sono disponibili solo nella versione installata di wgetui: questa copia non viene eseguita dalla cartella in cui l'ha installata il setup.</value></data>
+  <data name="Settings_CheckAppUpdates" xml:space="preserve"><value>Verifica automaticamente gli aggiornamenti di wgetui</value></data>
+  <data name="Settings_CheckAppUpdatesHint" xml:space="preserve"><value>All'avvio e ogni ora, su GitHub. Non viene scaricato nulla finché non fai clic su "Aggiorna wgetui".</value></data>
 </root>

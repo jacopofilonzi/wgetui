@@ -126,7 +126,8 @@ public sealed class IgnoredUpdatesTests : IAsyncDisposable
             new ThemeService(),
             new StartWithWindowsService(new FakeRunKey(), AppPaths.FromArgs(["--data-dir", _dataDir]), @"C:\Apps\wgetui.exe", NullLogger<StartWithWindowsService>.Instance),
             _ignored,
-            AppPaths.FromArgs(["--data-dir", _dataDir]));
+            AppPaths.FromArgs(["--data-dir", _dataDir]),
+            new AppUpdateHarness(_settings, _queue).ViewModel);
         Assert.False(settingsVm.HasIgnoredUpdates);
 
         Row("b").IgnoreCommand.Execute(null);
