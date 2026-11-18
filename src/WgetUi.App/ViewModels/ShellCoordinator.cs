@@ -47,9 +47,12 @@ public sealed partial class ShellCoordinator
         _logger = logger;
     }
 
+    /// <summary>The tray is off for this run (<c>--force-no-tray</c>): closing the window always quits.</summary>
+    public bool TrayDisabled { get; set; }
+
     public async Task<CloseOutcome> OnCloseRequestedAsync()
     {
-        if (!_settings.Current.CloseToTray)
+        if (TrayDisabled || !_settings.Current.CloseToTray)
         {
             return await TryQuitAsync().ConfigureAwait(true) ? CloseOutcome.Quit : CloseOutcome.Stay;
         }

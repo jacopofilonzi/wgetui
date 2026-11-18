@@ -53,7 +53,8 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
 - The app has no env vars: user configuration is `settings.json` (see STRUCTURE.md). A new setting goes in
   `AppSettings` with a default that keeps the old behaviour, plus a control in Settings (EN + IT strings).
   Command-line options: `--data-dir <path>` (settings and logs in one folder, for local checks; also a separate
-  single instance) and `--tray` (start hidden in the notification area, used by "Start with Windows").
+  single instance), `--tray` (start hidden in the notification area, used by "Start with Windows") and
+  `--force-no-tray` (no tray icon, closing the window quits, `--tray` ignored: for development and agent checks).
 - **Never cause real side effects without asking**: payments, bookings, emails, messages to real users,
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
@@ -73,7 +74,8 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   - `IProcessLauncher` / `WindowsProcessLauncher` (`RelaunchAfterUpgrade`): starts programs. Tests use
     `FakeLauncher`; it only runs after a real upgrade anyway;
   - `IWindowFlasher`: flashes the taskbar button.
-  When launching the app for a check use `--data-dir` with an empty scratch folder, don't click
+  When launching the app for a check use `--data-dir` with an empty scratch folder **and `--force-no-tray`** (so
+  closing it never leaves an instance hidden in the tray), don't click
   Install/Upgrade/Uninstall (or confirm them), and stop it afterwards (if `make dev` is running, build and launch the Release output: the
   dev instance locks the Debug one).
 - **Development never uses production credentials or services**: use test accounts, test bots, sandbox
@@ -195,7 +197,7 @@ and align this project's copies with it:
   that grants access to something on its own. Never commit real user files (documents, tickets, uploads).
 - `tests/` holds one test project per source project. Managers are tested through pure mapping code
   (`WinGetMapping`) and fakes; COM is only exercised by the opt-in `make smoke` (read-only).
-- No automated UI end-to-end tests yet: for a visual check launch the app with `--data-dir` pointing at an empty
+- No automated UI end-to-end tests yet: for a visual check launch the app with `--force-no-tray --data-dir` pointing at an empty
   scratch folder (`make run` / the exe), look, and stop it.
 
 ## Versions and releases

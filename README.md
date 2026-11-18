@@ -54,7 +54,8 @@ Run from the repository root (`make help` lists them):
 
 Settings are stored in `%APPDATA%\wgetui\settings.json`, logs in `%LOCALAPPDATA%\wgetui\logs\wgetui.log`.
 `wgetui.exe --data-dir <folder>` keeps both in one folder instead (and runs as a separate instance);
-`--tray` starts it hidden in the notification area. "Start with Windows" adds an entry under
+`--tray` starts it hidden in the notification area; `--force-no-tray` (development) disables the tray, so closing the
+window quits. "Start with Windows" adds an entry under
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; notifications register the name `wgetui` under
 `HKCU\Software\Classes\AppUserModelId`.
 

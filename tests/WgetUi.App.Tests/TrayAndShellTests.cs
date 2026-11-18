@@ -93,6 +93,17 @@ public sealed class TrayAndShellTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ClosingWithTheTrayDisabledQuitsEvenWhenCloseToTrayIsOn()
+    {
+        var coordinator = Coordinator(confirm: false, out var confirmer);
+        coordinator.TrayDisabled = true;
+
+        Assert.Equal(CloseOutcome.Quit, await coordinator.OnCloseRequestedAsync());
+        Assert.Empty(_notifier.Shown);
+        Assert.Equal(0, confirmer.Asked);
+    }
+
+    [Fact]
     public async Task ClosingWithoutTrayQuitsRightAwayWhenNothingIsPending()
     {
         _settings.Update(s => s.CloseToTray = false);
@@ -169,6 +180,16 @@ public sealed class TrayAndShellTests : IAsyncDisposable
         Assert.Equal(Path.GetFullPath("x"), paths.ExplicitDataDirectory);
         Assert.False(AppPaths.FromArgs([]).StartInTray);
         Assert.Null(AppPaths.FromArgs([]).ExplicitDataDirectory);
+    }
+
+    [Fact]
+    public void ForceNoTrayDisablesTheTrayAndOverridesTrayStart()
+    {
+        var paths = AppPaths.FromArgs(["--tray", "--force-no-tray"]);
+
+        Assert.True(paths.TrayDisabled);
+        Assert.False(paths.StartInTray);
+        Assert.False(AppPaths.FromArgs([]).TrayDisabled);
     }
 
     [Fact]

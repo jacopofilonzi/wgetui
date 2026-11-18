@@ -35,7 +35,9 @@ public sealed partial class App : Application
         {
             var paths = _services.GetRequiredService<AppPaths>();
             var vm = _services.GetRequiredService<MainWindowViewModel>();
-            var shell = new ShellHost(desktop, vm, _services.GetRequiredService<ShellCoordinator>(), _services.GetRequiredService<ILogger<ShellHost>>());
+            var coordinator = _services.GetRequiredService<ShellCoordinator>();
+            coordinator.TrayDisabled = paths.TrayDisabled;
+            var shell = new ShellHost(desktop, vm, coordinator, _services.GetRequiredService<ILogger<ShellHost>>());
             var notifier = _services.GetRequiredService<UpdateNotifier>();
             shell.WindowActiveChanged += (_, active) => notifier.IsWindowActive = active;
             shell.WindowFirstShown += (_, _) => _ = AskNotificationConsentAsync(notifier, vm.Settings);
@@ -43,7 +45,7 @@ public sealed partial class App : Application
             _ = _services.GetRequiredService<AdminPromptWatcher>();
             var flasher = _services.GetRequiredService<WindowsTaskbarFlasher>();
             shell.Window.Opened += (_, _) => flasher.Attach(shell.Window.TryGetPlatformHandle()?.Handle ?? 0);
-            shell.Start(paths.StartInTray, _services.GetRequiredService<TrayViewModel>(), _services.GetRequiredService<ITaskbarTheme>());
+            shell.Start(paths.StartInTray, paths.TrayDisabled, _services.GetRequiredService<TrayViewModel>(), _services.GetRequiredService<ITaskbarTheme>());
             desktop.Exit += (_, _) => shell.Dispose();
 
             var instance = _services.GetRequiredService<SingleInstance>();

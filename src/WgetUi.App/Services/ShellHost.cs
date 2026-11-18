@@ -47,9 +47,13 @@ public sealed partial class ShellHost : IDisposable
 
     public bool IsWindowVisible => _window.IsVisible;
 
-    public void Start(bool startInTray, TrayViewModel tray, ITaskbarTheme taskbarTheme)
+    public void Start(bool startInTray, bool trayDisabled, TrayViewModel tray, ITaskbarTheme taskbarTheme)
     {
-        _tray = new TrayIconHost(tray, taskbarTheme, () => ShowWindow(), () => _ = QuitAsync());
+        if (!trayDisabled)
+        {
+            _tray = new TrayIconHost(tray, taskbarTheme, () => ShowWindow(), () => _ = QuitAsync());
+        }
+
         if (!startInTray)
         {
             ShowWindow();
