@@ -5,6 +5,22 @@ All notable changes to wgetui are listed here, newest first. The format follows
 Every release needs its section here before it is tagged: the release notes on GitHub and the "What's new" popup
 in the app are taken from it.
 
+## [0.3.0] - 2026-11-18
+
+### Added
+
+- "What's new": after an update, a popup lists what changed in every version since the one you had. Settings >
+  About can open it at any time, with a link to the release on GitHub.
+- Updates of wgetui download by themselves in the background as soon as they are found, and a notification says
+  when one is ready. Click "Restart to update" to install it now, or it installs by itself the next time wgetui
+  starts (Start with Windows included, staying in the notification area).
+
+### Changed
+
+- The Settings option "Update wgetui automatically" now covers checking, downloading and installing at the next
+  start. "Check for updates" still only looks for a new version; nothing is downloaded until you click.
+- If an update fails to install at startup, it is not retried by itself: "Retry update" in the menu tries again.
+
 ## [0.2.1] - 2026-11-18
 
 ### Fixed
