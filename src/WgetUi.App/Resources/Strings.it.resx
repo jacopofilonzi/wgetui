@@ -172,4 +172,9 @@
   <data name="Settings_AutoUpdatesEnabledHint" xml:space="preserve"><value>Spegnilo per sospenderli tutti senza togliere le spunte. Si attivano per singola app dalla pagina Installati.</value></data>
   <data name="Settings_AutoUpdateOpenApps" xml:space="preserve"><value>Aggiorna anche le app aperte</value></data>
   <data name="Settings_AutoUpdateOpenAppsHint" xml:space="preserve"><value>Vale per tutte le app con aggiornamento automatico, come se avessero la forzatura.</value></data>
+  <data name="Error_app_update_check_failed" xml:space="preserve"><value>Impossibile verificare gli aggiornamenti di wgetui. Controlla la connessione e riprova.</value></data>
+  <data name="Error_app_update_rate_limited" xml:space="preserve"><value>GitHub sta limitando le verifiche degli aggiornamenti. Riprova più tardi.</value></data>
+  <data name="Error_app_update_download_failed" xml:space="preserve"><value>Impossibile scaricare l'aggiornamento. Controlla la connessione e riprova.</value></data>
+  <data name="Error_app_update_hash_mismatch" xml:space="preserve"><value>L'aggiornamento scaricato non corrisponde al suo checksum ed è stato eliminato.</value></data>
+  <data name="Error_app_update_launch_failed" xml:space="preserve"><value>Impossibile avviare il programma di installazione dell'aggiornamento.</value></data>
 </root>

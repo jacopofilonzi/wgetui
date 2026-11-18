@@ -28,4 +28,11 @@ public static class ErrorCodes
     public const string UninstallFailed = "uninstall_failed";
     public const string VersionNotFound = "version_not_found";
     public const string NotRemovable = "not_removable";
+
+    // wgetui's own updates (not a package manager).
+    public const string AppUpdateCheckFailed = "app_update_check_failed";
+    public const string AppUpdateRateLimited = "app_update_rate_limited";
+    public const string AppUpdateDownloadFailed = "app_update_download_failed";
+    public const string AppUpdateHashMismatch = "app_update_hash_mismatch";
+    public const string AppUpdateLaunchFailed = "app_update_launch_failed";
 }
