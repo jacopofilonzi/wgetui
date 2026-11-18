@@ -305,7 +305,12 @@ public sealed class AppUpdateViewModelTests : IAsyncDisposable
         // The script waits for the app and reopens it only for this parameter.
         Assert.Contains("UpdateParam = '/UPDATE';", script, StringComparison.Ordinal);
         Assert.Contains("/UPDATE", AppUpdateViewModel.SetupArguments.Split(' '));
-        Assert.Contains("Check: IsUpdateRun", script, StringComparison.Ordinal);
+        // A real [Run] entry, not just the comment that mentions it.
+        Assert.Contains(
+            script.Split('\n'),
+            line => line.StartsWith("Filename: \"{app}\\wgetui.exe\";", StringComparison.Ordinal)
+                && line.Contains("Check: IsUpdateRun", StringComparison.Ordinal)
+                && !line.Contains("skipifsilent", StringComparison.Ordinal));
 
         // The uninstall entry read to find the installed copy is the one this AppId creates.
         var appId = Assert.Single(script.Split('\n'), l => l.StartsWith("AppId=", StringComparison.Ordinal)).Trim();

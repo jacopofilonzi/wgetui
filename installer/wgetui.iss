@@ -80,6 +80,8 @@ Name: "{autoprograms}\wgetui"; Filename: "{app}\wgetui.exe"; AppUserModelID: "wg
 ; runasoriginaluser: winget refuses COM activation from an elevated process; keeps wgetui non-elevated even if
 ; the setup itself was started from an elevated prompt.
 Filename: "{app}\wgetui.exe"; Description: "{cm:LaunchProgram,wgetui}"; Flags: postinstall nowait skipifsilent runasoriginaluser
+; Self-update (/UPDATE, always silent): reopen wgetui with its window once the new files are in place.
+Filename: "{app}\wgetui.exe"; Flags: nowait runasoriginaluser; Check: IsUpdateRun
 
 [Code]
 // Self-update. wgetui starts the downloaded setup with /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE and
