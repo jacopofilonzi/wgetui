@@ -62,6 +62,14 @@ public interface IPackageManager
         Task.FromException<PackageDetails>(NotSupported("package details"));
 
     /// <summary>
+    /// What the package's source (<see cref="Package.SourceId"/>) offers for its exact id, or null when the source does
+    /// not offer it. Never looks at the installed state. Read-only. Optional: managers that declare
+    /// <see cref="ManagerCapabilities.FindById"/> override it (used to resolve imported lists).
+    /// </summary>
+    Task<PackageOffer?> FindInSourceAsync(Package package, CancellationToken cancellationToken) =>
+        Task.FromException<PackageOffer?>(NotSupported("finding a package by id"));
+
+    /// <summary>
     /// Installs a package (the version in <see cref="OperationOptions.TargetVersion"/> when set). Acts for real on
     /// the machine.
     /// </summary>

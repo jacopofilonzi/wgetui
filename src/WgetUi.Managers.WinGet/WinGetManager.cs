@@ -62,7 +62,8 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade
         | ManagerCapabilities.Progress | ManagerCapabilities.Cancel | ManagerCapabilities.IncludeUnknownVersions
         | ManagerCapabilities.Agreements | ManagerCapabilities.InstallLocation | ManagerCapabilities.ListInstalled
-        | ManagerCapabilities.Uninstall | ManagerCapabilities.Details | ManagerCapabilities.InstallVersion;
+        | ManagerCapabilities.Uninstall | ManagerCapabilities.Details | ManagerCapabilities.InstallVersion
+        | ManagerCapabilities.FindById;
 
     public IReadOnlyList<PackageSource> Sources => WinGetMapping.Sources;
 
@@ -139,6 +140,13 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
         ArgumentNullException.ThrowIfNull(package);
         await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
         return await _executor.RunQueryAsync($"details of {package.Id}", () => ReadDetails(package), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PackageOffer?> FindInSourceAsync(Package package, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        await EnsureAvailableAsync(cancellationToken).ConfigureAwait(false);
+        return await _executor.RunQueryAsync($"find {package.Id} in {package.SourceId}", () => FindOffer(package), cancellationToken).ConfigureAwait(false);
     }
 
     public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken) =>
@@ -561,6 +569,46 @@ public sealed partial class WinGetManager : IPackageManager, IDisposable
             // A stale connection fails with a COM error: reconnect next time.
             _connectedCatalogs.Remove(package.SourceId);
             throw new PackageManagerException(ErrorCodes.CatalogError, $"Reading details of {package.Id} failed: {Describe(ex)}", ex);
+        }
+    }
+
+    // Runs under the executor lock. Read-only: one exact-id find in the package's own source, never the installed
+    // catalog (no scan of the installed list, unlike ReadDetails). Sources we don't expose offer nothing.
+    private PackageOffer? FindOffer(Package package)
+    {
+        if (WinGetMapping.ToSourceId(package.SourceId) is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var found = ConnectSource(package.SourceId).FindPackages(ExactIdOptions(package.Id));
+            if (found.Status != FindPackagesResultStatus.Ok)
+            {
+                throw new PackageManagerException(WinGetMapping.ToErrorCode(found.Status), $"Finding {package.Id} in {package.SourceId} failed: {found.Status}.");
+            }
+
+            if (found.Matches.Count == 0)
+            {
+                return null;
+            }
+
+            var remote = found.Matches[0].CatalogPackage;
+            var versions = new List<string?>();
+            var available = remote.AvailableVersions;
+            for (var i = 0; available is not null && i < available.Count; i++)
+            {
+                versions.Add(available[i].Version);
+            }
+
+            return WinGetMapping.ToOffer(package, remote.Id, remote.Name, remote.DefaultInstallVersion?.Version, versions);
+        }
+        catch (COMException ex)
+        {
+            // A stale connection fails with a COM error: reconnect next time.
+            _connectedCatalogs.Remove(package.SourceId);
+            throw new PackageManagerException(ErrorCodes.CatalogError, $"Finding {package.Id} in {package.SourceId} failed: {Describe(ex)}", ex);
         }
     }
 

@@ -9,7 +9,7 @@ public sealed class OperationRequesterTests : IAsyncDisposable
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
     private static readonly Agreement StoreTerms = new("Store License Terms", null, "https://aka.ms/microsoft-store-license");
     private static readonly Agreement TransactionTerms = new("Terms of Transaction", null, "https://aka.ms/microsoft-store-terms-of-transaction");
-    private readonly FakePackageManager _manager = new();
+    private readonly FakePackageManager _manager = new(capabilities: ManagerCapabilities.Search | ManagerCapabilities.Install | ManagerCapabilities.ListUpgrades | ManagerCapabilities.Upgrade | ManagerCapabilities.Cancel | ManagerCapabilities.Agreements | ManagerCapabilities.InstallVersion);
     private readonly FakeConfirmer _confirmer = new();
     private readonly OperationQueue _queue;
     private readonly OperationRequester _requester;
@@ -159,6 +159,49 @@ public sealed class OperationRequesterTests : IAsyncDisposable
 
         Assert.Empty(result.AgreementErrors);
         Assert.Single(result.Queued);
+    }
+
+    [Fact]
+    public async Task EachPackageGetsItsOwnTargetVersionAfterOneModal()
+    {
+        WithStoreAgreements("9NKSQGP7F2NH");
+        _confirmer.Answer = true;
+
+        var result = await _requester.RequestAsync(
+            [new OperationRequest(_manager.Package("7zip.7zip"), "26.00"), new OperationRequest(_manager.Package("9NKSQGP7F2NH")), new OperationRequest(_manager.Package("Git.Git"), "2.50.0")],
+            OperationKind.Install,
+            autoAcceptAgreements: false,
+            Ct);
+        await Task.WhenAll(result.Queued.Select(o => o.Completion)).WaitAsync(Timeout, Ct);
+
+        Assert.Equal(1, _confirmer.Calls);
+        Assert.Equal(3, result.Queued.Count);
+        Assert.Equal(new OperationOptions(false, false, "26.00"), _manager.ReceivedOptions["7zip.7zip"]);
+        Assert.Equal(OperationOptions.AcceptAll, _manager.ReceivedOptions["9NKSQGP7F2NH"]);
+        Assert.Equal(new OperationOptions(false, false, "2.50.0"), _manager.ReceivedOptions["Git.Git"]);
+    }
+
+    [Fact]
+    public async Task PerPackageVersionsWithAutoAcceptAndUpgradesIgnoringThem()
+    {
+        var installs = await _requester.RequestAsync([new OperationRequest(_manager.Package("a"), "1.0")], OperationKind.Install, autoAcceptAgreements: true, Ct);
+        var upgrades = await _requester.RequestAsync([new OperationRequest(_manager.Package("b"), "9.9")], OperationKind.Upgrade, autoAcceptAgreements: false, Ct);
+        await Task.WhenAll(installs.Queued.Concat(upgrades.Queued).Select(o => o.Completion)).WaitAsync(Timeout, Ct);
+
+        Assert.Equal(OperationOptions.AcceptAll with { TargetVersion = "1.0" }, _manager.ReceivedOptions["a"]);
+        Assert.Equal(OperationOptions.AcceptAll, _manager.ReceivedOptions["b"]);
+    }
+
+    [Fact]
+    public async Task DecliningAPerPackageRequestQueuesNothing()
+    {
+        WithStoreAgreements("9NKSQGP7F2NH");
+        _confirmer.Answer = false;
+
+        var result = await _requester.RequestAsync([new OperationRequest(_manager.Package("7zip.7zip"), "26.00"), new OperationRequest(_manager.Package("9NKSQGP7F2NH"))], OperationKind.Install, autoAcceptAgreements: false, Ct);
+
+        Assert.True(result.Declined);
+        Assert.Empty(_queue.Operations);
     }
 
     private sealed class FakeConfirmer : IAgreementsConfirmer

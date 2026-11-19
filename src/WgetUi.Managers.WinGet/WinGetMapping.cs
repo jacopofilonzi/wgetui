@@ -171,6 +171,30 @@ internal static class WinGetMapping
             versions);
     }
 
+    /// <summary>
+    /// What a source offers for <paramref name="requested"/>: the catalog's id and name (the requested ones when blank), the
+    /// default install version as the latest (null when unknown, e.g. most msstore apps) and the known versions, newest first.
+    /// </summary>
+    public static PackageOffer ToOffer(Package requested, string? id, string? name, string? defaultVersion, IReadOnlyList<string?> versions)
+    {
+        ArgumentNullException.ThrowIfNull(requested);
+        ArgumentNullException.ThrowIfNull(versions);
+        var known = versions
+            .Where(v => !IsUnknownVersion(v))
+            .Select(v => v!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var latest = IsUnknownVersion(defaultVersion) ? known.FirstOrDefault() : defaultVersion!.Trim();
+        var package = requested with
+        {
+            Id = string.IsNullOrWhiteSpace(id) ? requested.Id : id.Trim(),
+            Name = string.IsNullOrWhiteSpace(name) ? requested.Name : name.Trim(),
+            Version = latest,
+            AvailableVersion = null,
+        };
+        return new PackageOffer(package, known);
+    }
+
     /// <summary>Index of <paramref name="target"/> in winget's available versions, or -1.</summary>
     public static int IndexOfVersion(IReadOnlyList<string?> versions, string target)
     {

@@ -3,6 +3,7 @@
 // Console output is the purpose of this tool; the app itself logs through ILogger.
 using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
+using WgetUi.Core.Models;
 using WgetUi.Managers.WinGet;
 
 var query = args.Length > 0 ? args[0] : "7zip";
@@ -79,6 +80,16 @@ foreach (var target in detailTargets)
     Console.WriteLine($"  publisher={d.Publisher} | homepage={d.HomepageUrl} | license={d.License} ({d.LicenseUrl}) | notes={d.ReleaseNotesUrl}");
     Console.WriteLine($"  installed={d.InstalledVersion ?? "-"} available={d.AvailableVersion ?? "-"} versions={d.Versions.Count}: {string.Join(", ", d.Versions.Take(6))}");
     Console.WriteLine($"  description={d.Description?.ReplaceLineEndings(" ")[..Math.Min(d.Description.Length, 120)]}");
+}
+
+// Import resolution: exact-id lookups in a source (read-only), including one the source does not offer.
+foreach (var target in new[] { new Package("winget", "winget", "7zip.7zip", "7zip.7zip", null), new Package("winget", "msstore", "9NKSQGP7F2NH", "9NKSQGP7F2NH", null), new Package("winget", "winget", "Nobody.NoSuchPackage", "x", null) })
+{
+    sw.Restart();
+    var offer = await manager.FindInSourceAsync(target, CancellationToken.None);
+    Console.WriteLine(offer is null
+        ? $"Find [{target.SourceId}] {target.Id} ({sw.ElapsedMilliseconds} ms): not offered"
+        : $"Find [{target.SourceId}] {target.Id} ({sw.ElapsedMilliseconds} ms): {offer.Package.Name} latest={offer.Package.Version ?? "?"} versions={offer.Versions.Count}");
 }
 
 return 0;

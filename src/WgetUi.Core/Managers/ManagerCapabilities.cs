@@ -36,4 +36,7 @@ public enum ManagerCapabilities
 
     /// <summary>Can install a specific version (<see cref="Models.OperationOptions.TargetVersion"/>).</summary>
     InstallVersion = 1 << 12,
+
+    /// <summary>Can look a package up by exact id in one of its sources (see <see cref="IPackageManager.FindInSourceAsync"/>).</summary>
+    FindById = 1 << 13,
 }

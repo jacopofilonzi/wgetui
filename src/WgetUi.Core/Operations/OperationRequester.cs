@@ -4,7 +4,12 @@ using WgetUi.Core.Models;
 
 namespace WgetUi.Core.Operations;
 
-/// <summary>Outcome of <see cref="OperationRequester.RequestAsync"/>.</summary>
+/// <summary>One package of a request, with the exact version to install (installs only; null = the default one).</summary>
+/// <param name="Package">Package to act on.</param>
+/// <param name="TargetVersion">Installs only: this exact version.</param>
+public sealed record OperationRequest(Package Package, string? TargetVersion = null);
+
+/// <summary>Outcome of <see cref="OperationRequester.RequestAsync(IReadOnlyList{OperationRequest}, OperationKind, bool, CancellationToken)"/>.</summary>
 /// <param name="Queued">Operations put in the queue (empty when declined).</param>
 /// <param name="Declined">The user refused the agreements: nothing was queued, nothing accepted.</param>
 /// <param name="AgreementErrors">Packages whose agreements could not be read (queued without accepting).</param>
@@ -47,10 +52,21 @@ public sealed partial class OperationRequester
     /// <param name="autoAcceptAgreements">The user's "accept agreements automatically" setting.</param>
     /// <param name="cancellationToken">Cancels reading the agreements.</param>
     /// <param name="targetVersion">Installs only: this exact version for every package (null = the default one).</param>
-    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind, bool autoAcceptAgreements, CancellationToken cancellationToken, string? targetVersion = null)
+    public Task<OperationRequestResult> RequestAsync(IReadOnlyList<Package> packages, OperationKind kind, bool autoAcceptAgreements, CancellationToken cancellationToken, string? targetVersion = null)
     {
         ArgumentNullException.ThrowIfNull(packages);
-        if (packages.Count == 0)
+        return RequestAsync([.. packages.Select(p => new OperationRequest(p, targetVersion))], kind, autoAcceptAgreements, cancellationToken);
+    }
+
+    /// <summary>As the other overload, with a target version per package (an imported list with pinned versions).</summary>
+    /// <param name="requests">Packages to act on, each with its own target version (installs only; null = the default one).</param>
+    /// <param name="kind">Install, upgrade or uninstall.</param>
+    /// <param name="autoAcceptAgreements">The user's "accept agreements automatically" setting.</param>
+    /// <param name="cancellationToken">Cancels reading the agreements.</param>
+    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<OperationRequest> requests, OperationKind kind, bool autoAcceptAgreements, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+        if (requests.Count == 0)
         {
             return new OperationRequestResult([], false, []);
         }
@@ -58,20 +74,20 @@ public sealed partial class OperationRequester
         if (kind == OperationKind.Uninstall)
         {
             // Nothing to accept; the confirmation ("Uninstall X?") is the caller's.
-            return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.None), false, []);
+            return new OperationRequestResult(_queue.EnqueueMany(requests.Select(r => r.Package), kind, OperationOptions.None), false, []);
         }
 
-        var version = kind == OperationKind.Install ? targetVersion : null;
+        string? VersionOf(OperationRequest request) => kind == OperationKind.Install ? request.TargetVersion : null;
         if (kind == OperationKind.Upgrade || autoAcceptAgreements)
         {
-            return new OperationRequestResult(_queue.EnqueueMany(packages, kind, OperationOptions.AcceptAll with { TargetVersion = version }), false, []);
+            return new OperationRequestResult([.. requests.Select(r => _queue.Enqueue(r.Package, kind, OperationOptions.AcceptAll with { TargetVersion = VersionOf(r) }))], false, []);
         }
 
         var errors = new List<ManagerError>();
-        var agreements = new List<PackageAgreements>(packages.Count);
-        foreach (var package in packages)
+        var agreements = new List<PackageAgreements>(requests.Count);
+        foreach (var request in requests)
         {
-            agreements.Add(await FetchAsync(package, errors, cancellationToken).ConfigureAwait(false));
+            agreements.Add(await FetchAsync(request.Package, errors, cancellationToken).ConfigureAwait(false));
         }
 
         var toAccept = agreements.Where(a => a.RequiresAcceptance).ToList();
@@ -82,7 +98,7 @@ public sealed partial class OperationRequester
         }
 
         var queued = agreements
-            .Select(a => _queue.Enqueue(a.Package, kind, new OperationOptions(a.PackageTerms.Count > 0, a.SourceTerms.Count > 0, version)))
+            .Select((a, i) => _queue.Enqueue(a.Package, kind, new OperationOptions(a.PackageTerms.Count > 0, a.SourceTerms.Count > 0, VersionOf(requests[i]))))
             .ToList();
         return new OperationRequestResult(queued, false, errors);
     }
