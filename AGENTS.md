@@ -10,7 +10,7 @@ See "Updating these guidelines" below to align them with the latest version.
 ## What it is
 
 wgetui: a desktop GUI for winget (search, install, upgrade, "upgrade all", installed list, uninstall, package
-details, ignore an update, automatic updates per app, self-update of wgetui from GitHub Releases with a "What's new"
+details, ignore an update, automatic updates per app, export/import of package lists, self-update of wgetui from GitHub Releases with a "What's new"
 popup) built so other
 package managers (Chocolatey, npm…) can be added as plug-ins. Stack: C# on .NET 10, Avalonia 12 + FluentAvalonia 3 (MVVM with
 CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM API
@@ -59,22 +59,29 @@ CommunityToolkit.Mvvm, Microsoft.Extensions DI/logging), winget through its COM 
   Command-line options: `--data-dir <path>` (settings and logs in one folder, for local checks; also a separate
   single instance), `--tray` (start hidden in the notification area, used by "Start with Windows"),
   `--force-no-tray` (no tray icon, closing the window quits, `--tray` ignored: for development and agent checks)
-  and `--updated` (passed by the setup when it reopens wgetui after a self-update: "What's new"; nothing else).
+  `--updated` (passed by the setup when it reopens wgetui after a self-update: "What's new"; nothing else) and
+  `--import <path>` (opens a package list in the import popup and always shows the window, also with `--tray`; the
+  `.wgetui` file association; a second launch hands the path to the running instance).
 - **Never cause real side effects without asking**: payments, bookings, emails, messages to real users,
   writes to external services. Tests use fakes and fixtures; live checks are read-only. When running the
   app locally for a check, start from an empty data directory unless told otherwise, and stop it afterwards.
   In this project these act for real on the machine and must never run in tests or checks:
   `IPackageManager.InstallAsync` / `UpgradeAsync` / `UninstallAsync` (and `WinGetManager`'s implementations),
   anything that queues them (`OperationQueue`, `OperationRequester`, the Install / Upgrade / Upgrade all /
-  Uninstall buttons, "Install this version" and the primary button of the details popup), and the winget CLI
+  Uninstall buttons, "Install this version", the primary button of the details popup and **"Install selected" in the
+  import popup**, which queues real installs/upgrades for every checked row: test imports with fakes, and in a live
+  check only open the popup, switch modes and Cancel), and the winget CLI
   `install`/`upgrade`/`uninstall` commands. **Automatic updates queue real upgrades on their own**:
   `AutoUpdater.RunAsync`, `UpdateCheckScheduler` (each tick and `RunAutomaticUpdatesAsync` after the startup
   check) and `UpdatesViewModel.UpgradeAutomaticallyAsync`. They act only on packages with an `autoUpdates` rule, so
   live checks start from an empty data directory and never leave a rule on (the row toggle, the details popup's
   "Update automatically"): test them with fakes. **Uninstall removes software from the user's machine**: never confirm
   the "Uninstall X?" dialog in a check. Read-only calls are fine live: activation, search, listing upgrades and
-  installed packages, reading agreements, details and install locations (`make smoke`). Also real, on the user's
-  machine:
+  installed packages, reading agreements, details, install locations and finding a package by id (`make smoke`);
+  opening, resolving and exporting a package list (export writes only the file the user picks; tests write to temp
+  folders). Also real, on the user's machine:
+  - the installer's `.wgetui` file association (`HKCU\Software\Classes\.wgetui` and `wgetui.PackageList`): written
+    only by the setup, never by the app or by hand; development builds register nothing;
   - `IToastNotifier` / `WindowsToastNotifier`: desktop notifications (a few test toasts are fine), and its
     registration under `HKCU\Software\Classes\AppUserModelId\wgetui` (written at every start, plus
     `%LOCALAPPDATA%\wgetui\notification-icon.png`);
@@ -179,6 +186,13 @@ and align this project's copies with it:
   (`appUpdateAutoInstallAttempted`) is never started again by itself while wgetui is still older: the user retries.
   Restarting with pending operations asks first. The `vX.Y.Z` tag, the asset name `wgetui-setup-X.Y.Z-x64.exe` and the
   "SHA256: `<hex>`" line of the release notes are a format the app reads: keep the release workflow in step.
+- **Imports go through the manual path**: reading and resolving a list is read-only; nothing is queued before "Install
+  selected", which closes the popup and queues through `PackageActions` → `OperationRequester` like a click (installs
+  first with one agreements modal unless automatic acceptance is on, then upgrades; declining queues nothing). Rows are
+  matched by package identity and gated by capabilities (`Install`, `Upgrade`, `InstallVersion`), never by manager types.
+- **The `.wgetui` format stays readable**: `format` + `formatVersion` (a newer version is refused with
+  `list_newer_format`, unknown fields are ignored); the installer's `--import "%1"` matches `AppPaths.ImportArgument`
+  (enforced by a test).
 - **Relaunch is conservative**: only non-elevated processes of the user's session running from the package's
   install folder, never installers/updaters, child processes or broad folders (see `RelaunchPlanner`), and
   always started with wgetui's own (non-elevated) token.
@@ -270,7 +284,9 @@ and align this project's copies with it:
      closed by an upgrade" for its packages; without it the default returns null and nothing is relaunched;
    - optional: `ListInstalled` + `GetInstalledAsync` (Installed page; packages no source offers use
      `PackageSource.LocalId`), `Details` + `GetDetailsAsync` (details popup), `Uninstall` + `UninstallAsync`,
-     `InstallVersion` (honour `OperationOptions.TargetVersion` in `InstallAsync`). The interface defaults report
+     `InstallVersion` (honour `OperationOptions.TargetVersion` in `InstallAsync`), `FindById` + `FindInSourceAsync`
+     (exact id in the package's source, read-only: resolves imported lists; without it the import falls back to
+     `GetDetailsAsync`). The interface defaults report
      `not_supported`, and the UI hides what is not declared;
    - queries throw `PackageManagerException(ErrorCodes.X, englishMessage)`; install/upgrade return `OperationResult`;
    - accept agreements only when the `OperationOptions` passed in say so;

@@ -46,6 +46,15 @@ It talks to winget through its COM API (no console parsing) and is built so othe
 
 - The Installed page lists everything installed (also apps winget doesn't know, marked "Local") and can
   uninstall them, after a confirmation.
+- Move your apps to another PC: "Export…" on the Installed page saves a `.wgetui` file with the packages you pick
+  and their installed versions (apps no source offers are left out). "Import…" opens one from a file or a web
+  address (http/https), and double-clicking a `.wgetui` file opens it in wgetui (the setup registers the file type,
+  for your user only). Lists made with `winget export` open too.
+- The import shows every package before anything happens: to install, already installed (with its version), not
+  found, or source unavailable. Choose "Latest versions" (the newest available today) or "Pinned versions" (exactly
+  the versions in the list; packages whose version is no longer offered are marked). Installed packages start
+  unchecked: check one to upgrade it, or to switch it to the pinned version. "Install selected" queues the checked
+  ones like normal installs (agreements are shown first, unless automatic acceptance is on).
 
 **Stays out of the way**
 
@@ -78,7 +87,7 @@ asks you to. Later versions install from inside wgetui (see "Updates itself" abo
 Silent install: `wgetui-setup-<version>-x64.exe /VERYSILENT`.
 
 Uninstall from Settings > Apps (or the Start menu entry's "Uninstall"). It removes the program, the "Start with
-Windows" entry (if it points at this install) and the notification registration; your settings and logs stay in
+Windows" entry (if it points at this install), the `.wgetui` file association and the notification registration; your settings and logs stay in
 `%APPDATA%\wgetui` and `%LOCALAPPDATA%\wgetui\logs`, so a reinstall picks them up.
 
 ## Requirements

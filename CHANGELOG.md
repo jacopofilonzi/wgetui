@@ -5,6 +5,20 @@ All notable changes to wgetui are listed here, newest first. The format follows
 Every release needs its section here before it is tagged: the release notes on GitHub and the "What's new" popup
 in the app are taken from it.
 
+## [0.4.0] - 2026-11-19
+
+### Added
+
+- Export your apps to a list: "Export…" on the Installed page saves a `.wgetui` file with the packages you choose
+  and their installed versions. Apps that no source offers are left out.
+- Import a list: "Import…" on the Installed page opens a `.wgetui` file (or a `winget export` JSON file) or
+  downloads one from a web address. Double-clicking a `.wgetui` file opens it in wgetui, whether wgetui is running
+  or not (the setup registers the file type for your user).
+- The import shows every package before anything is installed: to install, already installed, not found or source
+  unavailable. "Latest versions" installs the newest version available today; "Pinned versions" installs exactly the
+  versions in the list. Installed packages start unchecked: check one to upgrade it or switch it to the pinned
+  version. "Install selected" queues the checked packages like normal installs, agreements included.
+
 ## [0.3.1] - 2026-11-18
 
 ### Changed
