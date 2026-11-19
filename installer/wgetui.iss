@@ -58,6 +58,9 @@ UninstallDisplayIcon={app}\wgetui.exe
 UninstallDisplayName=wgetui
 WizardStyle=modern dynamic
 
+; The .wgetui file association ([Registry]): Explorer refreshes icons and verbs after setup and uninstall.
+ChangesAssociations=yes
+
 OutputDir=..\artifacts
 OutputBaseFilename=wgetui-setup-{#AppVersion}-x64
 Compression=lzma2
@@ -75,6 +78,16 @@ Source: "..\publish\Microsoft.Management.Deployment.winmd"; DestDir: "{app}"; Fl
 [Icons]
 ; Same AppUserModelID as the process and the toast registration, so toasts and the taskbar group with it.
 Name: "{autoprograms}\wgetui"; Filename: "{app}\wgetui.exe"; AppUserModelID: "wgetui"
+
+[Registry]
+; Per-user file association: double-clicking a .wgetui package list opens it in wgetui's import popup (--import, see
+; AppPaths in src/WgetUi.App; a test keeps this command line in sync with it). Under HKCU\Software\Classes because the
+; install is per-user; removed on uninstall. Development builds register nothing: only this setup writes these keys.
+Root: HKCU; Subkey: "Software\Classes\.wgetui"; ValueType: string; ValueName: ""; ValueData: "wgetui.PackageList"; Flags: uninsdeletevalue uninsdeletekeyifempty
+Root: HKCU; Subkey: "Software\Classes\.wgetui\OpenWithProgids"; ValueType: string; ValueName: "wgetui.PackageList"; ValueData: ""; Flags: uninsdeletevalue uninsdeletekeyifempty
+Root: HKCU; Subkey: "Software\Classes\wgetui.PackageList"; ValueType: string; ValueName: ""; ValueData: "wgetui package list"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\wgetui.PackageList\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\wgetui.exe,0"
+Root: HKCU; Subkey: "Software\Classes\wgetui.PackageList\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\wgetui.exe"" --import ""%1"""
 
 [Run]
 ; runasoriginaluser: winget refuses COM activation from an elevated process; keeps wgetui non-elevated even if
