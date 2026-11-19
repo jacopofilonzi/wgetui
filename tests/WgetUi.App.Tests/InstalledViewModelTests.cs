@@ -22,6 +22,8 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
     private readonly AutoUpdateService _autoUpdates;
     private readonly InstalledViewModel _vm;
     private readonly UpdatesViewModel _updates;
+    private readonly PackageListOverlay _lists = new();
+    private readonly InstalledViewModel _withLists;
 
     public InstalledViewModelTests()
     {
@@ -34,6 +36,8 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
         _autoUpdates = new AutoUpdateService(_settings, NullLogger<AutoUpdateService>.Instance);
         var launcher = new PackageDetailsLauncher(registry, _presenter, NullLogger<PackageDetailsViewModel>.Instance, _autoUpdates);
         _vm = new InstalledViewModel(registry, actions, launcher, ignored, _autoUpdates, _confirmer, _queue, _dispatcher, NullLogger<InstalledViewModel>.Instance);
+        var lists = new PackageListLauncher(registry, _lists, new FakeFilePicker(), new ManualTime(), NullLoggerFactory.Instance);
+        _withLists = new InstalledViewModel(registry, actions, launcher, ignored, _autoUpdates, _confirmer, _queue, _dispatcher, NullLogger<InstalledViewModel>.Instance, lists);
         _updates = new UpdatesViewModel(registry, actions, ignored, launcher, _queue, _dispatcher, NullLogger<UpdatesViewModel>.Instance);
         _manager.Installed.AddRange([
             new Package("fake", "main", "7zip.7zip", "7-Zip", "26.05", "26.06"),
@@ -71,6 +75,23 @@ public sealed class InstalledViewModelTests : IAsyncDisposable
         }
 
         Assert.Fail("Condition not reached in time.");
+    }
+
+    [Fact]
+    public async Task ExportOpensThePopupWithTheLoadedPackagesButTheLocalOnes()
+    {
+        Assert.False(_vm.ShowListActions);
+        Assert.False(_withLists.ExportCommand.CanExecute(null));
+        await _withLists.RefreshCommand.ExecuteAsync(null);
+
+        var shown = _withLists.ExportCommand.ExecuteAsync(null);
+
+        var export = Assert.IsType<ExportViewModel>(_lists.Current);
+        Assert.Equal(["7zip.7zip"], export.Rows.Select(r => r.Id));
+        Assert.Equal("Main", export.Rows[0].SourceName);
+        export.CloseCommand.Execute(null);
+        await shown;
+        Assert.False(_lists.IsOpen);
     }
 
     [Fact]

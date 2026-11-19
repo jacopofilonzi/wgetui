@@ -36,6 +36,7 @@ public sealed partial class InstalledViewModel : ViewModelBase
     private readonly IUninstallConfirmer _confirmer;
     private readonly IUiDispatcher _dispatcher;
     private readonly ILogger<InstalledViewModel> _logger;
+    private readonly PackageListLauncher? _lists;
     private readonly List<PackageRowViewModel> _rows = [];
     private IReadOnlyList<Package> _packages = [];
     private IReadOnlyList<ManagerError> _lastErrors = [];
@@ -49,7 +50,8 @@ public sealed partial class InstalledViewModel : ViewModelBase
         IUninstallConfirmer confirmer,
         OperationQueue queue,
         IUiDispatcher dispatcher,
-        ILogger<InstalledViewModel> logger)
+        ILogger<InstalledViewModel> logger,
+        PackageListLauncher? lists = null)
     {
         ArgumentNullException.ThrowIfNull(queue);
         _registry = registry;
@@ -60,6 +62,7 @@ public sealed partial class InstalledViewModel : ViewModelBase
         _confirmer = confirmer;
         _dispatcher = dispatcher;
         _logger = logger;
+        _lists = lists;
         Packages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowNone));
         queue.OperationChanged += OnOperationChanged;
         autoUpdates.Changed += (_, _) => ApplyAutoUpdates();
@@ -85,10 +88,12 @@ public sealed partial class InstalledViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowNone))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowNone))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     public partial bool HasLoaded { get; set; }
 
     [ObservableProperty]
@@ -98,6 +103,9 @@ public sealed partial class InstalledViewModel : ViewModelBase
     public bool HasError => ErrorMessage is not null;
 
     public bool ShowNone => HasLoaded && !IsBusy && Packages.Count == 0;
+
+    /// <summary>Export and Import are offered (the app wires them; some tests don't).</summary>
+    public bool ShowListActions => _lists is not null;
 
     /// <summary>Loads the list the first time the page is shown.</summary>
     public void EnsureLoaded()
@@ -119,6 +127,12 @@ public sealed partial class InstalledViewModel : ViewModelBase
     partial void OnOnlyAutoUpdatesChanged(bool value) => ApplyFilter();
 
     private bool CanRefresh() => !IsBusy;
+
+    private bool CanExport() => _lists is not null && HasLoaded && !IsBusy;
+
+    // The list as loaded (removable packages only); the popup leaves out the local ones.
+    [RelayCommand(CanExecute = nameof(CanExport))]
+    private Task ExportAsync() => _lists?.ShowExportAsync(_packages) ?? Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()

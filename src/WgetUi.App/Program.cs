@@ -106,6 +106,9 @@ internal static class Program
             sp.GetRequiredService<IPackageDetailsPresenter>(),
             sp.GetRequiredService<ILogger<PackageDetailsViewModel>>(),
             sp.GetRequiredService<AutoUpdateService>()));
+        services.AddSingleton<PackageListOverlay>();
+        services.AddSingleton<IFilePicker, AvaloniaFilePicker>();
+        services.AddSingleton<PackageListLauncher>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<UpdatesViewModel>();
         services.AddSingleton<IUninstallConfirmer, UninstallConfirmDialog>();

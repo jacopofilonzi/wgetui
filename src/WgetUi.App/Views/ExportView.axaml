@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:WgetUi.App.ViewModels"
+             xmlns:c="using:WgetUi.App.Controls"
+             xmlns:l="using:WgetUi.App.Localization"
+             x:Class="WgetUi.App.Views.ExportView"
+             x:DataType="vm:ExportViewModel"
+             Width="640">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+  </UserControl.KeyBindings>
+  <!-- Same chrome as the details popup: header, scrolling body, footer. -->
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Margin="24,24,24,0">
+      <Border Width="48" Height="48" CornerRadius="10" Background="{DynamicResource PackageTileBackground}" VerticalAlignment="Top">
+        <ui:FASymbolIcon Symbol="Save" FontSize="24" Foreground="{DynamicResource PackageTileForeground}" />
+      </Border>
+      <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+        <TextBlock Text="{l:Tr Export_Title}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Classes="Secondary" Text="{l:Tr Export_Subtitle}" FontSize="13" TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="2" Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0" VerticalAlignment="Top"
+              Command="{Binding CloseCommand}" ToolTip.Tip="{l:Tr Details_Close}" AutomationProperties.Name="{l:Tr Details_Close}">
+        <ui:FASymbolIcon Symbol="Dismiss" FontSize="14" />
+      </Button>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="12" Margin="24,20,24,8">
+      <TextBox Text="{Binding Filter}" PlaceholderText="{l:Tr Installed_Filter}" />
+      <CheckBox IsChecked="{Binding SelectAll}" Content="{l:Tr List_SelectAll}" IsVisible="{Binding !ShowNone}" />
+    </StackPanel>
+
+    <Panel Grid.Row="2" Margin="0,0,0,0">
+      <TextBlock Classes="Secondary" Text="{l:Tr Export_None}" IsVisible="{Binding ShowNone}" TextWrapping="Wrap" Margin="24,8" />
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Rows}" Margin="24,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ExportRowViewModel">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" Margin="0,4">
+                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" MinWidth="0"
+                          AutomationProperties.Name="{Binding Name}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <TextBlock Classes="RowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                  <TextBlock Classes="Secondary" Text="{Binding Id}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Id}" />
+                </StackPanel>
+                <c:SourceBadge Grid.Column="2" SourceId="{Binding SourceId}" SourceName="{Binding SourceName}" />
+                <Panel Grid.Column="3" VerticalAlignment="Center" MinWidth="96">
+                  <TextBlock Classes="Version" Text="{Binding Version}" ToolTip.Tip="{Binding Version}" IsVisible="{Binding !IsVersionUnknown}" HorizontalAlignment="Right" />
+                  <TextBlock Classes="Secondary" Text="{l:Tr Version_Unknown}" IsVisible="{Binding IsVersionUnknown}" HorizontalAlignment="Right" />
+                </Panel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Panel>
+
+    <Border Grid.Row="3" Margin="0,12,0,0" Padding="24,16" Background="{DynamicResource DetailsFooterBackground}" BorderBrush="{DynamicResource DetailsCardBorder}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" RowDefinitions="Auto,Auto">
+        <TextBlock Grid.Column="0" Classes="Secondary" Text="{Binding SelectedText}" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="{l:Tr Common_Cancel}" Command="{Binding CloseCommand}" MinWidth="96" />
+        <Button Grid.Column="2" Classes="accent" Content="{l:Tr Export_Save}" Command="{Binding SaveCommand}" MinWidth="96" />
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Margin="0,8,0,0" Text="{Binding ErrorText}" IsVisible="{Binding HasError}"
+                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

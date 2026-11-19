@@ -209,4 +209,14 @@
   <data name="Error_list_write_failed" xml:space="preserve"><value>Non è stato possibile salvare l'elenco.</value></data>
   <data name="Error_list_download_failed" xml:space="preserve"><value>Non è stato possibile scaricare l'elenco. Controlla l'indirizzo e la connessione.</value></data>
   <data name="Error_list_url_invalid" xml:space="preserve"><value>Inserisci un indirizzo completo http:// o https://.</value></data>
+  <data name="Installed_Export" xml:space="preserve"><value>Esporta…</value></data>
+  <data name="Export_Title" xml:space="preserve"><value>Esporta pacchetti</value></data>
+  <data name="Export_Subtitle" xml:space="preserve"><value>Salva un file .wgetui con le versioni installate</value></data>
+  <data name="Export_None" xml:space="preserve"><value>Niente da esportare: solo i pacchetti offerti da un'origine si possono installare altrove.</value></data>
+  <data name="Export_Save" xml:space="preserve"><value>Salva…</value></data>
+  <data name="Export_FileType" xml:space="preserve"><value>Elenco pacchetti wgetui</value></data>
+  <data name="List_SelectAll" xml:space="preserve"><value>Seleziona tutto</value></data>
+  <data name="List_Selected" xml:space="preserve"><value>{0} di {1} selezionati</value></data>
+  <data name="Import_Title" xml:space="preserve"><value>Importa pacchetti</value></data>
+  <data name="Import_FileType" xml:space="preserve"><value>Elenchi di pacchetti</value></data>
 </root>

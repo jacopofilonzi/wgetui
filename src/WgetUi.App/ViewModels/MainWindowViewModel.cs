@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly ManagerRegistry _registry;
     private IReadOnlyList<ManagerError> _initErrors = [];
 
-    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details, AppUpdateViewModel appUpdate, WhatsNewOverlay whatsNew)
+    public MainWindowViewModel(ManagerRegistry registry, SearchViewModel search, UpdatesViewModel updates, InstalledViewModel installed, OperationsViewModel operations, SettingsViewModel settings, DetailsOverlay details, AppUpdateViewModel appUpdate, WhatsNewOverlay whatsNew, PackageListOverlay lists)
     {
         _registry = registry;
         Details = details;
@@ -25,6 +25,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Settings = settings;
         AppUpdate = appUpdate;
         WhatsNew = whatsNew;
+        Lists = lists;
         CurrentPage = updates;
         Loc.CultureChanged += (_, _) =>
         {
@@ -34,6 +35,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             }
 
             WhatsNew.Current?.OnLanguageChanged();
+            Lists.Current?.OnLanguageChanged();
         };
     }
 
@@ -55,6 +57,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     /// <summary>The "What's new" popup, shown over the whole window while open.</summary>
     public WhatsNewOverlay WhatsNew { get; }
+
+    /// <summary>The export / import popups, shown over the whole window while open.</summary>
+    public PackageListOverlay Lists { get; }
 
     [ObservableProperty]
     public partial ViewModelBase CurrentPage { get; set; }
