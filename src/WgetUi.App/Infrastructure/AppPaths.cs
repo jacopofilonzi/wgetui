@@ -8,7 +8,8 @@ namespace WgetUi.App.Infrastructure;
 /// (used by "Start with Windows"). <c>--force-no-tray</c> (development and agent checks) disables the tray: no
 /// icon, closing the window quits, <c>--tray</c> is ignored, so no instance is ever left running hidden.
 /// <c>--updated</c> is passed by the setup when it reopens wgetui after a self-update (for "What's new"); it
-/// changes nothing else. Unknown arguments are ignored.
+/// changes nothing else. <c>--import &lt;path&gt;</c> opens a package list in the import popup (the file association
+/// of <c>.wgetui</c> files); it always shows the window, even with <c>--tray</c>. Unknown arguments are ignored.
 /// </summary>
 public sealed class AppPaths
 {
@@ -16,8 +17,9 @@ public sealed class AppPaths
     public const string TrayArgument = "--tray";
     public const string NoTrayArgument = "--force-no-tray";
     public const string UpdatedArgument = "--updated";
+    public const string ImportArgument = "--import";
 
-    private AppPaths(string dataDirectory, string localDirectory, string? explicitDataDirectory, bool startInTray, bool trayDisabled, bool justUpdated)
+    private AppPaths(string dataDirectory, string localDirectory, string? explicitDataDirectory, bool startInTray, bool trayDisabled, bool justUpdated, string? importPath)
     {
         DataDirectory = dataDirectory;
         SettingsFile = Path.Combine(dataDirectory, "settings.json");
@@ -25,7 +27,8 @@ public sealed class AppPaths
         UpdatesDirectory = Path.Combine(localDirectory, "updates");
         ExplicitDataDirectory = explicitDataDirectory;
         TrayDisabled = trayDisabled;
-        StartInTray = startInTray && !trayDisabled;
+        ImportPath = importPath;
+        StartInTray = startInTray && !trayDisabled && importPath is null;
         JustUpdated = justUpdated;
     }
 
@@ -42,7 +45,10 @@ public sealed class AppPaths
     /// <summary>The <c>--data-dir</c> value (full path), or null for the default folders.</summary>
     public string? ExplicitDataDirectory { get; }
 
-    /// <summary>Started with <c>--tray</c>: no window until the user opens one.</summary>
+    /// <summary>The <c>--import</c> file (full path), or null.</summary>
+    public string? ImportPath { get; }
+
+    /// <summary>Started with <c>--tray</c> (and no <c>--import</c>): no window until the user opens one.</summary>
     public bool StartInTray { get; }
 
     /// <summary>Started with <c>--force-no-tray</c>: no tray icon, closing the window quits.</summary>
@@ -57,13 +63,11 @@ public sealed class AppPaths
         var tray = args.Any(a => string.Equals(a, TrayArgument, StringComparison.OrdinalIgnoreCase));
         var noTray = args.Any(a => string.Equals(a, NoTrayArgument, StringComparison.OrdinalIgnoreCase));
         var updated = args.Any(a => string.Equals(a, UpdatedArgument, StringComparison.OrdinalIgnoreCase));
-        for (var i = 0; i < args.Count - 1; i++)
+        var import = FullPathOrNull(ValueOf(args, ImportArgument));
+        if (ValueOf(args, DataDirArgument) is { } dataDir)
         {
-            if (string.Equals(args[i], DataDirArgument, StringComparison.OrdinalIgnoreCase))
-            {
-                var root = Path.GetFullPath(args[i + 1]);
-                return new AppPaths(root, root, root, tray, noTray, updated);
-            }
+            var root = Path.GetFullPath(dataDir);
+            return new AppPaths(root, root, root, tray, noTray, updated, import);
         }
 
         return new AppPaths(
@@ -72,6 +76,38 @@ public sealed class AppPaths
             null,
             tray,
             noTray,
-            updated);
+            updated,
+            import);
+    }
+
+    private static string? ValueOf(IReadOnlyList<string> args, string name)
+    {
+        for (var i = 0; i < args.Count - 1; i++)
+        {
+            if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+            {
+                return args[i + 1];
+            }
+        }
+
+        return null;
+    }
+
+    // A path Windows can't even normalise is no file to import: ignored like an unknown argument.
+    private static string? FullPathOrNull(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Path.GetFullPath(path);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
     }
 }

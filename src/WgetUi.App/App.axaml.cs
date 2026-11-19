@@ -58,7 +58,7 @@ public sealed partial class App : Application
             var instance = _services.GetRequiredService<SingleInstance>();
             instance.MessageReceived += (_, message) =>
             {
-                if (message == SingleInstance.ActivateMessage)
+                if (message.Command == SingleInstance.ActivateMessage || message.ImportPath is not null)
                 {
                     shell.ShowWindow();
                 }

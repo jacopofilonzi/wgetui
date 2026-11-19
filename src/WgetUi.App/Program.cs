@@ -26,8 +26,9 @@ internal static class Program
         using var instance = SingleInstance.Acquire(SingleInstance.KeyFor(paths.DataDirectory));
         if (!instance.IsPrimary)
         {
-            // Already running for this data directory: bring it forward (unless this is a --tray start) and leave.
-            instance.Send(paths.StartInTray ? SingleInstance.TrayMessage : SingleInstance.ActivateMessage, TimeSpan.FromSeconds(3));
+            // Already running for this data directory: bring it forward (unless this is a --tray start), hand over the
+            // --import file if any, and leave.
+            instance.Send(InstanceMessage.For(paths), TimeSpan.FromSeconds(3));
             return 0;
         }
 
@@ -36,8 +37,9 @@ internal static class Program
         installerMutex.LogFailures(services.GetRequiredService<ILogger<InstallerMutex>>());
 
         // A downloaded update not installed yet installs now, before any UI (installed copy only; see
-        // StartupUpdateInstaller). The setup waits for this process, and so for the installer mutex, to go.
-        if (services.GetRequiredService<StartupUpdateInstaller>().TryStart(paths.StartInTray))
+        // StartupUpdateInstaller). The setup waits for this process, and so for the installer mutex, to go. Not when
+        // the user opened a package list: the update waits for the next start instead of swallowing the file.
+        if (paths.ImportPath is null && services.GetRequiredService<StartupUpdateInstaller>().TryStart(paths.StartInTray))
         {
             services.DisposeAsync().AsTask().GetAwaiter().GetResult();
             return 0;
