@@ -56,11 +56,27 @@ public sealed partial class App : Application
             vm.AppUpdate.QuitRequested += (_, _) => shell.QuitNow();
 
             var instance = _services.GetRequiredService<SingleInstance>();
+            // A package list to import (--import, e.g. a double-clicked .wgetui file): the window and the import popup,
+            // also when started with --tray (AppPaths then never starts hidden). Reading the list is read-only.
+            var lists = _services.GetRequiredService<PackageListLauncher>();
+            var dispatcher = _services.GetRequiredService<IUiDispatcher>();
+            if (paths.ImportPath is { } startupImport)
+            {
+                LogImportRequested(logger);
+                _ = lists.OpenFileAsync(startupImport);
+            }
+
             instance.MessageReceived += (_, message) =>
             {
                 if (message.Command == SingleInstance.ActivateMessage || message.ImportPath is not null)
                 {
                     shell.ShowWindow();
+                }
+
+                if (message.ImportPath is { } import)
+                {
+                    LogImportRequested(logger);
+                    dispatcher.Post(() => _ = lists.OpenFileAsync(import));
                 }
             };
             instance.Listen(logger);
@@ -124,6 +140,9 @@ public sealed partial class App : Application
 
     [LoggerMessage(Level = LogLevel.Information, Message = "wgetui {Version} starting")]
     private static partial void LogStarting(ILogger logger, string version);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Opening a package list to import")]
+    private static partial void LogImportRequested(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Main window created")]
     private static partial void LogWindowCreated(ILogger logger);

@@ -41,6 +41,21 @@ public sealed partial class PackageActions
         }
     }
 
+    /// <summary>As the other overload, with a target version per package (an imported list with pinned versions).</summary>
+    public async Task<OperationRequestResult> RequestAsync(IReadOnlyList<OperationRequest> requests, OperationKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+        try
+        {
+            return await _requester.RequestAsync(requests, kind, _settings.Current.AutoAcceptAgreements, CancellationToken.None);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogRequestFailed(ex, kind, requests.Count);
+            return new OperationRequestResult([], false, []);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not queue {Kind} of {Count} package(s)")]
     private partial void LogRequestFailed(Exception ex, OperationKind kind, int count);
 }

@@ -106,6 +106,8 @@
         <ContentControl Content="{Binding Lists.Current}">
           <ContentControl.DataTemplates>
             <DataTemplate DataType="vm:ExportViewModel"><v:ExportView /></DataTemplate>
+            <DataTemplate DataType="vm:ImportViewModel"><v:ImportView /></DataTemplate>
+            <DataTemplate DataType="vm:ImportUrlViewModel"><v:ImportUrlView /></DataTemplate>
           </ContentControl.DataTemplates>
         </ContentControl>
       </Border>

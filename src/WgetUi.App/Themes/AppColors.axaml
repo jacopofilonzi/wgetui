@@ -22,6 +22,17 @@
       <SolidColorBrush x:Key="AutoUpdateOnBorder" Color="#FFC9C0F5" />
       <SolidColorBrush x:Key="AutoUpdateForcedBackground" Color="#FFF59E0B" />
       <SolidColorBrush x:Key="AutoUpdateForcedForeground" Color="#FF1A1A1A" />
+      <!-- Import status pills (always with their text). -->
+      <SolidColorBrush x:Key="ImportStatus.Checking.Background" Color="#FFEDEDED" />
+      <SolidColorBrush x:Key="ImportStatus.Checking.Foreground" Color="#FF5C5C5C" />
+      <SolidColorBrush x:Key="ImportStatus.ToInstall.Background" Color="#FFE7E3FF" />
+      <SolidColorBrush x:Key="ImportStatus.ToInstall.Foreground" Color="#FF4B3A9E" />
+      <SolidColorBrush x:Key="ImportStatus.Installed.Background" Color="#FFDFF3E4" />
+      <SolidColorBrush x:Key="ImportStatus.Installed.Foreground" Color="#FF1E6B34" />
+      <SolidColorBrush x:Key="ImportStatus.Problem.Background" Color="#FFFDE7E9" />
+      <SolidColorBrush x:Key="ImportStatus.Problem.Foreground" Color="#FFA4262C" />
+      <SolidColorBrush x:Key="ImportStatus.Unavailable.Background" Color="#FFFFF4CE" />
+      <SolidColorBrush x:Key="ImportStatus.Unavailable.Foreground" Color="#FF7A5200" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="InfoButtonForeground" Color="#FF60A5FA" />
@@ -43,6 +54,17 @@
       <SolidColorBrush x:Key="AutoUpdateOnBorder" Color="#FF4A4380" />
       <SolidColorBrush x:Key="AutoUpdateForcedBackground" Color="#FFF59E0B" />
       <SolidColorBrush x:Key="AutoUpdateForcedForeground" Color="#FF1A1A1A" />
+      <!-- Import status pills (always with their text). -->
+      <SolidColorBrush x:Key="ImportStatus.Checking.Background" Color="#FF3A3A3A" />
+      <SolidColorBrush x:Key="ImportStatus.Checking.Foreground" Color="#FFC8C8C8" />
+      <SolidColorBrush x:Key="ImportStatus.ToInstall.Background" Color="#FF2E2A4F" />
+      <SolidColorBrush x:Key="ImportStatus.ToInstall.Foreground" Color="#FFC9BFFF" />
+      <SolidColorBrush x:Key="ImportStatus.Installed.Background" Color="#FF1F3A27" />
+      <SolidColorBrush x:Key="ImportStatus.Installed.Foreground" Color="#FF9BE0AE" />
+      <SolidColorBrush x:Key="ImportStatus.Problem.Background" Color="#FF442726" />
+      <SolidColorBrush x:Key="ImportStatus.Problem.Foreground" Color="#FFFFB3B0" />
+      <SolidColorBrush x:Key="ImportStatus.Unavailable.Background" Color="#FF433519" />
+      <SolidColorBrush x:Key="ImportStatus.Unavailable.Foreground" Color="#FFFFD98A" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

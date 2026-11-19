@@ -134,6 +134,17 @@ public sealed partial class InstalledViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanExport))]
     private Task ExportAsync() => _lists?.ShowExportAsync(_packages) ?? Task.CompletedTask;
 
+    /// <summary>"Import…" is offered (the app wires importing; some tests don't).</summary>
+    public bool ShowImport => _lists?.CanImport == true;
+
+    public bool ShowImportFromUrl => _lists?.CanImportFromUrl == true;
+
+    [RelayCommand]
+    private Task ImportFromFileAsync() => _lists?.ImportFromFileAsync() ?? Task.CompletedTask;
+
+    [RelayCommand]
+    private Task ImportFromUrlAsync() => _lists?.ImportFromUrlAsync() ?? Task.CompletedTask;
+
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()
     {

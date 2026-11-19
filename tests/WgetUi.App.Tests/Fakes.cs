@@ -90,7 +90,22 @@ internal sealed class ScriptedManager : IPackageManager
         return Task.FromResult<IReadOnlyList<Package>>([.. Upgrades]);
     }
 
-    public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) => Task.FromResult(PackageAgreements.None(package));
+    /// <summary>Agreements per package id (missing: none).</summary>
+    public Dictionary<string, Func<Package, PackageAgreements>> Agreements { get; } = [];
+
+    public Task<PackageAgreements> GetAgreementsAsync(Package package, CancellationToken cancellationToken) =>
+        Task.FromResult(Agreements.TryGetValue(package.Id, out var make) ? make(package) : PackageAgreements.None(package));
+
+    /// <summary>What <see cref="FindInSourceAsync"/> returns per package id (missing: not offered).</summary>
+    public Dictionary<string, PackageOffer> Offers { get; } = [];
+
+    /// <summary>Package ids whose lookup fails (the source cannot be asked).</summary>
+    public HashSet<string> FailingLookups { get; } = [];
+
+    public Task<PackageOffer?> FindInSourceAsync(Package package, CancellationToken cancellationToken) =>
+        FailingLookups.Contains(package.Id)
+            ? Task.FromException<PackageOffer?>(new PackageManagerException(ErrorCodes.CatalogError, "scripted failure"))
+            : Task.FromResult(Offers.GetValueOrDefault(package.Id));
 
     public Task<OperationResult> InstallAsync(Package package, OperationOptions options, IProgress<OperationProgress> progress, CancellationToken cancellationToken)
     {

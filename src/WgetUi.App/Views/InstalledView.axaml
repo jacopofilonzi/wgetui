@@ -14,6 +14,14 @@
       <Button Grid.Column="2" Content="{l:Tr Updates_Refresh}" Command="{Binding RefreshCommand}" />
       <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowListActions}">
         <Button Content="{l:Tr Installed_Export}" Command="{Binding ExportCommand}" />
+        <DropDownButton Content="{l:Tr Installed_Import}" IsVisible="{Binding ShowImport}">
+          <DropDownButton.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="{l:Tr Installed_ImportFromFile}" Command="{Binding ImportFromFileCommand}" />
+              <MenuItem Header="{l:Tr Installed_ImportFromUrl}" Command="{Binding ImportFromUrlCommand}" IsVisible="{Binding ShowImportFromUrl}" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
       </StackPanel>
     </Grid>
     <ProgressBar Grid.Row="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />

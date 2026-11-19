@@ -219,4 +219,35 @@
   <data name="List_Selected" xml:space="preserve"><value>{0} di {1} selezionati</value></data>
   <data name="Import_Title" xml:space="preserve"><value>Importa pacchetti</value></data>
   <data name="Import_FileType" xml:space="preserve"><value>Elenchi di pacchetti</value></data>
+  <data name="Installed_Import" xml:space="preserve"><value>Importa…</value></data>
+  <data name="Installed_ImportFromFile" xml:space="preserve"><value>Da file…</value></data>
+  <data name="Installed_ImportFromUrl" xml:space="preserve"><value>Da URL…</value></data>
+  <data name="Import_Count" xml:space="preserve"><value>{0} pacchetti</value></data>
+  <data name="Import_CountOne" xml:space="preserve"><value>1 pacchetto</value></data>
+  <data name="Import_ExportedOn" xml:space="preserve"><value>esportato il {0}</value></data>
+  <data name="Import_ModeLatest" xml:space="preserve"><value>Versioni più recenti</value></data>
+  <data name="Import_ModePinned" xml:space="preserve"><value>Versioni dell'elenco</value></data>
+  <data name="Import_ModeLatestHint" xml:space="preserve"><value>Installa la versione più recente disponibile oggi.</value></data>
+  <data name="Import_ModePinnedHint" xml:space="preserve"><value>Installa esattamente la versione indicata nell'elenco.</value></data>
+  <data name="Import_ColumnVersion" xml:space="preserve"><value>Versione</value></data>
+  <data name="Import_ColumnStatus" xml:space="preserve"><value>Stato</value></data>
+  <data name="Import_PinnedVersion" xml:space="preserve"><value>elenco {0}</value></data>
+  <data name="Import_LatestVersion" xml:space="preserve"><value>più recente {0}</value></data>
+  <data name="Import_LatestUnknown" xml:space="preserve"><value>Più recente</value></data>
+  <data name="Import_StatusChecking" xml:space="preserve"><value>Verifica…</value></data>
+  <data name="Import_StatusToInstall" xml:space="preserve"><value>Da installare</value></data>
+  <data name="Import_StatusInstalled" xml:space="preserve"><value>Installato {0}</value></data>
+  <data name="Import_StatusInstalledUnknown" xml:space="preserve"><value>Installato</value></data>
+  <data name="Import_StatusNotFound" xml:space="preserve"><value>Non trovato</value></data>
+  <data name="Import_StatusSourceUnavailable" xml:space="preserve"><value>Origine non disponibile</value></data>
+  <data name="Import_StatusVersionNotAvailable" xml:space="preserve"><value>Versione non disponibile</value></data>
+  <data name="Import_NoteUpToDate" xml:space="preserve"><value>Già aggiornato</value></data>
+  <data name="Import_NoteSameVersion" xml:space="preserve"><value>Stessa versione</value></data>
+  <data name="Import_Install" xml:space="preserve"><value>Installa selezionati ({0})</value></data>
+  <data name="Import_Empty" xml:space="preserve"><value>L'elenco non contiene pacchetti.</value></data>
+  <data name="Import_LoadFailed" xml:space="preserve"><value>Impossibile aprire l'elenco: {0}</value></data>
+  <data name="ImportUrl_Title" xml:space="preserve"><value>Importa da URL</value></data>
+  <data name="ImportUrl_Address" xml:space="preserve"><value>Indirizzo dell'elenco</value></data>
+  <data name="ImportUrl_Info" xml:space="preserve"><value>L'elenco contiene solo nomi e versioni: vedrai ogni pacchetto prima di installarlo.</value></data>
+  <data name="ImportUrl_Load" xml:space="preserve"><value>Carica</value></data>
 </root>

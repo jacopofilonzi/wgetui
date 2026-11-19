@@ -108,6 +108,7 @@ internal static class Program
             sp.GetRequiredService<AutoUpdateService>()));
         services.AddSingleton<PackageListOverlay>();
         services.AddSingleton<IFilePicker, AvaloniaFilePicker>();
+        services.AddSingleton<IPackageListDownloader, HttpPackageListDownloader>();
         services.AddSingleton<PackageListLauncher>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<UpdatesViewModel>();
