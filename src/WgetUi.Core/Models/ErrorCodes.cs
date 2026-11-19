@@ -36,4 +36,13 @@ public static class ErrorCodes
     public const string AppUpdateHashMismatch = "app_update_hash_mismatch";
     public const string AppUpdateLaunchFailed = "app_update_launch_failed";
     public const string AppUpdateInstallFailed = "app_update_install_failed";
+
+    // Package lists (export / import).
+    public const string ListInvalid = "list_invalid";
+    public const string ListNewerFormat = "list_newer_format";
+    public const string ListTooLarge = "list_too_large";
+    public const string ListReadFailed = "list_read_failed";
+    public const string ListWriteFailed = "list_write_failed";
+    public const string ListDownloadFailed = "list_download_failed";
+    public const string ListUrlInvalid = "list_url_invalid";
 }

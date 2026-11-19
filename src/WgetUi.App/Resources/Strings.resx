@@ -202,4 +202,11 @@
   <data name="WhatsNew_Close" xml:space="preserve"><value>Close</value></data>
   <data name="WhatsNew_Empty" xml:space="preserve"><value>No release notes are available for this version.</value></data>
   <data name="Settings_WhatsNew" xml:space="preserve"><value>What's new</value></data>
+  <data name="Error_list_invalid" xml:space="preserve"><value>This is not a package list wgetui can read.</value></data>
+  <data name="Error_list_newer_format" xml:space="preserve"><value>This list was saved by a newer wgetui. Update wgetui to open it.</value></data>
+  <data name="Error_list_too_large" xml:space="preserve"><value>The list is too large (more than 1 MB).</value></data>
+  <data name="Error_list_read_failed" xml:space="preserve"><value>The list could not be read.</value></data>
+  <data name="Error_list_write_failed" xml:space="preserve"><value>The list could not be saved.</value></data>
+  <data name="Error_list_download_failed" xml:space="preserve"><value>The list could not be downloaded. Check the address and the connection.</value></data>
+  <data name="Error_list_url_invalid" xml:space="preserve"><value>Enter a full http:// or https:// address.</value></data>
 </root>

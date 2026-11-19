@@ -202,4 +202,11 @@
   <data name="WhatsNew_Close" xml:space="preserve"><value>Chiudi</value></data>
   <data name="WhatsNew_Empty" xml:space="preserve"><value>Non ci sono note di rilascio per questa versione.</value></data>
   <data name="Settings_WhatsNew" xml:space="preserve"><value>Novità</value></data>
+  <data name="Error_list_invalid" xml:space="preserve"><value>Questo non è un elenco di pacchetti che wgetui sa leggere.</value></data>
+  <data name="Error_list_newer_format" xml:space="preserve"><value>Questo elenco è stato salvato da una versione più recente di wgetui. Aggiorna wgetui per aprirlo.</value></data>
+  <data name="Error_list_too_large" xml:space="preserve"><value>L'elenco è troppo grande (più di 1 MB).</value></data>
+  <data name="Error_list_read_failed" xml:space="preserve"><value>Non è stato possibile leggere l'elenco.</value></data>
+  <data name="Error_list_write_failed" xml:space="preserve"><value>Non è stato possibile salvare l'elenco.</value></data>
+  <data name="Error_list_download_failed" xml:space="preserve"><value>Non è stato possibile scaricare l'elenco. Controlla l'indirizzo e la connessione.</value></data>
+  <data name="Error_list_url_invalid" xml:space="preserve"><value>Inserisci un indirizzo completo http:// o https://.</value></data>
 </root>

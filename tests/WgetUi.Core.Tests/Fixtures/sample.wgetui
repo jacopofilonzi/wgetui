@@ -1,0 +1,13 @@
+{
+  "format": "wgetui-packages",
+  "formatVersion": 1,
+  "exportedAt": "2026-11-18T21:00:00Z",
+  "exportedBy": "wgetui 0.4.0",
+  "futureField": { "ignored": true },
+  "packages": [
+    { "managerId": "winget", "sourceId": "winget", "id": "7zip.7zip", "name": "7-Zip", "version": "26.00", "extra": 1 },
+    { "managerId": "winget", "sourceId": "msstore", "id": "9NKSQGP7F2NH", "name": "WhatsApp" },
+    { "managerId": "winget", "sourceId": "winget", "id": "Git.Git" },
+    { "managerId": "winget", "sourceId": "winget", "id": "7ZIP.7ZIP", "name": "duplicate" }
+  ]
+}
